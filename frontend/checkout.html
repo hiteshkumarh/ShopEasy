@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — ShopEasy</title>
+  <meta name="description" content="Secure checkout simulation for ShopEasy customer orders.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/cart.css">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="brand-logo" aria-label="ShopEasy Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>ShopEasy</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="products.html" class="nav-link">Shop</a>
+        <a href="orders.html" class="nav-link">Orders</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="products.html" class="nav-icon-btn" title="Search catalog" aria-label="Search catalog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+
+        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </a>
+
+        <a href="cart.html" class="nav-icon-btn" title="Shopping Cart" aria-label="Shopping Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-badge" style="display:none;">0</span>
+        </a>
+
+        <button type="button" class="mobile-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div class="mobile-nav-drawer" aria-label="Mobile Navigation">
+      <a href="index.html" class="mobile-nav-link">Home</a>
+      <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
+      <a href="orders.html" class="mobile-nav-link">My Orders</a>
+      <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
+      <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
+      <div style="margin-top:auto;padding-top:var(--space-6);">
+        <a href="login.html" class="btn btn-primary btn-block">Sign In / Register</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="checkout-section">
+        <header style="margin-bottom:var(--space-8);">
+          <h1 style="font-size:var(--text-3xl);font-weight:700;letter-spacing:-0.025em;margin-bottom:var(--space-2);">Checkout</h1>
+          <p style="color:var(--color-muted);font-size:var(--text-base);">Confirm your delivery details to complete your simulated order.</p>
+        </header>
+
+        <form id="checkout-form" class="checkout-layout">
+          <!-- Left Column: Forms -->
+          <div>
+            <!-- Step 1: Customer Contact -->
+            <div class="checkout-card">
+              <h2 class="checkout-step-title">
+                <span class="step-number">1</span>
+                Customer Contact
+              </h2>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="checkout-name" class="form-label">Full Name</label>
+                  <input type="text" id="checkout-name" class="form-control" value="Aarav Mehta" required>
+                </div>
+                <div class="form-group">
+                  <label for="checkout-phone" class="form-label">Phone Number</label>
+                  <input type="tel" id="checkout-phone" class="form-control" value="+91 98000 12345" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="checkout-email" class="form-label">Email Address (Optional notification receipt)</label>
+                <input type="email" id="checkout-email" class="form-control" placeholder="aarav.sample@shopeasy.example">
+              </div>
+            </div>
+
+            <!-- Step 2: Delivery Address -->
+            <div class="checkout-card">
+              <h2 class="checkout-step-title">
+                <span class="step-number">2</span>
+                Shipping Address
+              </h2>
+
+              <div class="form-group">
+                <label for="checkout-address" class="form-label">Street Address &amp; Landmark</label>
+                <input type="text" id="checkout-address" class="form-control" value="Flat 402, Lotus Residency, 14th Main Road, Sector 3" required>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="checkout-city" class="form-label">City</label>
+                  <input type="text" id="checkout-city" class="form-control" value="Bengaluru" required>
+                </div>
+                <div class="form-group">
+                  <label for="checkout-state" class="form-label">State</label>
+                  <input type="text" id="checkout-state" class="form-control" value="Karnataka" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="checkout-pincode" class="form-label">PIN Code</label>
+                  <input type="text" id="checkout-pincode" class="form-control" value="560034" maxlength="6" required>
+                </div>
+                <div class="form-group">
+                  <label for="checkout-country" class="form-label">Country</label>
+                  <input type="text" id="checkout-country" class="form-control" value="India" readonly>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Dummy Payment Simulation -->
+            <div class="checkout-card">
+              <h2 class="checkout-step-title">
+                <span class="step-number">3</span>
+                Payment Method (Simulation)
+              </h2>
+
+              <div class="payment-method-pill">
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                  <input type="radio" id="pay-dummy" name="payment-method" checked style="accent-color:var(--color-primary);width:18px;height:18px;">
+                  <label for="pay-dummy" style="font-weight:600;font-size:var(--text-sm);cursor:pointer;">
+                    Simulated Sandbox Payment
+                  </label>
+                </div>
+                <span class="payment-badge">Demo Mode</span>
+              </div>
+
+              <p style="font-size:var(--text-xs);color:var(--color-muted);line-height:1.5;">
+                <strong>Notice:</strong> This is an educational UI simulation. No actual payment gateway is connected and no credit card or financial data will be captured.
+              </p>
+            </div>
+          </div>
+
+          <!-- Right Column: Order Summary -->
+          <div>
+            <div class="summary-card">
+              <h2 class="summary-title">Order Review</h2>
+              
+              <!-- Items list preview -->
+              <div id="checkout-items-preview" style="margin-bottom:var(--space-4);">
+                <!-- Populated dynamically -->
+              </div>
+
+              <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="checkout-subtotal">₹0</span>
+              </div>
+
+              <div class="summary-row">
+                <span>Shipping</span>
+                <span id="checkout-shipping">FREE</span>
+              </div>
+
+              <div class="summary-row total">
+                <span>Order Total</span>
+                <span id="checkout-total">₹0</span>
+              </div>
+
+              <button type="submit" id="place-order-btn" class="btn btn-primary btn-block btn-lg">
+                Complete Simulated Order
+              </button>
+
+              <div style="margin-top:var(--space-4);text-align:center;">
+                <a href="cart.html" style="font-size:var(--text-xs);color:var(--color-muted);text-decoration:underline;">
+                  Modify Bag Items
+                </a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <p class="footer-disclaimer">
+          &copy; 2026 ShopEasy Inc. Checkout UI Simulation.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/navigation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initCheckoutPage();
+    });
+
+    function initCheckoutPage() {
+      const cart = getCart();
+      const previewContainer = document.getElementById('checkout-items-preview');
+      const subtotalEl = document.getElementById('checkout-subtotal');
+      const shippingEl = document.getElementById('checkout-shipping');
+      const totalEl = document.getElementById('checkout-total');
+      const form = document.getElementById('checkout-form');
+
+      // If cart empty, redirect to products or cart
+      if (cart.length === 0) {
+        showToast('Your bag is empty! Add products before checking out.', 'error');
+        setTimeout(() => {
+          window.location.href = 'products.html';
+        }, 800);
+        return;
+      }
+
+      // Render summary items
+      const subtotal = getCartSubtotal();
+      const shipping = subtotal > 1999 ? 0 : 99;
+      const total = subtotal + shipping;
+
+      if (previewContainer) {
+        previewContainer.innerHTML = cart.map(item => `
+          <div class="checkout-summary-item">
+            <span style="font-weight:500;">${item.product.name} &times; ${item.quantity}</span>
+            <span style="font-weight:600;">${formatINR(item.product.price * item.quantity)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (subtotalEl) subtotalEl.textContent = formatINR(subtotal);
+      if (shippingEl) shippingEl.innerHTML = shipping === 0 ? '<strong style="color:var(--color-success)">FREE</strong>' : formatINR(shipping);
+      if (totalEl) totalEl.textContent = formatINR(total);
+
+      // Handle checkout submission
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const placeBtn = document.getElementById('place-order-btn');
+          if (placeBtn) {
+            placeBtn.disabled = true;
+            placeBtn.textContent = 'Processing Order...';
+          }
+
+          // Generate simulated order
+          const randomOrderNum = Math.floor(10000 + Math.random() * 90000);
+          const newOrder = {
+            id: `SE-${randomOrderNum}`,
+            date: 'Just now',
+            status: 'Confirmed (Processing)',
+            statusClass: 'badge-primary',
+            total: total,
+            items: cart.map(c => ({
+              id: c.productId,
+              name: c.product.name,
+              quantity: c.quantity,
+              price: c.product.price,
+              image: c.product.image
+            }))
+          };
+
+          // Save to simulated orders in localStorage
+          try {
+            const rawOrders = localStorage.getItem('shopeasy_orders');
+            const orders = rawOrders ? JSON.parse(rawOrders) : [...MOCK_ORDERS];
+            orders.unshift(newOrder);
+            localStorage.setItem('shopeasy_orders', JSON.stringify(orders));
+          } catch (err) {
+            console.error('Failed to save order to localStorage', err);
+          }
+
+          // Clear cart
+          clearCart();
+
+          setTimeout(() => {
+            showToast(`Order #${newOrder.id} placed successfully!`);
+            window.location.href = 'orders.html';
+          }, 800);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
+

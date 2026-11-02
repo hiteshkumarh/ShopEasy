@@ -1,0 +1,169 @@
+/* ==========================================================================
+   ShopEasy --- Authentication Styles
+   Phone Number Input & Simulated OTP Verification Interface
+   ========================================================================== */
+
+.auth-page {
+  min-height: calc(100vh - 52px - 260px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-4);
+  background-color: var(--color-surface);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: #FFFFFF;
+  border-radius: var(--radius-xl);
+  padding: var(--space-10) var(--space-8);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border-subtle);
+  text-align: center;
+}
+
+.auth-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background-color: rgba(0, 113, 227, 0.1);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+}
+
+.auth-icon-wrap svg {
+  width: 26px;
+  height: 26px;
+}
+
+.auth-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.auth-desc {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.45;
+  margin-bottom: var(--space-8);
+}
+
+/* Phone input with country code */
+.phone-input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: #FFFFFF;
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  margin-bottom: var(--space-5);
+}
+
+.phone-input-group:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+}
+
+.phone-prefix {
+  padding: 12px 14px;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-muted);
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border-subtle);
+  user-select: none;
+}
+
+.phone-input {
+  flex: 1;
+  padding: 12px 14px;
+  border: none;
+  font-size: var(--text-base);
+  outline: none;
+  letter-spacing: 0.05em;
+}
+
+/* OTP Step Container */
+.otp-step {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.otp-step.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* OTP Digits Inputs */
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 var(--space-6);
+}
+
+.otp-digit {
+  width: 48px;
+  height: 54px;
+  text-align: center;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.otp-digit:focus {
+  background-color: #FFFFFF;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+}
+
+.otp-resend {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  margin-top: var(--space-4);
+}
+
+.otp-resend button {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.auth-note {
+  margin-top: var(--space-6);
+  padding: var(--space-3);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: var(--space-8) var(--space-5);
+  }
+  .otp-digit {
+    width: 40px;
+    height: 48px;
+    font-size: var(--text-xl);
+  }
+}
+

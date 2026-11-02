@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopEasy — Designed for Modern Everyday Living</title>
+  <meta name="description" content="Explore ShopEasy for premium, minimalist lifestyle goods, personal tech, and thoughtful everyday essentials.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       Site Header / Navigation
+       ========================================================================= -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <!-- Brand Logo -->
+      <a href="index.html" class="brand-logo" aria-label="ShopEasy Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>ShopEasy</span>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="index.html" class="nav-link active">Home</a>
+        <a href="products.html" class="nav-link">Shop</a>
+        <a href="#categories" class="nav-link">Categories</a>
+        <a href="orders.html" class="nav-link">Orders</a>
+      </nav>
+
+      <!-- Navigation Actions -->
+      <div class="nav-actions">
+        <a href="products.html" class="nav-icon-btn" title="Search catalog" aria-label="Search catalog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+
+        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </a>
+
+        <a href="cart.html" class="nav-icon-btn" title="Shopping Cart" aria-label="Shopping Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-badge" style="display:none;">0</span>
+        </a>
+
+        <!-- Mobile Menu Hamburger -->
+        <button type="button" class="mobile-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div class="mobile-nav-drawer" aria-label="Mobile Navigation">
+      <a href="index.html" class="mobile-nav-link">Home</a>
+      <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
+      <a href="products.html?category=electronics" class="mobile-nav-link">Electronics</a>
+      <a href="products.html?category=accessories" class="mobile-nav-link">Accessories</a>
+      <a href="orders.html" class="mobile-nav-link">My Orders</a>
+      <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
+      <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
+      <div style="margin-top:auto;padding-top:var(--space-6);">
+        <a href="login.html" class="btn btn-primary btn-block">Sign In / Register</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- =======================================================================
+         B. Hero Section
+         ======================================================================= -->
+    <section class="hero-section">
+      <div class="container hero-content">
+        <span class="hero-eyebrow">The New Standard</span>
+        <h1 class="hero-title">Elegance meets everyday utility.</h1>
+        <p class="hero-subtitle">
+          Designed with intentional simplicity. Thoughtfully curated personal tech, everyday carry, and home essentials.
+        </p>
+        <div class="hero-actions">
+          <a href="products.html" class="btn btn-primary btn-lg">Shop Now</a>
+          <a href="products.html?category=electronics" class="btn btn-secondary btn-lg">Explore Audio</a>
+        </div>
+        <div class="hero-image-wrap">
+          <img 
+            src="https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=1600&auto=format&fit=crop&q=85" 
+            alt="ShopEasy Studio Pro Wireless Headphones on minimal studio background" 
+            class="hero-image"
+            onerror="handleImageError(this, 'ShopEasy Studio Headphones')"
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         C. Category Section
+         ======================================================================= -->
+    <section class="categories-section" id="categories">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-eyebrow">Collections</span>
+          <h2 class="section-title">Shop by Category</h2>
+          <p class="section-subtitle">Discover handcrafted collections refined for your everyday moments.</p>
+        </div>
+
+        <div class="categories-grid">
+          <!-- Electronics -->
+          <a href="products.html?category=electronics" class="category-card">
+            <div class="category-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+              </svg>
+            </div>
+            <span class="category-name">Electronics</span>
+            <span class="category-count">Audio &amp; Gear</span>
+          </a>
+
+          <!-- Fashion -->
+          <a href="products.html?category=fashion" class="category-card">
+            <div class="category-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path>
+              </svg>
+            </div>
+            <span class="category-name">Fashion</span>
+            <span class="category-count">Apparel &amp; Footwear</span>
+          </a>
+
+          <!-- Accessories -->
+          <a href="products.html?category=accessories" class="category-card">
+            <div class="category-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="7"></circle>
+                <polyline points="12 9 12 12 13.5 13.5"></polyline>
+                <path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7l.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83"></path>
+              </svg>
+            </div>
+            <span class="category-name">Accessories</span>
+            <span class="category-count">Watches &amp; Bags</span>
+          </a>
+
+          <!-- Home & Living -->
+          <a href="products.html?category=home" class="category-card">
+            <div class="category-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+            </div>
+            <span class="category-name">Home &amp; Living</span>
+            <span class="category-count">Living &amp; Workspace</span>
+          </a>
+
+          <!-- Beauty -->
+          <a href="products.html?category=beauty" class="category-card">
+            <div class="category-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+              </svg>
+            </div>
+            <span class="category-name">Beauty</span>
+            <span class="category-count">Botanical Care</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         D. Featured Products Section
+         ======================================================================= -->
+    <section class="featured-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-eyebrow">Handpicked</span>
+          <h2 class="section-title">Featured Essentials</h2>
+          <p class="section-subtitle">Our most coveted releases, calibrated for performance and longevity.</p>
+        </div>
+
+        <div class="products-grid-home" id="featured-products-container">
+          <!-- Populated dynamically by products.js -->
+        </div>
+
+        <div style="text-align:center;margin-top:var(--space-12);">
+          <a href="products.html" class="btn btn-secondary btn-lg">Browse Full Catalog &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         E. Latest Products Section
+         ======================================================================= -->
+    <section class="latest-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-eyebrow">Just Landed</span>
+          <h2 class="section-title">Latest Arrivals</h2>
+          <p class="section-subtitle">Fresh additions engineered to enhance your everyday flow.</p>
+        </div>
+
+        <div class="products-grid-home" id="latest-products-container">
+          <!-- Populated dynamically by products.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         F. Promotional Banner
+         ======================================================================= -->
+    <section class="container">
+      <div class="promo-banner">
+        <div class="promo-banner-content">
+          <span class="promo-tag">Complimentary Shipping</span>
+          <h2 class="promo-title">Free doorstep delivery on orders above ₹1,999</h2>
+          <p class="promo-subtitle">
+            Experience our premium checkout with dummy payment simulation and instant order tracking updates.
+          </p>
+          <a href="products.html" class="btn btn-primary btn-lg">Discover Products</a>
+        </div>
+        <div class="promo-image-wrap">
+          <img 
+            src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80" 
+            alt="Smart Watch Promotional Display" 
+            class="promo-image"
+            onerror="handleImageError(this, 'ShopEasy Watch')"
+          >
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       G. Site Footer
+       ========================================================================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="brand-logo" style="margin-bottom:var(--space-3);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span>ShopEasy</span>
+          </div>
+          <p class="footer-brand-desc">
+            ShopEasy is a portfolio and learning e-commerce platform crafted with minimalist aesthetic principles, pure vanilla web technologies, and modular architecture.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Shop</h4>
+          <ul class="footer-links">
+            <li><a href="products.html">All Products</a></li>
+            <li><a href="products.html?category=electronics">Electronics</a></li>
+            <li><a href="products.html?category=fashion">Fashion</a></li>
+            <li><a href="products.html?category=accessories">Accessories</a></li>
+            <li><a href="products.html?category=home">Home &amp; Living</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="orders.html">Order Status &amp; Tracking</a></li>
+            <li><a href="profile.html">Customer Profile</a></li>
+            <li><a href="cart.html">Shopping Bag</a></li>
+            <li><a href="login.html">Sign In / Register</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Connect</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/hiteshkumarh/ShopEasy" target="_blank" rel="noopener">GitHub Repository</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Support Simulation</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-disclaimer">
+          &copy; 2026 ShopEasy Inc. All rights reserved. Portfolio demonstration prototype. Not intended for commercial transaction.
+        </p>
+        <div style="display:flex;gap:var(--space-4);">
+          <span style="color:var(--color-muted);">Currency: INR (₹)</span>
+          <span style="color:var(--color-muted);">FastAPI &amp; MySQL Ready</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/navigation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initHomePageProducts();
+    });
+  </script>
+</body>
+</html>
+

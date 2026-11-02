@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders — ShopEasy</title>
+  <meta name="description" content="Track your orders, view order details, and review your purchase history.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="brand-logo" aria-label="ShopEasy Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>ShopEasy</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="products.html" class="nav-link">Shop</a>
+        <a href="orders.html" class="nav-link active">Orders</a>
+        <a href="profile.html" class="nav-link">Profile</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="products.html" class="nav-icon-btn" title="Search catalog" aria-label="Search catalog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+
+        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </a>
+
+        <a href="cart.html" class="nav-icon-btn" title="Shopping Cart" aria-label="Shopping Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-badge" style="display:none;">0</span>
+        </a>
+
+        <button type="button" class="mobile-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div class="mobile-nav-drawer" aria-label="Mobile Navigation">
+      <a href="index.html" class="mobile-nav-link">Home</a>
+      <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
+      <a href="orders.html" class="mobile-nav-link active">My Orders</a>
+      <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
+      <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="orders-section">
+        <header style="margin-bottom:var(--space-8);">
+          <h1 style="font-size:var(--text-3xl);font-weight:700;letter-spacing:-0.025em;margin-bottom:var(--space-2);">Order History</h1>
+          <p style="color:var(--color-muted);font-size:var(--text-base);">Track shipments, inspect receipt details, and view purchase timelines.</p>
+        </header>
+
+        <!-- Orders container populated dynamically -->
+        <div id="orders-container">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <p class="footer-disclaimer">
+          &copy; 2026 ShopEasy Inc. Customer Orders UI Prototype.
+        </p>
+        <div style="display:flex;gap:var(--space-4);">
+          <a href="products.html" style="color:var(--color-primary);">Explore Products</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/navigation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      renderOrdersPage();
+    });
+
+    function renderOrdersPage() {
+      const container = document.getElementById('orders-container');
+      if (!container) return;
+
+      let orders = [];
+      try {
+        const stored = localStorage.getItem('shopeasy_orders');
+        orders = stored ? JSON.parse(stored) : [...MOCK_ORDERS];
+      } catch (e) {
+        orders = [...MOCK_ORDERS];
+      }
+
+      if (orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <h2 class="empty-state-title">No Orders Yet</h2>
+            <p class="empty-state-desc">When you place an order, it will appear here with instant tracking status.</p>
+            <a href="products.html" class="btn btn-primary">Start Shopping</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = orders.map(order => {
+        const itemsList = order.items.map(item => `
+          <div class="order-item-row">
+            <img 
+              src="${item.image}" 
+              alt="${item.name}" 
+              class="order-item-thumb" 
+              onerror="handleImageError(this, '${item.name}')"
+            >
+            <div class="order-item-info">
+              <h4 class="order-item-title">${item.name}</h4>
+              <span class="order-item-qty">Quantity: ${item.quantity}</span>
+            </div>
+            <div class="order-item-price">${formatINR(item.price * item.quantity)}</div>
+          </div>
+        `).join('');
+
+        return `
+          <article class="order-card">
+            <header class="order-card-header">
+              <div class="order-meta-group">
+                <div class="order-meta-item">
+                  <span class="order-meta-label">Order Number</span>
+                  <span class="order-meta-val">${order.id}</span>
+                </div>
+                <div class="order-meta-item">
+                  <span class="order-meta-label">Date Placed</span>
+                  <span class="order-meta-val">${order.date}</span>
+                </div>
+                <div class="order-meta-item">
+                  <span class="order-meta-label">Total Amount</span>
+                  <span class="order-meta-val">${formatINR(order.total)}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-3);">
+                <span class="badge ${order.statusClass || 'badge-success'}">${order.status}</span>
+                <button 
+                  type="button" 
+                  class="btn btn-secondary btn-sm" 
+                  onclick="showToast('Order ${order.id} is registered in the simulated tracking ledger.')"
+                >
+                  View Details
+                </button>
+              </div>
+            </header>
+            <div class="order-card-body">
+              ${itemsList}
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
+

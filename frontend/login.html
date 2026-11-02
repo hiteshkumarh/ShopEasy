@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In / Register — ShopEasy</title>
+  <meta name="description" content="Sign in or register to ShopEasy using your mobile phone number and one-time verification password.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="brand-logo" aria-label="ShopEasy Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span>ShopEasy</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="products.html" class="nav-link">Shop</a>
+        <a href="index.html#categories" class="nav-link">Categories</a>
+        <a href="orders.html" class="nav-link">Orders</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="products.html" class="nav-icon-btn" title="Search catalog" aria-label="Search catalog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </a>
+
+        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </a>
+
+        <a href="cart.html" class="nav-icon-btn" title="Shopping Cart" aria-label="Shopping Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-badge" style="display:none;">0</span>
+        </a>
+
+        <button type="button" class="mobile-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div class="mobile-nav-drawer" aria-label="Mobile Navigation">
+      <a href="index.html" class="mobile-nav-link">Home</a>
+      <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
+      <a href="orders.html" class="mobile-nav-link">My Orders</a>
+      <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
+      <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
+    </div>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-card">
+      <div class="auth-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+      </div>
+
+      <!-- Step 1: Phone Number Input -->
+      <div id="phone-step">
+        <h1 class="auth-title">Sign in to ShopEasy</h1>
+        <p class="auth-desc">Enter your phone number to receive a one-time verification password.</p>
+
+        <form id="phone-form">
+          <div class="phone-input-group">
+            <span class="phone-prefix">+91</span>
+            <input 
+              type="tel" 
+              id="phone-number-input" 
+              class="phone-input" 
+              placeholder="98765 43210" 
+              maxlength="10" 
+              required
+              aria-label="10-digit mobile number"
+              autocomplete="tel"
+            >
+          </div>
+
+          <button type="submit" id="send-otp-btn" class="btn btn-primary btn-block btn-lg">
+            Send One-Time Password
+          </button>
+        </form>
+
+        <div class="auth-note">
+          <strong>Prototype Simulation Notice:</strong> Real SMS gateway will be integrated in later backend phases. You may enter any 10-digit mobile number for UI testing.
+        </div>
+      </div>
+
+      <!-- Step 2: OTP Verification Interface -->
+      <div id="otp-step" class="otp-step">
+        <h1 class="auth-title">Verify Phone Number</h1>
+        <p class="auth-desc">
+          Enter the 6-digit code sent to <strong id="display-phone-number">+91</strong>
+        </p>
+
+        <form id="otp-form">
+          <div class="otp-inputs">
+            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 1">
+            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 2">
+            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 3">
+            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 4">
+            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 5">
+            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 6">
+          </div>
+
+          <button type="submit" id="verify-otp-btn" class="btn btn-primary btn-block btn-lg">
+            Verify &amp; Continue
+          </button>
+        </form>
+
+        <div class="otp-resend">
+          Didn't receive the code? 
+          <button type="button" onclick="handleResendOtp()">Resend OTP</button>
+        </div>
+
+        <div class="auth-note" style="margin-top:var(--space-6);">
+          <strong>Development Mode:</strong> Enter any 6 digits (e.g. <code>123456</code>) to proceed with simulated sign-in.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <p class="footer-disclaimer">
+          &copy; 2026 ShopEasy Inc. Prototype UI only.
+        </p>
+        <div style="display:flex;gap:var(--space-4);">
+          <a href="index.html" style="color:var(--color-primary);">Return Home</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/navigation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initLoginPage();
+    });
+  </script>
+</body>
+</html>
+
