@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — ShopEasy Console</title>
+  <meta name="description" content="Authorized administration console for ShopEasy catalog and order management.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <!-- Admin Minimalist Header -->
+  <header class="admin-header">
+    <div class="container admin-nav-container">
+      <div style="display:flex;align-items:center;gap:var(--space-3);">
+        <a href="../index.html" class="admin-brand" aria-label="ShopEasy Admin Home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:20px;height:20px;color:var(--color-primary);">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span>ShopEasy</span>
+        </a>
+        <span class="admin-badge">Admin</span>
+      </div>
+
+      <a href="../index.html" class="store-link" aria-label="Return to customer storefront">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Return to Store</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="admin-login-page">
+    <div class="admin-login-card">
+      <div class="admin-login-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+
+      <!-- Feedback Banner -->
+      <div id="admin-message-banner" class="admin-message-banner" role="alert"></div>
+
+      <!-- Step 1: Phone Number Input -->
+      <div id="admin-phone-step">
+        <h1 class="admin-title">ShopEasy Admin</h1>
+        <p class="admin-subtitle">Enter your authorized mobile number to access the administration portal.</p>
+
+        <form id="admin-phone-form" novalidate>
+          <div class="admin-input-group">
+            <span class="admin-input-prefix">+91</span>
+            <input 
+              type="tel" 
+              id="admin-phone-input" 
+              class="admin-input-field" 
+              placeholder="98765 43210" 
+              maxlength="10" 
+              required
+              aria-label="Authorized 10-digit mobile number"
+              autocomplete="tel"
+            >
+          </div>
+
+          <button type="submit" id="admin-send-otp-btn" class="btn btn-primary btn-block btn-lg">
+            Send OTP
+          </button>
+        </form>
+
+        <div class="admin-security-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div>
+            <strong>Restricted Access:</strong> Public admin registration is disabled. Administrator accounts are pre-provisioned server-side with strict role boundaries.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: OTP Verification Interface -->
+      <div id="admin-otp-step" class="admin-otp-step">
+        <h1 class="admin-title">Verify Admin OTP</h1>
+        <p class="admin-subtitle">
+          Enter the 6-digit one-time password delivered to <strong id="admin-display-phone">+91</strong>
+        </p>
+
+        <form id="admin-otp-form" novalidate>
+          <div class="admin-otp-inputs">
+            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 1">
+            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 2">
+            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 3">
+            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 4">
+            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 5">
+            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 6">
+          </div>
+
+          <button type="submit" id="admin-verify-btn" class="btn btn-primary btn-block btn-lg">
+            Verify OTP
+          </button>
+        </form>
+
+        <div class="admin-resend-link">
+          Didn't receive code? 
+          <button type="button" class="admin-resend-btn" onclick="handleAdminResendOtp()">Resend OTP</button>
+        </div>
+
+        <div id="admin-success-note" style="display:none;margin-top:var(--space-6);padding:var(--space-4);background-color:rgba(36,138,61,0.08);border:1px solid rgba(36,138,61,0.25);border-radius:var(--radius-md);font-size:12px;color:var(--color-success);text-align:left;">
+          <strong>Ready for TASK-003.2:</strong> Administrator credentials authenticated. Next task will implement the Admin Dashboard and catalog management views.
+        </div>
+
+        <div class="admin-security-note" style="margin-top:var(--space-6);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <div>
+            <strong>Architecture Invariant:</strong> Admin roles receive no referral codes. Server-side session verification enforces role separation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Admin Minimalist Footer -->
+  <footer class="admin-footer">
+    <div class="container">
+      <p>&copy; 2026 ShopEasy Inc. Administration Console. Authorized personnel only.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="../js/admin.js"></script>
+</body>
+</html>
+
