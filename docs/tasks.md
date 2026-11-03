@@ -1,207 +1,152 @@
-# ShopEasy --- Development Tasks
+# ShopEasy — Development Tasks
 
-## Project workflow
+**Status:** Phase 1 Documentation Alignment completed; backend development roadmap established.  
+**Implementation Rule:** Do not mark unimplemented development tasks as completed. Preserve existing completed frontend prototype records.
 
-Complete one task at a time. Do not start the next task until the
-project owner reviews and approves the current task.
+---
 
-For each task: 1. Read all project documentation and memory. 2. Inspect
-existing files. 3. Implement only the approved scope. 4. Run relevant
-tests or manual checks. 5. Update this file and `memory.md`. 6. Report
-changed files, commands, test results, and limitations. 7. Stop and wait
-for approval.
+## Status Legend
 
-## TASK-001 --- Project foundation and documentation
+- `[x]` Completed and verified.
+- `[~]` Partially completed / in progress.
+- `[ ]` Not started (approved for upcoming phases).
+- `[!]` Blocked by external dependency or owner input.
 
-**Objective:** Establish architecture, design, rules, roadmap, and
-project memory.
+---
 
-**Expected files:** - `docs/architeture.md` - `docs/rules.md` -
-`docs/design.md` - `docs/tasks.md` - `docs/memory.md`
+## Phase 1 — Project Setup and Documentation Alignment
 
-**Acceptance criteria:** - All five documents exist. - Technology stack
-and role separation are documented. - Customer-only referral requirement
-is explicit. - Development process and task roadmap are clear.
+- [x] **TASK-001:** Create ShopEasy project repository, directory structure, and frontend base.
+- [x] **TASK-002:** Establish core technology stack: HTML5/CSS3/Vanilla JS, FastAPI, MySQL 8.0, SQLAlchemy 2.0, Pydantic v2, Render.
+- [x] **TASK-003.1:** Draft architecture, design, rules, tasks, and memory documentation.
+- [x] **TASK-003.2:** Build ShopEasy Admin Dashboard and Product Management UI prototype.
+- [x] **TASK-003.3:** Document Dual-Mode Authentication Requirements (Phone + OTP and Phone + Password for Customer & Admin).
+- [x] **TASK-003.4:** Execute Final PRD Reconciliation Report aligning all 21 confirmed business decisions and 4 independent financial scenarios.
+- [x] **TASK-003.5:** Execute Phase 1 Documentation Alignment:
+  - Create authoritative [docs/PRD.md](file:///d:/projects/ShopEasy/docs/PRD.md).
+  - Update [docs/architeture.md](file:///d:/projects/ShopEasy/docs/architeture.md) with data models and queue activation rules.
+  - Update [docs/rules.md](file:///d:/projects/ShopEasy/docs/rules.md) with confirmed earning, wallet, and allocation rules.
+  - Update [docs/tasks.md](file:///d:/projects/ShopEasy/docs/tasks.md) resolving duplicate TASK-004 and defining backend roadmap.
+  - Update [docs/design.md](file:///d:/projects/ShopEasy/docs/design.md) with 16-circle progress display and dual wallet cards.
+  - Update [docs/memory.md](file:///d:/projects/ShopEasy/docs/memory.md) recording verified baseline.
 
-**Status:** COMPLETED. All five documentation files verified in repository, aligned with architectural and development invariants.
+---
 
-## TASK-002 --- Customer frontend foundation
+## Phase 2 — Customer Frontend Prototype (Completed)
 
-**Objective:** Build the Apple-inspired customer storefront using HTML,
-CSS, and Vanilla JavaScript.
+- [x] Build home storefront page (`frontend/index.html`).
+- [x] Build customer login page (`frontend/login.html`).
+- [x] Build product listing catalog (`frontend/products.html`).
+- [x] Build product details view (`frontend/product-details.html`).
+- [x] Build cart management page (`frontend/cart.html`).
+- [x] Build checkout page prototype (`frontend/checkout.html`).
+- [x] Build customer orders history page (`frontend/orders.html`).
+- [x] Build customer profile page (`frontend/profile.html`).
+- [~] Add optional referral code input field to checkout page (scheduled for TASK-010).
+- [~] Add customer earnings dashboard with 16 progress circles and dual wallet cards (scheduled for TASK-010).
 
-**Scope:** - Customer navigation and responsive menu. - Homepage hero
-section. - Product categories. - Featured/latest product sections. -
-Reusable product cards. - Footer. - Initial sample product data for UI
-demonstration only. - Product listing with search, category filtering, and sorting.
-- Product details with gallery and quantity selector. - Login UI prototype with phone & OTP inputs.
-- Shopping cart with localStorage persistence. - Checkout UI prototype with simulated payment.
-- Orders history prototype. - Profile prototype with customer-exclusive referral placeholder.
+---
 
-**Expected files:** Customer HTML (`frontend/*.html`), shared CSS (`frontend/css/*.css`),
-and modular JavaScript (`frontend/js/*.js`).
+## Phase 3 — Admin Frontend Prototype (Completed)
 
-**Acceptance criteria:** - All 8 customer pages render correctly. - Responsive
-desktop, tablet, and mobile layouts. - Navigation works across all pages. - Product cards
-display sample products with INR pricing. - No React or other frontend framework. - No
-backend integration unless explicitly approved.
+- [x] Build admin login prototype (`frontend/admin/login.html`).
+- [x] Build admin dashboard overview (`frontend/admin/dashboard.html`).
+- [x] Build admin product management table (`frontend/admin/products.html`).
+- [x] Build admin add/edit product form (`frontend/admin/product-form.html`).
+- [x] Build admin orders fulfillment placeholder (`frontend/admin/orders.html`).
+- [x] Build admin customer directory placeholder (`frontend/admin/customers.html`).
+- [x] Implement browser localStorage product CRUD prototype with sequential IDs (`prod-013`).
+- [x] Fix image storage quota using 600x600 JPEG compression and sanitization fallback.
+- [x] Verify product creation, persistence after refresh, editing, and deletion via manual test.
 
-**Status:** COMPLETED. Fully tested with automated suite verifying file existence, JS syntax, link/asset integrity, and localStorage cart persistence.
+---
 
-## TASK-002.1 --- Customer frontend review and refinement
+## Phase 4 — Business Decisions & Architecture Approval (Completed)
 
-**Objective:** Refine layout, navigation, hero presentation, and sample data consistency across all customer pages.
+- [x] Confirm single purchasable product for initial launch: Power Bank at ₹3,999.
+- [x] Confirm automatic sequential commission eligibility for initial Power Bank.
+- [x] Confirm ₹750 direct referral reward paid once on referee's first successful order with valid code.
+- [x] Confirm ₹250 sequential commission per eligible order, independent of item quantity.
+- [x] Confirm 16 commissions = ₹4,000 per lifetime cycle per beneficiary.
+- [x] Confirm initial queue activation: first buyer enters queue and becomes active beneficiary if queue empty; own order earns ₹0 and does not count toward 16.
+- [x] Confirm active beneficiary earns only from other customers' purchases; own order gives ₹0 and does not advance counter.
+- [x] Confirm single global FIFO queue ordered chronologically by first successful order timestamp.
+- [x] Confirm separate wallets: Direct Referral Wallet (min ₹4,000 full withdrawal) and Sequential Commission Wallet (₹4,000 full withdrawal).
+- [x] Confirm the 4 independent financial allocation scenarios (Scenarios A, B, C, D) and "remaining amount after listed allocations" terminology.
+- [x] Confirm admin accounts never receive referral codes and cannot use customer referral codes.
+- [x] Confirm non-cancellable orders, out-of-scope returns/refunds, and simulated payment/withdrawal flows.
 
-**Scope:**
-- Widen desktop container layout and improve fluid responsiveness (`--container-max: 1260px`, fluid clamp padding).
-- Enhance navigation sizing, spacing, and mobile drawer consistency across all 8 pages.
-- Refine hero section presentation with studio lighting image and improved shadow/border framing.
-- Ensure all sample customer information and addresses are strictly fictional (`Aarav Mehta`, fictional address and contact details).
-- Replace third-party branded product photography (e.g. Nike swoosh) with clean unbranded images.
-- Standardize product card title heights and alignments.
-- Complete functional verification of navigation, search, filters, sorting, cart operations, checkout, and referral placeholder.
+---
 
-**Acceptance criteria:**
-- Desktop layout is spacious and fluid across viewport widths.
-- Navigation header and drawer are consistent on all 8 customer pages.
-- Hero presentation reflects Apple-inspired minimalist aesthetic with unbranded studio imagery.
-- Customer names and addresses are clearly fictional.
-- Third-party brand logos removed from sample products.
-- All functional tests pass without errors.
+## Phase 5 — Backend Implementation Roadmap (Unstarted — Approved Baseline)
 
-**Status:** COMPLETED. Verified via 187 automated checks with 0 failures.
+*Do not begin until Phase 1 documentation review is formally acknowledged by the project owner.*
 
-## TASK-003 --- Admin frontend foundation
+### TASK-004 — Backend Project Setup & FastAPI Initialization
+- [ ] Create FastAPI backend directory structure under `backend/app/` (`main.py`, `core/`, `api/`, `models/`, `schemas/`, `services/`).
+- [ ] Implement application settings using Pydantic `BaseSettings` (`backend/app/core/config.py`).
+- [ ] Configure CORS middleware to permit requests from the frontend origin.
+- [ ] Create health check endpoint (`/api/v1/health`) returning application status.
+- [ ] Configure basic error handlers and centralized exception handling.
 
-**Objective:** Build a separate admin interface.
+### TASK-005 — MySQL Database Setup, SQLAlchemy Models & Alembic Migrations
+- [ ] Configure database engine and session maker (`backend/app/core/database.py`).
+- [ ] Create SQLAlchemy 2.0 declarative models matching approved conceptual schema:
+  - `User`, `BeneficiaryQueue`, `CommissionCycle`, `SequentialCommission`, `ReferralCommission`, `WalletTransaction`, `OrderAllocation`.
+  - Core e-commerce: `Product`, `Order`, `OrderItem`, `Address`, `CartItem`, `OTPVerification`.
+- [ ] Configure Alembic migrations environment.
+- [ ] Generate and execute initial database migration script.
+- [ ] Create database seed script with pre-provisioned Admin account and initial Power Bank product (₹3,999).
 
-**Scope:** - Admin login screen UI. - Admin dashboard. - Product
-management table. - Add/edit product form. - Order management table. -
-Customer listing.
+### TASK-006 — Customer & Admin Authentication, Authorization & Security
+- [ ] Implement password hashing utilities using Argon2id or bcrypt.
+- [ ] Implement JWT token generator and authentication dependencies (`get_current_user`, `require_admin`).
+- [ ] Implement customer registration endpoint with auto-generated unique referral code.
+- [ ] Implement customer login via Phone + Password and Phone + OTP (simulated OTP service for development).
+- [ ] Implement admin login via Phone + OTP and Phone + Password with mandatory OTP MFA verification.
+- [ ] Implement OTP request, verification, expiration, and rate-limiting controls.
+- [ ] Verify security boundary: admin accounts never receive referral codes and cannot access customer referral features.
 
-**Acceptance criteria:** - Admin interface is visually distinct. - Forms
-and navigation work as UI prototypes. - No referral code appears
-anywhere in the admin experience. - Backend authorization will be
-implemented in a later task.
+### TASK-007 — Product Catalog & Admin Product Management API
+- [ ] Implement public product listing and details API (`GET /api/v1/products`, `GET /api/v1/products/{id}`).
+- [ ] Implement admin product CRUD endpoints (`POST`, `PUT`, `DELETE /api/v1/admin/products`).
+- [ ] Enforce initial Power Bank automatic qualification for Sequential Commission in backend configuration.
+- [ ] Implement inventory stock validation and admin stock adjustment endpoints.
 
-## TASK-004 --- FastAPI backend initialization
+### TASK-008 — Cart, Checkout, Order Placement & Allocation Snapshot Engine
+- [ ] Implement customer cart management APIs (`GET`, `POST`, `PUT`, `DELETE /api/v1/cart`).
+- [ ] Implement customer address management APIs (`GET`, `POST`, `PUT`, `DELETE /api/v1/addresses`).
+- [ ] Implement checkout submission endpoint (`POST /api/v1/orders/checkout`):
+  - Optional referral code validation (prohibiting self-referral).
+  - Atomic stock validation and inventory decrement.
+  - Simulated payment execution.
+  - Order record creation with price and item snapshots.
+  - Immutable `order_allocations` snapshot generation across the 4 independent financial scenarios.
+- [ ] Enforce non-cancellable order policy.
 
-**Objective:** Create a modular FastAPI application.
+### TASK-009 — Dual Earning Engine, Beneficiary Queue & Simulated Withdrawals
+- [ ] Implement Direct Referral Reward service:
+  - Check if ordering customer is referred and placing their first successful order.
+  - If valid, record permanent attribution and credit ₹750 to referrer's `Direct Referral Wallet`.
+- [ ] Implement Sequential Commission Queue engine:
+  - FIFO queue enrollment on first successful order.
+  - Initial queue bootstrap: activate first customer if queue empty (own order earns ₹0; 0/16 count).
+  - Credit ₹250 to active beneficiary on eligible orders placed by other customers.
+  - Track cycle progress; advance queue to next beneficiary upon reaching 16 commissions (₹4,000).
+- [ ] Implement auditable `wallet_transactions` ledger for both earning categories.
+- [ ] Implement simulated withdrawal API (`POST /api/v1/wallets/withdraw`):
+  - Direct Referral: Validate balance $\ge$ ₹4,000; execute full withdrawal; reset to ₹0.
+  - Sequential Commission: Validate cycle completed (₹4,000); execute full withdrawal; reset to ₹0.
+  - Record auditable debit transaction and mark successful immediately.
 
-**Scope:** - Application entry point. - Configuration using environment
-variables. - Health-check endpoint. - Router registration structure. -
-CORS configuration appropriate to the deployment arrangement. - Static
-frontend serving plan.
-
-**Acceptance criteria:** - Backend starts locally. - Health-check
-endpoint responds. - API documentation loads. - No secrets are
-hardcoded.
-
-## TASK-005 --- MySQL database and models
-
-**Objective:** Connect MySQL and implement the initial schema.
-
-**Expected entities:** - Users - OTP verifications - Categories -
-Products - Cart items - Addresses - Orders - Order items - Payments
-
-**Acceptance criteria:** - Database connection uses environment
-variables. - SQLAlchemy models and relationships are valid. - Admin
-referral fields are nullable and remain NULL. - Customer referral codes
-have a unique database constraint. - Schema changes are managed
-consistently.
-
-## TASK-006 --- Phone OTP authentication
-
-**Objective:** Implement customer registration/login and authorized
-admin login.
-
-**Scope:** - Request development OTP. - Verify OTP. - Create customer
-account when appropriate. - Authenticate existing customers. -
-Authenticate pre-provisioned admin accounts. - Issue and validate secure
-sessions/tokens. - Add expiry and attempt limits.
-
-**Acceptance criteria:** - Customer cannot self-assign admin role. -
-Unknown phone numbers cannot become admins. - OTP expires and cannot be
-reused. - Development OTP is unavailable in production mode. - Admin
-receives no referral code.
-
-## TASK-007 --- Admin product management
-
-**Objective:** Allow admins to manage the catalog.
-
-**Scope:** - Add product. - Edit product. - Delete/deactivate product. -
-Upload product image to external storage. - Set price and stock. -
-Manage categories.
-
-**Acceptance criteria:** - Admin authorization is enforced
-server-side. - Customers cannot access admin mutations. - Invalid prices
-and stock values are rejected. - Active products can be listed publicly.
-
-## TASK-008 --- Customer product browsing
-
-**Objective:** Display admin-managed products to customers.
-
-**Scope:** - Product listing API. - Product details API. - Search. -
-Category filtering. - Sorting. - Loading, empty, and error states.
-
-**Acceptance criteria:** - Homepage uses backend product data. -
-Inactive products are not publicly visible. - Product details show
-current backend data. - Search and filters work.
-
-## TASK-009 --- Shopping cart
-
-**Objective:** Implement customer cart operations.
-
-**Scope:** - Add item. - View cart. - Update quantity. - Remove item. -
-Validate product availability and stock.
-
-**Acceptance criteria:** - Cart belongs to the authenticated customer. -
-Quantity must be positive. - Stock is checked on the backend. -
-Browser-provided prices are not trusted.
-
-## TASK-010 --- Checkout and dummy payment
-
-**Objective:** Create orders and simulate payment.
-
-**Scope:** - Select delivery address. - Review order summary. -
-Calculate totals on backend. - Create order and order items. - Simulate
-successful/failed payment. - Store payment simulation result.
-
-**Acceptance criteria:** - Backend calculates all prices and totals. -
-Order-item price snapshots are saved. - No real card information is
-collected. - UI clearly identifies payment as simulated. - Order/payment
-states remain consistent.
-
-## TASK-011 --- Orders, tracking, and referrals
-
-**Objective:** Complete customer account functionality.
-
-**Scope:** - Customer order history. - Customer order details. - Admin
-order status updates. - Customer order tracking timeline. - Unique
-referral code generation. - Referral code display and validation. -
-Optional referred-by relationship.
-
-**Acceptance criteria:** - Customers can access only their own orders. -
-Admin can manage all orders. - Every customer receives one unique
-referral code. - Admin referral code and referred-by fields are NULL. -
-Admin UI and APIs do not expose referral functionality.
-
-## TASK-012 --- Testing and Render deployment
-
-**Objective:** Verify the application and deploy it.
-
-**Scope:** - Backend tests. - API integration tests. - Frontend manual
-testing. - Role/permission testing. - MySQL external connection. -
-Render environment variables. - Static frontend serving. - Deployment
-and smoke tests.
-
-**Acceptance criteria:** - Application is accessible through the Render
-URL. - Database data persists externally. - Customer and admin
-permissions work. - No secrets are committed. - Core shopping workflow
-passes testing.
-
-## Task status convention
-
-Use: - `NOT STARTED` - `IN PROGRESS` - `BLOCKED` - `COMPLETED`
-
-Never mark a task completed without evidence from testing.
+### TASK-010 — Frontend API Integration, Customer Dashboard & Deployment
+- [ ] Replace prototype localStorage in customer frontend with live Fetch calls to FastAPI backend.
+- [ ] Add optional Referral Code input field to `frontend/checkout.html` with real-time validation.
+- [ ] Add Password login option to `frontend/login.html`.
+- [ ] Build customer earnings dashboard:
+  - 16-circle visual progress indicator displaying live beneficiary state, non-beneficiary grey state, or completed state.
+  - Separate Direct Referral and Sequential Commission wallet balance cards, plus Total Earnings card.
+  - Full-balance withdrawal action buttons with eligibility gating.
+- [ ] Replace localStorage product management in admin frontend with `/api/v1/admin/` endpoints.
+- [ ] Configure Render deployment settings for web service and external MySQL database.
+- [ ] Execute comprehensive end-to-end integration and smoke tests.

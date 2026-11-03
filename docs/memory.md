@@ -1,170 +1,142 @@
-# ShopEasy --- Persistent Project Memory
+# ShopEasy — Project Memory and Current State
 
-> This file is the project's durable source of truth for decisions and
-> progress. Update it after every approved task. Do not rely on chat
-> history as the only record.
+**Source of Truth:** Approved ShopEasy PRD (`docs/PRD.md`)  
+**Status:** Phase 1 Documentation Alignment completed; backend roadmap established.  
+**Rule:** Update this file after each completed task. Do not treat planned or unstarted work as completed.
 
-## 1. Project identity
+---
 
--   **Project name:** ShopEasy
--   **Repository:** `https://github.com/hiteshkumarh/ShopEasy`
--   **Local workspace observed:** `/d/projects/ShopEasy`
--   **Purpose:** Learning and portfolio project.
--   **Production expectation:** Not intended as a production-level
-    commercial system.
--   **Design reference:** Apple.com-inspired minimalist visual
-    direction. Do not copy Apple's branding, logo, proprietary assets,
-    or exact layouts.
+## 1. Project Summary
 
-## 2. Approved technology decisions
+- **Project Name:** ShopEasy.
+- **Purpose:** Learning and portfolio e-commerce website; not intended for commercial production use.
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript (Existing responsive prototypes).
+- **Backend (Planned):** Python FastAPI (>= 3.10).
+- **Database (Planned):** MySQL 8.0 with SQLAlchemy 2.0.
+- **Validation:** Pydantic v2.
+- **Deployment Target:** Render.
+- **Payments & Withdrawals:** Simulated mock flows; zero real banking or gateway integration.
+- **Initial Product Scope:** Single purchasable product — Power Bank at ₹3,999 (automatically eligible for Sequential Commission).
+- **GitHub Repository:** `https://github.com/hiteshkumarh/ShopEasy`.
+- **Environment:** Windows, Git Bash, Antigravity.
 
--   Frontend: HTML5, CSS3, Vanilla JavaScript.
--   Backend: Python FastAPI.
--   ORM: SQLAlchemy.
--   Validation: Pydantic.
--   Database: MySQL, hosted externally for deployment.
--   Authentication: phone number and OTP.
--   Initial OTP: development-only OTP.
--   Future authentication extension: real SMS OTP.
--   Payment: dummy payment simulation; no real payment gateway in the
-    initial scope.
--   Image hosting: Cloudinary or equivalent external storage.
--   Version control: Git and GitHub.
--   Deployment: Render.
+---
 
-Do not change these decisions without asking the project owner.
+## 2. Completed Milestones
 
-## 3. Roles and permissions
+### 2.1 Customer Frontend Prototype
+Existing verified prototype pages under `frontend/`:
+- `frontend/index.html` (Home)
+- `frontend/login.html` (Customer login prototype)
+- `frontend/products.html` (Catalog)
+- `frontend/product-details.html` (Product view)
+- `frontend/cart.html` (Cart review)
+- `frontend/checkout.html` (Checkout flow)
+- `frontend/orders.html` (Order history)
+- `frontend/profile.html` (Profile and referral code view)
 
-### Customer
+### 2.2 Admin Frontend Prototype & Verification
+Existing verified prototype pages under `frontend/admin/`:
+- `frontend/admin/login.html` (Admin login)
+- `frontend/admin/dashboard.html` (Admin dashboard)
+- `frontend/admin/products.html` (Product management table)
+- `frontend/admin/product-form.html` (Product add/edit form)
+- `frontend/admin/orders.html` (Orders placeholder)
+- `frontend/admin/customers.html` (Customer directory placeholder)
 
--   Can register/login using phone number and OTP.
--   Can browse and search products.
--   Can manage their cart.
--   Can checkout using a delivery address.
--   Can use the dummy payment flow.
--   Can view their own orders and tracking.
--   Can manage their profile and addresses.
--   Must receive a unique referral code.
--   May optionally be associated with a referring customer.
+**Admin Product CRUD Verification (Reported):**
+- Client-side image compression: 600x600 JPEG at quality 0.8 with quota fallback.
+- Sequential product ID generation (`prod-013`).
+- Manual QA reported successful for product creation (`Test Wireless Mouse`, ₹799, stock 25), refresh persistence, editing (₹899, stock 30), and deletion.
 
-### Admin
+### 2.3 Local Environment Verification
+- MySQL Server 8.0.41 installed locally.
+- Service `MYSQL80` verified active.
+- Root login tested; ShopEasy database creation reserved for `TASK-005`.
 
--   Must be provisioned through a controlled process.
--   Logs in using an authorized phone number and OTP.
--   Can manage products, categories, stock, customers, and orders.
--   Can update order status.
--   **Must never receive a referral code.**
--   Admin `referral_code` and `referred_by` must be `NULL`.
--   Must not see customer referral controls as an admin feature.
+### 2.4 Phase 1 Documentation Alignment (Completed)
+- Promoted draft PRD to authoritative [docs/PRD.md](file:///d:/projects/ShopEasy/docs/PRD.md).
+- Updated [docs/architeture.md](file:///d:/projects/ShopEasy/docs/architeture.md) with data models and queue activation rules.
+- Updated [docs/rules.md](file:///d:/projects/ShopEasy/docs/rules.md) with confirmed earning, wallet, and allocation rules.
+- Updated [docs/tasks.md](file:///d:/projects/ShopEasy/docs/tasks.md) resolving duplicate TASK-004 and setting backend roadmap through TASK-010.
+- Updated [docs/design.md](file:///d:/projects/ShopEasy/docs/design.md) with 16-circle progress display and dual wallet cards.
+- Synchronized all 21 confirmed business decisions and 4 financial allocation scenarios across all documentation files.
 
-### Authorization invariant
+---
 
-The backend is the authority for roles and permissions. Hiding a button
-in the browser is not security. Customers cannot assign themselves the
-admin role.
+## 3. Confirmed Business Decisions Summary
 
-## 4. Referral invariants
+### 3.1 Customer Authentication
+- Registration requires Full Name and Mobile Number.
+- Dual login: Mobile + Password or Mobile + OTP.
+- Every customer receives a unique permanent referral code upon registration.
+- Referral code entry is optional and happens during checkout.
+- Admin accounts never receive referral codes and cannot participate in referral rewards.
 
-1.  Only customer accounts receive referral codes.
-2.  Each customer code must be unique.
-3.  Enforce uniqueness in the database, not only in application code.
-4.  Admin referral fields must be NULL.
-5.  Referral code generation happens when a customer account is created.
-6.  Referral relationships must be validated on the backend.
-7.  Do not add referral rewards or discounts unless separately approved.
+### 3.2 Direct Referral Reward (₹750)
+- Credited only on the referred customer's first successful order using a valid referral code.
+- Credited once per referee; repeat purchases generate ₹0 reward.
+- Self-referrals prohibited (`referrer_id != customer_id`).
+- Permanent direct referrer attribution established on first order.
+- Full ₹750 credited without deductions (no TDS or service fees).
+- Withdrawal allowed only when Direct Referral Wallet reaches at least ₹4,000.
+- Customer must withdraw entire available balance (no partial withdrawals).
+- Simulated withdrawal automatically marked successful; wallet resets to ₹0.
 
-## 5. Design decisions
+### 3.3 Sequential Commission (₹250 per eligible order)
+- Single global beneficiary queue; entered automatically upon customer's first successful order (with or without code).
+- Queue sequence strictly follows chronological timestamp of first successful orders (FIFO).
+- **Initial Queue Activation:** First customer placing first successful order enters queue and becomes first active beneficiary if queue empty. Own order earns ₹0 and does not count toward 16.
+- Active beneficiary earns commissions only from other customers' purchases. Own purchases earn ₹0 and do not advance counter.
+- Exactly one active beneficiary at a time; next customer's purchase generates ₹250 for active beneficiary.
+- Each beneficiary receives 16 commissions = ₹4,000 per lifetime cycle.
+- Upon 16 commissions, cycle permanently closes; next customer in queue activates automatically.
+- Completed ₹4,000 is withdrawable in full; simulated withdrawal resets wallet to ₹0.
+- **Product Eligibility:** Initial Power Bank (₹3,999) is automatically eligible. Future product eligibility is out of scope.
 
--   White main background: `#FFFFFF`.
--   Light secondary background: `#F5F5F7`.
--   Main text: `#1D1D1F`.
--   Secondary text: `#6E6E73`.
--   Primary action: `#0071E3`.
--   Border: `#D2D2D7`.
--   Typography: system font stack or Inter.
--   Style: premium, clean, restrained, whitespace-rich, product-focused.
--   Responsive desktop, tablet, and mobile layouts.
--   Subtle animations only; respect reduced-motion preferences.
+### 3.4 Wallet System
+- Separate balances maintained in backend and UI:
+  1. `Direct Referral Wallet`
+  2. `Sequential Commission Wallet`
+- Aggregate summary: `Total Earnings = Direct Referral Wallet + Sequential Commission Wallet`.
+- Auditable transaction ledger (`wallet_transactions`) records all credits and debits.
 
-## 6. Architecture decisions
+### 3.5 Financial Allocation Scenarios (Power Bank ₹3,999)
+- Regular per-order unit allocations (Total = ₹2,300): Import ₹1,500, GST ₹400, Packing ₹150, Gift ₹150, Office ₹100.
+- Residual balance designated as **"remaining amount after listed allocations"**:
+  - **Scenario A (Both Apply):** Regular ₹2,300 + Sequential ₹250 + Referral ₹750 = ₹3,300 total; remaining ₹699.
+  - **Scenario B (Sequential Only):** Regular ₹2,300 + Sequential ₹250 + Referral ₹0 = ₹2,550 total; remaining ₹1,449.
+  - **Scenario C (Neither Applies):** Regular ₹2,300 + Sequential ₹0 + Referral ₹0 = ₹2,300 total; remaining ₹1,699.
+  - **Scenario D (Direct Referral Only):** Regular ₹2,300 + Sequential ₹0 + Referral ₹750 = ₹3,050 total; remaining ₹949.
+- Order snapshot saved in `order_allocations`.
 
--   Three layers: browser presentation, FastAPI application, MySQL data
-    layer.
--   Frontend and backend source remain organized separately.
--   FastAPI routes should delegate business logic to services.
--   SQLAlchemy models represent persistent entities.
--   Pydantic schemas validate API inputs and outputs.
--   The FastAPI application is intended to serve the frontend and API
-    from one Render web service initially.
--   Product images should use external persistent storage rather than
-    relying on ephemeral local deployment storage.
+### 3.6 Customer Dashboard
+- Displays 16-circle progress indicator titled "Sequential Commission Progress":
+  - Active beneficiary: live progress (e.g., 5/16, ₹1,250 / ₹4,000).
+  - Non-beneficiary: 16 grey circles + banner *"You are not the current beneficiary."*
+  - Completed beneficiary: 16/16 circles + badge *"Cycle completed — ₹4,000 earned."*
 
-## 7. Engineering constraints
+### 3.7 Order & Inventory Integrity
+- Failed payment generates no order and no rewards.
+- Successfully placed orders cannot be cancelled by customers.
+- Returns and refunds are out of scope.
+- Idempotent reward processing prevents duplicate commissions.
+- Stock decrements immediately upon successful order placement.
 
--   Read all five files in `docs/` before beginning a task.
--   Implement only the task approved by the project owner.
--   Work incrementally.
--   Inspect files before editing.
--   Do not overwrite unrelated work.
--   Never hardcode credentials or secrets.
--   Never commit `.env`.
--   Test before claiming completion.
--   Update this file and `tasks.md` after a task.
--   Report files changed, commands run, test results, and limitations.
--   Stop and request approval before the next task.
+---
 
-## 8. Development roadmap
+## 4. Current Development Status
 
-1.  TASK-001: Project foundation and documentation.
-2.  TASK-002: Customer frontend foundation.
-3.  TASK-003: Admin frontend foundation.
-4.  TASK-004: FastAPI backend initialization.
-5.  TASK-005: MySQL database and models.
-6.  TASK-006: Phone OTP authentication.
-7.  TASK-007: Admin product management.
-8.  TASK-008: Customer product browsing.
-9.  TASK-009: Shopping cart.
-10. TASK-010: Checkout and dummy payment.
-11. TASK-011: Orders, tracking, and referrals.
-12. TASK-012: Testing and Render deployment.
+- Documentation: **Phase 1 complete and fully aligned.**
+- Frontend: Completed prototypes awaiting backend integration.
+- Backend: **Not started** (Scheduled for TASK-004 through TASK-010).
+- Database: **Not created** (Scheduled for TASK-005).
 
-See `tasks.md` for detailed scope and acceptance criteria.
+---
 
-## 9. Current progress
+## 5. Working Instructions for Antigravity
 
--   GitHub repository has been created as a private repository:
-    `hiteshkumarh/ShopEasy`.
--   Antigravity workspace was opened at `/d/projects/ShopEasy`.
--   The five project documentation files were verified under `docs/` (`architeture.md`, `rules.md`, `design.md`, `tasks.md`, `memory.md`). (TASK-001: COMPLETED).
--   Customer frontend foundation was built using pure HTML5, CSS3, and Vanilla JavaScript (TASK-002: COMPLETED).
--   Customer frontend review and refinement completed (TASK-002.1: COMPLETED):
-    -   Layout width improved to `--container-max: 1260px` with fluid responsive padding.
-    -   Navigation sizing, spacing, and mobile drawer standardized across all 8 customer pages.
-    -   Hero section updated with sleek studio-lit unbranded photography and ambient frame styling.
-    -   All sample customer names and addresses replaced with clearly fictional data (`Aarav Mehta`, fictional address).
-    -   Third-party brand logos (e.g., Nike swoosh) replaced with clean unbranded images.
-    -   Product cards standardized with uniform title/description clamping and aligned button baselines.
-    -   Full automated test suite executed: 187 checks passed, 0 failures.
--   **Next task:** TASK-003 (Admin frontend foundation) --- Awaiting owner approval.
-
-## 10. Decisions still to be made later
-
-Do not guess these before the relevant task: - Exact external MySQL
-provider. - Cloudinary account and credentials. - Admin phone number
-provisioning method. - Production SMS provider. - Exact product
-categories and initial catalog. - Final Render environment variable
-values.
-
-## 11. Session handoff instructions
-
-At the start of a new Antigravity session: 1. Read this file. 2. Read
-`architeture.md`, `rules.md`, `design.md`, and `tasks.md`. 3. Inspect
-the repository and current Git status. 4. Identify the first incomplete
-task. 5. Ask the project owner to approve the next task if it has not
-already been approved.
-
-At the end of a task: 1. Update task status accurately. 2. Record actual
-implementation decisions and changed files. 3. Record tests and their
-actual outcomes. 4. Record blockers and remaining work. 5. Do not mark
-untested work as complete.
+- All 21 business decisions are approved and documented in `docs/PRD.md`.
+- Do not invent business rules.
+- Do not modify files outside the approved task scope.
+- Wait for explicit user approval before proceeding to Phase 2 (`TASK-004`).
