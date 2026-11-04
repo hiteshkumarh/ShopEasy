@@ -27,6 +27,13 @@ from app.schemas.cart import (
     CartItemUpdateRequest,
     CartResponse,
 )
+from app.schemas.dashboard import (
+    EarningsSummaryResponse,
+    ReferralSummaryResponse,
+    ReferredUserItem,
+    SequentialProgress,
+    WithdrawalEligibility,
+)
 from app.schemas.order import (
     CheckoutRequest,
     OrderAllocationResponse,
@@ -39,6 +46,14 @@ from app.schemas.product import (
     ProductListResponse,
     ProductResponse,
     ProductUpdateRequest,
+)
+from app.schemas.wallet import (
+    PaginatedWalletTransactions,
+    PaginatedWithdrawals,
+    WalletBalanceResponse,
+    WalletTransactionResponse,
+    WithdrawalRequest,
+    WithdrawalResponse,
 )
 
 __all__ = [
@@ -66,6 +81,12 @@ __all__ = [
     "CartItemResponse",
     "CartItemUpdateRequest",
     "CartResponse",
+    # Dashboard
+    "EarningsSummaryResponse",
+    "ReferralSummaryResponse",
+    "ReferredUserItem",
+    "SequentialProgress",
+    "WithdrawalEligibility",
     # Order
     "CheckoutRequest",
     "OrderAllocationResponse",
@@ -77,4 +98,11 @@ __all__ = [
     "ProductListResponse",
     "ProductResponse",
     "ProductUpdateRequest",
+    # Wallet
+    "PaginatedWalletTransactions",
+    "PaginatedWithdrawals",
+    "WalletBalanceResponse",
+    "WalletTransactionResponse",
+    "WithdrawalRequest",
+    "WithdrawalResponse",
 ]

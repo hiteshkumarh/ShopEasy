@@ -16,6 +16,11 @@ from app.models.product import Product
 from app.models.user import Address, User
 from app.schemas.order import CheckoutRequest
 from app.services.allocation import calculate_and_create_order_allocation
+from app.services.earning_engine import process_order_earnings
+from app.services.queue_service import (
+    determine_sequential_eligibility,
+    lock_queue_control,
+)
 
 logger = logging.getLogger("shopeasy.checkout")
 
@@ -227,17 +232,37 @@ def execute_checkout(
             db.add(order_item)
         db.flush()
 
-        # 10. Generate immutable OrderAllocation snapshot
-        calculate_and_create_order_allocation(
+        # 10. Lock QueueControl and determine sequential commission eligibility
+        queue_control = lock_queue_control(db)
+        has_power_bank = any(prod.is_power_bank for qty, prod in items_with_products)
+        seq_applies, active_beneficiary_id = determine_sequential_eligibility(
+            queue_control=queue_control,
+            buyer_id=customer.id,
+            has_power_bank=has_power_bank,
+        )
+
+        # 11. Generate immutable OrderAllocation snapshot with synchronized eligibility
+        order_allocation = calculate_and_create_order_allocation(
             db=db,
             order=order,
             items_with_products=items_with_products,
             buyer_id=customer.id,
             is_first_successful_order=is_first_successful_order,
             has_valid_referral_code=(applied_referral_code is not None),
+            sequential_commission_applies=seq_applies,
         )
 
-        # 11. Clear customer cart only upon successful order confirmation
+        # 12. Process order earnings (Direct Referral, Queue Enrollment, Sequential Commission)
+        process_order_earnings(
+            db=db,
+            order=order,
+            order_allocation=order_allocation,
+            customer=customer,
+            queue_control=queue_control,
+            active_beneficiary_id=active_beneficiary_id,
+        )
+
+        # 13. Clear customer cart only upon successful order confirmation
         db.query(CartItem).filter(CartItem.user_id == customer.id).delete()
 
         # 12. Commit transaction

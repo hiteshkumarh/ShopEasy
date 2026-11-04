@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     CheckConstraint,
@@ -196,3 +196,7 @@ class Withdrawal(Base):
         foreign_keys="[Withdrawal.user_id]",
         overlaps="wallet,withdrawals",
     )
+
+    @property
+    def wallet_type(self) -> Optional[WalletType]:
+        return self.wallet.wallet_type if self.wallet else None

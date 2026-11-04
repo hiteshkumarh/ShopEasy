@@ -11,9 +11,11 @@ from app.api import (
     admin_products,
     cart,
     customer_auth,
+    dashboard,
     identity,
     orders,
     products,
+    wallets,
 )
 from app.core.config import settings
 from app.core.database import get_db
@@ -80,3 +82,7 @@ app.include_router(admin_products.router, prefix="/api/v1")
 app.include_router(cart.router, prefix="/api/v1")
 app.include_router(addresses.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")
+
+# Mount API v1 Wallets & Customer Dashboard Routers
+app.include_router(wallets.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")

@@ -1,6 +1,6 @@
 import logging
 from decimal import Decimal
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -32,6 +32,7 @@ def calculate_and_create_order_allocation(
     buyer_id: int,
     is_first_successful_order: bool,
     has_valid_referral_code: bool,
+    sequential_commission_applies: Optional[bool] = None,
 ) -> OrderAllocation:
     """Calculate and persist an immutable financial allocation snapshot for a confirmed order.
 
@@ -95,15 +96,16 @@ def calculate_and_create_order_allocation(
     # The initial Power Bank automatically qualifies for sequential commission.
     # Applies only if the order contains at least one Power Bank, an active beneficiary exists in the queue,
     # and the buyer is NOT that active beneficiary.
-    sequential_commission_applies = False
-    if power_bank_quantity > 0:
-        active_beneficiary = (
-            db.query(BeneficiaryQueue)
-            .filter(BeneficiaryQueue.status == QueueStatus.ACTIVE)
-            .first()
-        )
-        if active_beneficiary is not None and active_beneficiary.user_id != buyer_id:
-            sequential_commission_applies = True
+    if sequential_commission_applies is None:
+        sequential_commission_applies = False
+        if power_bank_quantity > 0:
+            active_beneficiary = (
+                db.query(BeneficiaryQueue)
+                .filter(BeneficiaryQueue.status == QueueStatus.ACTIVE)
+                .first()
+            )
+            if active_beneficiary is not None and active_beneficiary.user_id != buyer_id:
+                sequential_commission_applies = True
 
     direct_referral_reward = (
         DIRECT_REFERRAL_REWARD_AMOUNT if direct_referral_applies else ZERO_AMOUNT
