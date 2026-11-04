@@ -1,7 +1,10 @@
 import logging
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -15,6 +18,7 @@ from app.api import (
     identity,
     orders,
     products,
+    referrals,
     wallets,
 )
 from app.core.config import settings
@@ -39,8 +43,8 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def read_root():
+@app.get("/api/health")
+def read_health():
     """Root health-check endpoint."""
     return {"message": "ShopEasy backend is running"}
 
@@ -86,3 +90,11 @@ app.include_router(orders.router, prefix="/api/v1")
 # Mount API v1 Wallets & Customer Dashboard Routers
 app.include_router(wallets.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+
+# Mount API v1 Referral Code Validation Router
+app.include_router(referrals.router, prefix="/api/v1")
+
+# Mount static frontend files after all API routers to prevent route shadowing
+FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+if FRONTEND_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

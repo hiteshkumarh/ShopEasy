@@ -15,7 +15,7 @@ from app.services.queue_service import (
     lock_queue_control,
     process_sequential_commission,
 )
-from app.services.referral import generate_referral_code
+from app.services.referral import generate_referral_code, validate_referral_code
 from app.services.wallet_service import (
     credit_wallet,
     execute_simulated_withdrawal,
@@ -37,5 +37,6 @@ __all__ = [
     "normalize_phone",
     "process_order_earnings",
     "process_sequential_commission",
+    "validate_referral_code",
     "verify_otp",
 ]

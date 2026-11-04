@@ -47,6 +47,10 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdateRequest,
 )
+from app.schemas.referral import (
+    ReferralValidateRequest,
+    ReferralValidateResponse,
+)
 from app.schemas.wallet import (
     PaginatedWalletTransactions,
     PaginatedWithdrawals,
@@ -98,6 +102,9 @@ __all__ = [
     "ProductListResponse",
     "ProductResponse",
     "ProductUpdateRequest",
+    # Referral
+    "ReferralValidateRequest",
+    "ReferralValidateResponse",
     # Wallet
     "PaginatedWalletTransactions",
     "PaginatedWithdrawals",

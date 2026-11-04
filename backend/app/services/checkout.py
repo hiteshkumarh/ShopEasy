@@ -21,6 +21,7 @@ from app.services.queue_service import (
     determine_sequential_eligibility,
     lock_queue_control,
 )
+from app.services.referral import validate_referral_code
 
 logger = logging.getLogger("shopeasy.checkout")
 
@@ -142,57 +143,14 @@ def execute_checkout(
         code_input = checkout_data.referral_code.strip() if checkout_data.referral_code else None
 
         if code_input:
-            # Check self-referral using customer's own referral code
-            if customer.referral_code and code_input.upper() == customer.referral_code.upper():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Self-referral is strictly prohibited. You cannot use your own referral code.",
-                )
-
-            # Query referrer
-            referrer = (
-                db.query(User)
-                .filter(func.upper(User.referral_code) == code_input.upper())
-                .first()
+            referrer = validate_referral_code(
+                db=db,
+                customer=customer,
+                referral_code=code_input,
             )
-            if not referrer:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid referral code. Referrer does not exist.",
-                )
-
-            # Prohibit self-referral by user ID
-            if referrer.id == customer.id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Self-referral is strictly prohibited.",
-                )
-
-            # Prohibit admin referral codes
-            if referrer.role != UserRole.CUSTOMER:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid referral code. Administrator referral codes cannot be used.",
-                )
-
-            # Check referrer active status
-            if not referrer.is_active:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Referral code owner account is inactive.",
-                )
-
-            if is_first_successful_order:
-                # Permanent attribution established on first successful order
-                applied_referral_code = referrer.referral_code
-                if customer.referred_by_id is None:
-                    customer.referred_by_id = referrer.id
-            else:
-                # Repeat order: referral codes cannot be altered or re-established
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Referral attribution is only applicable on your first successful order and cannot be modified.",
-                )
+            applied_referral_code = referrer.referral_code
+            if is_first_successful_order and customer.referred_by_id is None:
+                customer.referred_by_id = referrer.id
         else:
             # No referral code supplied
             applied_referral_code = None
