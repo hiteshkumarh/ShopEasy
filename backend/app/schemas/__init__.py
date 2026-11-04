@@ -16,6 +16,12 @@ from app.schemas.auth import (
     MFARequiredResponse,
     TokenResponse,
 )
+from app.schemas.product import (
+    ProductCreateRequest,
+    ProductListResponse,
+    ProductResponse,
+    ProductUpdateRequest,
+)
 
 __all__ = [
     "AdminMFAVerifyRequest",
@@ -31,5 +37,9 @@ __all__ = [
     "CustomerRegisterRequest",
     "CustomerRegisterResponse",
     "MFARequiredResponse",
+    "ProductCreateRequest",
+    "ProductListResponse",
+    "ProductResponse",
+    "ProductUpdateRequest",
     "TokenResponse",
 ]

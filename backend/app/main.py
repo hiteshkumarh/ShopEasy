@@ -5,7 +5,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api import admin_auth, customer_auth, identity
+from app.api import (
+    admin_auth,
+    admin_products,
+    customer_auth,
+    identity,
+    products,
+)
 from app.core.config import settings
 from app.core.database import get_db
 
@@ -62,3 +68,7 @@ def health_check_db(db: Session = Depends(get_db)):
 app.include_router(customer_auth.router, prefix="/api/v1/auth")
 app.include_router(admin_auth.router, prefix="/api/v1/auth")
 app.include_router(identity.router, prefix="/api/v1/auth")
+
+# Mount API v1 Product Catalog & Admin Product Management Routers
+app.include_router(products.router, prefix="/api/v1")
+app.include_router(admin_products.router, prefix="/api/v1")
