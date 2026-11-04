@@ -1,0 +1,1 @@
+"""ShopEasy FastAPI Backend Application."""
