@@ -103,7 +103,7 @@ class WalletTransaction(Base):
     )
     reference_id: Mapped[int] = mapped_column(Integer, nullable=False)
     idempotency_key: Mapped[str] = mapped_column(
-        String(64), unique=True, nullable=False
+        String(64), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False

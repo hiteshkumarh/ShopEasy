@@ -32,17 +32,17 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    phone: Mapped[str] = mapped_column(String(15), unique=True, nullable=False)
+    phone: Mapped[str] = mapped_column(String(15), nullable=False)
     password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     role: Mapped[UserRole] = mapped_column(
         sql_enum(UserRole), default=UserRole.CUSTOMER, nullable=False
     )
     referral_code: Mapped[Optional[str]] = mapped_column(
-        String(20), unique=True, nullable=True
+        String(20), nullable=True
     )
     referred_by_id: Mapped[Optional[int]] = mapped_column(
         Integer,
-        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        ForeignKey("users.id", onupdate="RESTRICT", ondelete="RESTRICT"),
         nullable=True,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -61,7 +61,8 @@ class User(Base):
             "(role = 'admin' AND referral_code IS NULL AND referred_by_id IS NULL)",
             name="chk_user_role_referral",
         ),
-        CheckConstraint("referred_by_id != id", name="chk_users_no_self_referral"),
+        # Note: MySQL Error 3818 disallows CHECK constraints referencing AUTO_INCREMENT columns (id).
+        # Self-referral is enforced at the service layer and in referral_commissions (chk_ref_comm_no_self).
     )
 
     # Self-referential relationship (Referrer <-> Referees)

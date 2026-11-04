@@ -39,7 +39,7 @@ class Product(Base):
         Boolean, default=False, nullable=False
     )
     product_code: Mapped[Optional[str]] = mapped_column(
-        String(50), unique=True, nullable=True
+        String(50), nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(

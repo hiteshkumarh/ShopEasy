@@ -33,7 +33,6 @@ class SequentialCommission(Base):
     source_order_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("orders.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        unique=True,
         nullable=False,
     )
     commission_number: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -94,19 +93,17 @@ class ReferralCommission(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     referrer_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        ForeignKey("users.id", onupdate="RESTRICT", ondelete="RESTRICT"),
         nullable=False,
     )
     referee_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        unique=True,
+        ForeignKey("users.id", onupdate="RESTRICT", ondelete="RESTRICT"),
         nullable=False,
     )
     source_order_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("orders.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        unique=True,
         nullable=False,
     )
     amount: Mapped[Decimal] = mapped_column(

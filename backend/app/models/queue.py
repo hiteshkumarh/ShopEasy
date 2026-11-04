@@ -34,10 +34,9 @@ class BeneficiaryQueue(Base):
     user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        unique=True,
         nullable=False,
     )
-    queue_position: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    queue_position: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[QueueStatus] = mapped_column(
         sql_enum(QueueStatus), default=QueueStatus.WAITING, nullable=False
     )
@@ -162,9 +161,11 @@ class QueueControl(Base):
 
     __tablename__ = "queue_control"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, default=1, autoincrement=False
+    )
     active_cycle_id: Mapped[Optional[int]] = mapped_column(
-        Integer, unique=True, nullable=True
+        Integer, nullable=True
     )
     active_beneficiary_id: Mapped[Optional[int]] = mapped_column(
         Integer, nullable=True

@@ -37,7 +37,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    order_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
+    order_number: Mapped[str] = mapped_column(String(32), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(64), nullable=False)
     user_id: Mapped[int] = mapped_column(
         Integer,
@@ -143,7 +143,6 @@ class OrderAllocation(Base):
     order_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("orders.id", onupdate="CASCADE", ondelete="RESTRICT"),
-        unique=True,
         nullable=False,
     )
     scenario: Mapped[AllocationScenario] = mapped_column(
