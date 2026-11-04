@@ -38,5 +38,56 @@ class Settings:
     ENABLE_MOCK_PAYMENT: bool = os.getenv("ENABLE_MOCK_PAYMENT", "True").lower() in ("true", "1", "yes")
     DEV_OTP_CODE: str = os.getenv("DEV_OTP_CODE", "123456")
 
+    # Initial Administrator Provisioning
+    ADMIN_NAME: str = os.getenv("ADMIN_NAME", "System Admin")
+
+    @property
+    def ADMIN_PHONE(self) -> str:
+        """Get the initial admin phone, requiring explicit configuration in non-development."""
+        env_phone = os.getenv("ADMIN_PHONE")
+        is_dev = self.ENVIRONMENT.lower() == "development"
+
+        if not is_dev:
+            if not env_phone or not env_phone.strip():
+                raise ValueError(
+                    "In non-development environments, ADMIN_PHONE must be explicitly configured."
+                )
+            return env_phone.strip()
+
+        # Local development fallback
+        return env_phone.strip() if env_phone else "9800000000"
+
+    @ADMIN_PHONE.setter
+    def ADMIN_PHONE(self, value: str) -> None:
+        os.environ["ADMIN_PHONE"] = value
+
+    @property
+    def ADMIN_PASSWORD(self) -> str:
+        """Get the initial admin password, requiring an explicit strong password in non-development."""
+        env_pwd = os.getenv("ADMIN_PASSWORD")
+        is_dev = self.ENVIRONMENT.lower() == "development"
+
+        if not is_dev:
+            if not env_pwd:
+                raise ValueError(
+                    "In non-development environments, ADMIN_PASSWORD must be explicitly configured."
+                )
+            if env_pwd == "Admin@ShopEasy2026":
+                raise ValueError(
+                    "In non-development environments, ADMIN_PASSWORD cannot use the default placeholder password."
+                )
+            if len(env_pwd) < 12:
+                raise ValueError(
+                    "In non-development environments, ADMIN_PASSWORD must be at least 12 characters long."
+                )
+            return env_pwd
+
+        # Local development fallback
+        return env_pwd if env_pwd else "Admin@ShopEasy2026"
+
+    @ADMIN_PASSWORD.setter
+    def ADMIN_PASSWORD(self, value: str) -> None:
+        os.environ["ADMIN_PASSWORD"] = value
+
 
 settings = Settings()
