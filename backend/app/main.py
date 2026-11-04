@@ -6,10 +6,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api import (
+    addresses,
     admin_auth,
     admin_products,
+    cart,
     customer_auth,
     identity,
+    orders,
     products,
 )
 from app.core.config import settings
@@ -72,3 +75,8 @@ app.include_router(identity.router, prefix="/api/v1/auth")
 # Mount API v1 Product Catalog & Admin Product Management Routers
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(admin_products.router, prefix="/api/v1")
+
+# Mount API v1 Cart, Addresses & Orders Routers
+app.include_router(cart.router, prefix="/api/v1")
+app.include_router(addresses.router, prefix="/api/v1")
+app.include_router(orders.router, prefix="/api/v1")

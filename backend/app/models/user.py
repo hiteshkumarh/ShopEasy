@@ -19,6 +19,7 @@ from app.core.database import Base
 from app.models.enums import OTPPurpose, UserRole, sql_enum
 
 if TYPE_CHECKING:
+    from app.models.cart import CartItem
     from app.models.commission import ReferralCommission, SequentialCommission
     from app.models.order import Order
     from app.models.queue import BeneficiaryQueue, CommissionCycle
@@ -73,6 +74,9 @@ class User(Base):
 
     # Domain relationships
     addresses: Mapped[List["Address"]] = relationship("Address", back_populates="user")
+    cart_items: Mapped[List["CartItem"]] = relationship(
+        "CartItem", back_populates="user", cascade="all, delete-orphan"
+    )
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="user")
     beneficiary_queue_entry: Mapped[Optional["BeneficiaryQueue"]] = relationship(
         "BeneficiaryQueue", back_populates="user", uselist=False

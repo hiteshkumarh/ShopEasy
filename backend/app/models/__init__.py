@@ -1,5 +1,6 @@
 """SQLAlchemy database models for ShopEasy."""
 
+from app.models.cart import CartItem
 from app.models.commission import ReferralCommission, SequentialCommission
 from app.models.enums import (
     AllocationScenario,
@@ -37,6 +38,7 @@ __all__ = [
     "User",
     "OTP",
     "Address",
+    "CartItem",
     "Product",
     "Order",
     "OrderItem",
