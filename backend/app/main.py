@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api import admin_auth, customer_auth, identity
 from app.core.config import settings
 from app.core.database import get_db
 
@@ -55,3 +56,9 @@ def health_check_db(db: Session = Depends(get_db)):
                 "message": "Database connection could not be established.",
             },
         )
+
+
+# Mount API v1 Authentication & Identity Routers
+app.include_router(customer_auth.router, prefix="/api/v1/auth")
+app.include_router(admin_auth.router, prefix="/api/v1/auth")
+app.include_router(identity.router, prefix="/api/v1/auth")

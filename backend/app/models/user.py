@@ -116,7 +116,7 @@ class OTP(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     phone: Mapped[str] = mapped_column(String(15), nullable=False)
-    otp_code: Mapped[str] = mapped_column(String(10), nullable=False)
+    otp_code: Mapped[str] = mapped_column(String(64), nullable=False)
     purpose: Mapped[OTPPurpose] = mapped_column(
         sql_enum(OTPPurpose), nullable=False
     )

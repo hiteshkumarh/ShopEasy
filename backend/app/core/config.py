@@ -89,5 +89,46 @@ class Settings:
     def ADMIN_PASSWORD(self, value: str) -> None:
         os.environ["ADMIN_PASSWORD"] = value
 
+    @property
+    def OTP_HMAC_SECRET(self) -> str:
+        """Get the HMAC secret for OTP hashing.
+
+        Requires an explicit, strong secret outside development.
+        Must never reuse the JWT SECRET_KEY.
+        """
+        secret = os.getenv("OTP_HMAC_SECRET")
+        is_dev = self.ENVIRONMENT.lower() == "development"
+
+        if not is_dev:
+            if not secret or not secret.strip():
+                raise ValueError(
+                    "In non-development environments, OTP_HMAC_SECRET must be explicitly configured."
+                )
+            if secret.strip() == "dev-otp-hmac-secret-change-in-production":
+                raise ValueError(
+                    "In non-development environments, OTP_HMAC_SECRET cannot use the default placeholder secret."
+                )
+            if len(secret.strip()) < 32:
+                raise ValueError(
+                    "In non-development environments, OTP_HMAC_SECRET must be at least 32 characters long."
+                )
+            if secret.strip() == self.SECRET_KEY:
+                raise ValueError(
+                    "OTP_HMAC_SECRET must not reuse the JWT SECRET_KEY."
+                )
+            return secret.strip()
+
+        # Development mode
+        dev_secret = secret.strip() if secret and secret.strip() else "dev-otp-hmac-secret-change-in-production"
+        if dev_secret == self.SECRET_KEY:
+            raise ValueError(
+                "OTP_HMAC_SECRET must not reuse the JWT SECRET_KEY."
+            )
+        return dev_secret
+
+    @OTP_HMAC_SECRET.setter
+    def OTP_HMAC_SECRET(self, value: str) -> None:
+        os.environ["OTP_HMAC_SECRET"] = value
+
 
 settings = Settings()
