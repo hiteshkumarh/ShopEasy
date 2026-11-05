@@ -13,6 +13,8 @@ chrome_profile*/
 # Environment files and sensitive credentials
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
 *.secret
 *.pem

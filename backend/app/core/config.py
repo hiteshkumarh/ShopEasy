@@ -9,11 +9,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_PATH = BASE_DIR / ".env"
 ROOT_ENV_PATH = BASE_DIR.parent / ".env"
 
-# Explicitly load environment variables
-if ENV_PATH.exists():
-    load_dotenv(dotenv_path=ENV_PATH)
+# Explicitly load environment variables. The repository-level .env is loaded
+# first so it remains the source of truth when backend/.env still contains
+# template placeholders. Existing process environment variables are preserved
+# because load_dotenv defaults to override=False.
 if ROOT_ENV_PATH.exists():
     load_dotenv(dotenv_path=ROOT_ENV_PATH)
+if ENV_PATH.exists():
+    load_dotenv(dotenv_path=ENV_PATH)
 
 
 class Settings:
@@ -24,19 +27,26 @@ class Settings:
     DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
+    CORS_ORIGINS: list[str] = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
 
     # Security & JWT
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
-    # Database Configuration (MySQL 8.0)
-    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL") or os.getenv("MYSQL_URL")
+    # Database Configuration (MySQL/TiDB Cloud)
+    MYSQL_URL: Optional[str] = os.getenv("MYSQL_URL")
+    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL") or MYSQL_URL
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
     DB_NAME: str = os.getenv("DB_NAME", "shopeasy_db")
     DB_USER: str = os.getenv("DB_USER", "root")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
+    DB_SSL_CA: Optional[str] = os.getenv("DB_SSL_CA")
 
     # Simulated Mock Services
     ENABLE_MOCK_PAYMENT: bool = os.getenv("ENABLE_MOCK_PAYMENT", "True").lower() in ("true", "1", "yes")

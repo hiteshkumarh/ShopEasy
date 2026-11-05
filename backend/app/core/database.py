@@ -1,4 +1,6 @@
+from pathlib import Path
 import urllib.parse
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from app.core.config import settings
@@ -26,11 +28,30 @@ def get_database_url() -> str:
 
 DATABASE_URL = get_database_url()
 
+
+def get_ssl_connect_args() -> dict:
+    """Build verified PyMySQL TLS arguments and validate the CA file path."""
+    if not settings.DB_SSL_CA or not settings.DB_SSL_CA.strip():
+        raise ValueError("DB_SSL_CA must be configured for the TiDB Cloud connection.")
+
+    ca_path = Path(settings.DB_SSL_CA).expanduser()
+    if not ca_path.is_file():
+        raise FileNotFoundError(f"DB_SSL_CA certificate file does not exist: {ca_path}")
+
+    return {
+        # These are PyMySQL's native TLS options. Both certificate and
+        # hostname verification are enabled for TiDB Cloud.
+        "ssl_ca": str(ca_path),
+        "ssl_verify_cert": True,
+        "ssl_verify_identity": True,
+    }
+
 # Create SQLAlchemy engine with robust connection pooling
 engine = create_engine(
     DATABASE_URL,
+    connect_args=get_ssl_connect_args(),
     pool_pre_ping=True,  # Test connections for liveness before using
-    pool_recycle=3600,   # Recycle connections older than 1 hour
+    pool_recycle=300,    # Recycle connections every 5 minutes for cloud DBs
     echo=settings.DEBUG,  # Log SQL queries when DEBUG is enabled
 )
 

@@ -32,8 +32,9 @@ RUN mkdir -p /app/frontend/uploads
 # Set working directory to backend for direct Alembic and Python module resolution
 WORKDIR /app/backend
 
-# Expose unified application port
-EXPOSE 8000
+# Expose Render's default web-service port. Render still routes the runtime
+# PORT environment variable to the process started by docker-entrypoint.sh.
+EXPOSE 10000
 
-# Container entrypoint runs migrations, provisions admin, and launches Uvicorn
+# Container entrypoint launches Uvicorn only; migrations and seeding are manual.
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

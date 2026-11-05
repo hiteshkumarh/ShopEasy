@@ -34,10 +34,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configure CORS middleware for frontend origin access
+# Same-origin deployment needs no CORS origins. Cross-origin deployments may
+# provide an explicit comma-separated CORS_ORIGINS environment variable.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configurable in production
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

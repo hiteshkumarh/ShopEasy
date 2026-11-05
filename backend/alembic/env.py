@@ -17,8 +17,11 @@ import app.models  # noqa: F401 - ensures all 15 models are imported
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the sqlalchemy.url dynamically from the application's secure configuration
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# ConfigParser uses '%' for interpolation. SQLAlchemy URLs can contain
+# percent-encoded credentials (for example, %40 for '@'), so escape percent
+# signs only while storing the value in Alembic's ConfigParser. The online
+# configuration below receives the original URL directly.
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
