@@ -401,9 +401,8 @@ Once the containers are running, open these URLs:
 | Application | URL |
 |---|---|
 | Customer Storefront | http://localhost:8000/ |
-| Customer Login | http://localhost:8000/login.html |
+|  Login | http://localhost:8000/login.html |
 | Customer Dashboard | http://localhost:8000/dashboard.html |
-| Admin Login | http://localhost:8000/admin/login.html |
 | API Documentation | http://localhost:8000/docs |
 
 ### 8. Admin Account Setup
