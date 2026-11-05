@@ -268,79 +268,275 @@ docker compose down -v
 This removes the Compose-managed volumes and permanently deletes their stored data, including database records and uploaded images. Only use it when you intentionally want a complete reset.
 
 ---
+## Running ShopEasy Locally
 
-## Native Windows Setup (Without Docker)
+ShopEasy uses Docker Compose to run the FastAPI application and MySQL database.
 
-If Docker Desktop is unavailable, you can run the application using Python and an installed MySQL server.
+### Prerequisites
 
-### Step 1: Install prerequisites
+Install the following software:
 
-- Python 3.12: https://www.python.org/downloads/
-- MySQL 8.0: https://dev.mysql.com/downloads/installer/
+- [Git](https://git-scm.com/downloads)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-### Step 2: Create the database
+Make sure Docker Desktop is running before executing Docker commands.
 
-Open MySQL and execute:
+### 1. Clone the Repository
 
-```sql
-CREATE DATABASE shopeasy_db
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-```
-
-### Step 3: Configure environment variables
-
-From the project root:
+Open PowerShell and execute:
 
 ```powershell
-copy .env.example .env
+git clone https://github.com/hiteshkumarh/ShopEasy.git
+cd ShopEasy
+```
+
+### 2. Configure Environment Variables
+
+Create your local `.env` file from the example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Open the file:
+
+```powershell
 notepad .env
 ```
 
-Configure your local MySQL connection, including:
+Configure the required variables:
 
 ```env
-DB_HOST=localhost
+DB_PASSWORD=your_mysql_password
+
+SECRET_KEY=your_generated_secret_key
+OTP_HMAC_SECRET=your_generated_otp_hmac_secret
+
+ADMIN_NAME=System Admin
+ADMIN_PHONE=your_admin_mobile_number
+ADMIN_PASSWORD=your_strong_admin_password
 ```
 
-Also configure the database credentials, secret keys, and admin credentials.
+**Important configuration requirements:**
 
-### Step 4: Create a Python virtual environment
+- Use your own MySQL password.
+- Generate separate random values for `SECRET_KEY` and `OTP_HMAC_SECRET`.
+- Both secret keys must contain at least 32 characters.
+- The two secret keys must be different.
+- Use an admin password of at least 12 characters.
+- Do not share or commit your `.env` file to GitHub.
+
+To generate a random secret, execute this PowerShell command:
 
 ```powershell
-cd backend
-
-python -m venv .venv
-
-.\.venv\Scripts\Activate.ps1
+python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-### Step 5: Install dependencies
+Run it twice to generate two different secrets.
+
+### 3. Validate Docker Configuration
+
+Execute:
 
 ```powershell
-pip install -r requirements.txt
+docker compose config --quiet
 ```
 
-### Step 6: Apply migrations and initialize baseline data
+If the command finishes without errors, your Docker Compose configuration is valid.
+
+### 4. Build and Start ShopEasy
+
+Execute:
 
 ```powershell
-alembic upgrade head
-
-python -m app.core.seed
+docker compose up --build -d
 ```
 
-### Step 7: Start the application
+This command builds the application image and starts the application and MySQL containers in the background.
+
+### 5. Verify Containers
+
+Execute:
 
 ```powershell
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+docker compose ps
 ```
 
-Open:
+Expected services:
 
-http://127.0.0.1:8000/
+| Service | Expected status |
+|---|---|
+| shopeasy_app | Up |
+| shopeasy_mysql | Up (healthy) |
 
----
+MySQL may take a little time to become healthy during its first startup.
 
+### 6. Check Application Logs
+
+To inspect application startup logs:
+
+```powershell
+docker compose logs --tail=100 app
+```
+
+To follow logs continuously:
+
+```powershell
+docker compose logs -f app
+```
+
+A successful startup should show:
+
+- Database migrations completed.
+- Baseline data seeding completed.
+- FastAPI application startup completed.
+- Uvicorn running on port 8000.
+
+Press `Ctrl + C` to stop viewing live logs. This does not stop the containers.
+
+### 7. Access ShopEasy
+
+Once the containers are running, open these URLs:
+
+| Application | URL |
+|---|---|
+| Customer Storefront | http://localhost:8000/ |
+| Customer Login | http://localhost:8000/login.html |
+| Customer Dashboard | http://localhost:8000/dashboard.html |
+| Admin Login | http://localhost:8000/admin/login.html |
+| API Documentation | http://localhost:8000/docs |
+
+### 8. Admin Account Setup
+
+During initial database initialization, the application provisions the admin account using:
+
+- `ADMIN_NAME`
+- `ADMIN_PHONE`
+- `ADMIN_PASSWORD`
+
+**Important:** Admin credentials are initialized only when an admin account does not already exist.
+
+If an admin account already exists in the database, changing the values in `.env` will not automatically update its existing phone number or password.
+
+For an existing database, use the credentials already stored in that database or perform a secure admin credential update using an appropriate application-level procedure.
+
+### 9. Common Problems and Solutions
+
+**Problem 1: Docker daemon is not running**
+
+Example error:
+
+```text
+failed to connect to the Docker API
+```
+
+Solution:
+
+1. Open Docker Desktop.
+2. Wait until the Docker engine is running.
+3. Execute:
+
+```powershell
+docker version
+```
+
+Confirm that both Client and Server information are available.
+
+**Problem 2: MySQL connection refused**
+
+Example error:
+
+```text
+Can't connect to MySQL server on 'mysql'
+```
+
+Solution:
+
+Check container status:
+
+```powershell
+docker compose ps
+```
+
+Inspect MySQL logs:
+
+```powershell
+docker compose logs --tail=100 mysql
+```
+
+If MySQL is still initializing, wait for it to become healthy and restart the application:
+
+```powershell
+docker compose restart app
+```
+
+Check application logs again:
+
+```powershell
+docker compose logs --tail=100 app
+```
+
+**Problem 3: Admin login fails**
+
+Check the following:
+
+1. Confirm that you are using the correct admin mobile number and password.
+2. Check whether the database already contains an admin account.
+3. Remember that changing `.env` does not automatically update an existing admin account.
+4. Check application logs for authentication errors.
+
+Do not delete the database just to change admin credentials.
+
+**Problem 4: Port 8000 is already in use**
+
+Another application may already be using port 8000.
+
+Stop the conflicting application or change the host port mapping in `docker-compose.yml`, then restart the containers.
+
+**Problem 5: Environment configuration error**
+
+Validate your configuration:
+
+```powershell
+docker compose config --quiet
+```
+
+Check that all required environment variables are present in `.env` and contain valid values.
+
+### 10. Stop ShopEasy
+
+To stop the containers without deleting database data:
+
+```powershell
+docker compose down
+```
+
+To start them again:
+
+```powershell
+docker compose up -d
+```
+
+### Important: Database and Uploaded Files
+
+ShopEasy uses Docker volumes to persist MySQL data and uploaded files.
+
+Stopping containers or removing the containers with `docker compose down` does not delete these named volumes.
+
+**Warning:** The following command permanently removes the Compose project's containers and associated named volumes, including database and uploaded-file data:
+
+```powershell
+docker compose down -v
+```
+
+Use this command only when you intentionally want to reset the local database and uploaded files.
+
+### Development Notes
+
+- Payment processing is simulated.
+- Withdrawal processing is simulated.
+- Use test customer accounts and test data during development.
+- Never use production credentials or real payment information for local testing.
 ## Repository
 
 GitHub: https://github.com/hiteshkumarh/ShopEasy
