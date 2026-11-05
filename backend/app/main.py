@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.api import (
     addresses,
     admin_auth,
+    admin_dashboard,
     admin_products,
     cart,
     customer_auth,
@@ -41,6 +42,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    """Disable aggressive browser caching for development and evaluation."""
+    response = await call_next(request)
+    path = request.url.path.lower()
+    if path.endswith((".html", ".js", ".css", ".json")) or path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 @app.get("/api/health")
@@ -81,6 +94,7 @@ app.include_router(identity.router, prefix="/api/v1/auth")
 # Mount API v1 Product Catalog & Admin Product Management Routers
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(admin_products.router, prefix="/api/v1")
+app.include_router(admin_dashboard.router, prefix="/api/v1")
 
 # Mount API v1 Cart, Addresses & Orders Routers
 app.include_router(cart.router, prefix="/api/v1")

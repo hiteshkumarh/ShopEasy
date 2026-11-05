@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In / Register — ShopEasy</title>
-  <meta name="description" content="Sign in or register to ShopEasy using your mobile phone number and one-time verification password.">
+  <meta name="description" content="Sign in or register to ShopEasy using your mobile phone number and password.">
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
@@ -40,7 +40,7 @@
           </svg>
         </a>
 
-        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+        <a href="login.html" class="nav-icon-btn" title="Sign In / Account" aria-label="Sign In / Account">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
@@ -85,65 +85,184 @@
         </svg>
       </div>
 
-      <!-- Step 1: Phone Number Input -->
-      <div id="phone-step">
-        <h1 class="auth-title">Sign in to ShopEasy</h1>
-        <p class="auth-desc">Enter your phone number to receive a one-time verification password.</p>
+      <!-- Feedback Banner -->
+      <div id="auth-message-banner" class="auth-message-banner" role="alert"></div>
 
-        <form id="phone-form">
+      <!-- Three-Option Auth Navigation Tabs -->
+      <div class="auth-tabs" role="tablist" id="auth-tabs">
+        <button type="button" class="auth-tab active" id="tab-btn-customer" data-tab="customer" role="tab" aria-selected="true">
+          Customer Login
+        </button>
+        <button type="button" class="auth-tab" id="tab-btn-admin" data-tab="admin" role="tab" aria-selected="false">
+          Admin Login
+        </button>
+        <button type="button" class="auth-tab" id="tab-btn-register" data-tab="register" role="tab" aria-selected="false">
+          Register
+        </button>
+      </div>
+
+      <!-- Panel 1: Customer Login (Default) -->
+      <div id="panel-customer" class="auth-panel active" role="tabpanel">
+        <h1 class="auth-title">Customer Sign In</h1>
+        <p class="auth-desc">Enter your 10-digit mobile number and password to access your customer account.</p>
+
+        <form id="customer-login-form" novalidate>
           <div class="phone-input-group">
             <span class="phone-prefix">+91</span>
-            <input 
-              type="tel" 
-              id="phone-number-input" 
-              class="phone-input" 
-              placeholder="98765 43210" 
-              maxlength="10" 
+            <input
+              type="tel"
+              id="customer-phone-input"
+              class="phone-input"
+              placeholder="98765 43210"
+              maxlength="10"
+              required
+              aria-label="10-digit registered mobile number"
+              autocomplete="tel"
+            >
+          </div>
+
+          <div class="form-group" style="text-align:left;">
+            <input
+              type="password"
+              id="customer-password-input"
+              class="form-control"
+              placeholder="Your Account Password"
+              required
+              aria-label="Account password"
+              autocomplete="current-password"
+            >
+          </div>
+
+          <button type="submit" id="customer-login-btn" class="btn btn-primary btn-block btn-lg">
+            Sign In
+          </button>
+        </form>
+
+        <div style="margin-top:var(--space-5);text-align:center;">
+          Don't have an account?
+          <button type="button" class="auth-link-btn" id="link-go-to-register">
+            Register here
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 2: Admin Login -->
+      <div id="panel-admin" class="auth-panel" role="tabpanel">
+        <h1 class="auth-title">Admin Console Login</h1>
+        <p class="auth-desc">Authorized administrators: enter your registered admin mobile number and password.</p>
+
+        <form id="admin-login-form" novalidate>
+          <div class="phone-input-group">
+            <span class="phone-prefix">+91</span>
+            <input
+              type="tel"
+              id="admin-phone-input"
+              class="phone-input"
+              placeholder="9800000000"
+              maxlength="10"
+              required
+              aria-label="Authorized 10-digit administrator mobile number"
+              autocomplete="tel"
+            >
+          </div>
+
+          <div class="form-group" style="text-align:left;">
+            <input
+              type="password"
+              id="admin-password-input"
+              class="form-control"
+              placeholder="Administrator Password"
+              required
+              aria-label="Administrator password"
+              autocomplete="current-password"
+            >
+          </div>
+
+          <button type="submit" id="admin-login-btn" class="btn btn-primary btn-block btn-lg">
+            Admin Login
+          </button>
+        </form>
+
+        <div class="auth-note" style="margin-top:var(--space-4);">
+          <strong>Restricted Access:</strong> Administrator access is strictly controlled. Customer accounts cannot access the admin console.
+        </div>
+      </div>
+
+      <!-- Panel 3: Customer Registration -->
+      <div id="panel-register" class="auth-panel" role="tabpanel">
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-desc">Register with your full legal name, 10-digit mobile number, and password.</p>
+
+        <form id="register-form" novalidate>
+          <div class="form-group" style="text-align:left;">
+            <input
+              type="text"
+              id="register-name-input"
+              class="form-control"
+              placeholder="Full Legal Name"
+              maxlength="100"
+              required
+              aria-label="Full legal name"
+              autocomplete="name"
+            >
+          </div>
+
+          <div class="phone-input-group">
+            <span class="phone-prefix">+91</span>
+            <input
+              type="tel"
+              id="register-phone-input"
+              class="phone-input"
+              placeholder="98765 43210"
+              maxlength="10"
               required
               aria-label="10-digit mobile number"
               autocomplete="tel"
             >
           </div>
 
-          <button type="submit" id="send-otp-btn" class="btn btn-primary btn-block btn-lg">
-            Send One-Time Password
+          <div class="form-group" style="text-align:left;">
+            <input
+              type="password"
+              id="register-password-input"
+              class="form-control"
+              placeholder="Password (minimum 6 characters)"
+              minlength="6"
+              maxlength="128"
+              required
+              aria-label="Account password"
+              autocomplete="new-password"
+            >
+          </div>
+
+          <div class="form-group" style="text-align:left;">
+            <input
+              type="password"
+              id="register-confirm-password-input"
+              class="form-control"
+              placeholder="Confirm Password"
+              minlength="6"
+              maxlength="128"
+              required
+              aria-label="Confirm password"
+              autocomplete="new-password"
+            >
+          </div>
+
+          <button type="submit" id="register-btn" class="btn btn-primary btn-block btn-lg">
+            Create Account
           </button>
         </form>
 
         <div class="auth-note">
-          <strong>Prototype Simulation Notice:</strong> Real SMS gateway will be integrated in later backend phases. You may enter any 10-digit mobile number for UI testing.
+          <strong>Customer Invariant:</strong> Zero-balance dual wallets and a unique referral code are provisioned automatically.
         </div>
-      </div>
 
-      <!-- Step 2: OTP Verification Interface -->
-      <div id="otp-step" class="otp-step">
-        <h1 class="auth-title">Verify Phone Number</h1>
-        <p class="auth-desc">
-          Enter the 6-digit code sent to <strong id="display-phone-number">+91</strong>
-        </p>
-
-        <form id="otp-form">
-          <div class="otp-inputs">
-            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 1">
-            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 2">
-            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 3">
-            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 4">
-            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 5">
-            <input type="text" class="otp-digit" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="Digit 6">
-          </div>
-
-          <button type="submit" id="verify-otp-btn" class="btn btn-primary btn-block btn-lg">
-            Verify &amp; Continue
+        <div style="margin-top:var(--space-4);text-align:center;">
+          Already have an account?
+          <button type="button" class="auth-link-btn" id="link-go-to-login">
+            Customer Sign In
           </button>
-        </form>
-
-        <div class="otp-resend">
-          Didn't receive the code? 
-          <button type="button" onclick="handleResendOtp()">Resend OTP</button>
-        </div>
-
-        <div class="auth-note" style="margin-top:var(--space-6);">
-          <strong>Development Mode:</strong> Enter any 6 digits (e.g. <code>123456</code>) to proceed with simulated sign-in.
         </div>
       </div>
     </div>
@@ -167,6 +286,7 @@
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
   <script src="js/cart.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/navigation.js"></script>
   <script>
@@ -176,4 +296,3 @@
   </script>
 </body>
 </html>
-

@@ -22,7 +22,7 @@ from app.models.wallet import Wallet, WalletTransaction, Withdrawal
 
 logger = logging.getLogger("shopeasy.wallet")
 
-DIRECT_REFERRAL_MIN_WITHDRAWAL = Decimal("4000.00")
+DIRECT_REFERRAL_MIN_WITHDRAWAL = Decimal("750.00")
 SEQUENTIAL_CYCLE_WITHDRAWAL_AMOUNT = Decimal("4000.00")
 ZERO_AMOUNT = Decimal("0.00")
 
@@ -169,7 +169,7 @@ def execute_simulated_withdrawal(
     """Execute a simulated full-balance payout and record an immutable debit transaction.
 
     Rules:
-      - Direct Referral Wallet: Requires balance >= ₹4,000.00.
+      - Direct Referral Wallet: Requires balance >= ₹750.00.
       - Sequential Commission Wallet: Requires completed 16/16 cycle and balance == ₹4,000.00.
       - Liquidates entire available balance; resets wallet to ₹0.00.
       - Idempotent: repeated requests with the same key return the committed withdrawal.
@@ -233,10 +233,7 @@ def execute_simulated_withdrawal(
         if wallet.balance < DIRECT_REFERRAL_MIN_WITHDRAWAL:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Direct Referral withdrawal requires a minimum balance of ₹{DIRECT_REFERRAL_MIN_WITHDRAWAL:,.2f}. "
-                    f"Current balance is ₹{wallet.balance:,.2f}."
-                ),
+                detail="Minimum withdrawal balance is ₹750.",
             )
     elif wallet_type == WalletType.SEQUENTIAL_COMMISSION:
         # Check that customer has completed 16/16 commissions

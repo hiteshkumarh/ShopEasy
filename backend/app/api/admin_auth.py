@@ -176,22 +176,22 @@ def login_admin_via_otp(
 
 
 @router.post(
-    "/login/password",
-    response_model=MFARequiredResponse,
+    "/login",
+    response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
-    summary="Authenticate administrator via password and initiate mandatory MFA challenge",
+    summary="Log in administrator using phone and password directly",
+)
+@router.post(
+    "/login/password",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Log in administrator using phone and password directly",
 )
 def login_admin_via_password(
     payload: AdminPasswordLoginRequest,
     db: Session = Depends(get_db),
-) -> MFARequiredResponse:
-    """Authenticate administrator password and trigger mandatory second-factor OTP.
-
-    Security Invariant:
-      Does NOT issue a full access JWT.
-      Instead, issues an ephemeral 5-minute MFA challenge JWT (type='mfa_pending')
-      and dispatches an ADMIN_MFA second-factor OTP.
-    """
+) -> TokenResponse:
+    """Authenticate administrator via phone and password directly (OTP/MFA step removed for local demo)."""
     try:
         clean_phone = normalize_phone(payload.phone)
     except ValueError as exc:
@@ -224,33 +224,17 @@ def login_admin_via_password(
             detail="Invalid administrator credentials.",
         )
 
-    try:
-        # Create second-factor MFA OTP
-        create_otp(db, clean_phone, OTPPurpose.ADMIN_MFA)
-        db.commit()
-    except ValueError as exc:
-        # Respect cooldown if an MFA request is already in flight
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(exc),
-        )
-    except Exception as exc:
-        db.rollback()
-        logger.error(f"Error creating admin MFA OTP for {_mask_phone(clean_phone)}: {exc}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initiate MFA challenge. Please try again.",
-        )
+    access_token = create_access_token(
+        user_id=admin.id,
+        role=admin.role.value,
+        phone=admin.phone,
+    )
 
-    # Issue ephemeral 5-minute MFA challenge token (type='mfa_pending')
-    mfa_token = create_mfa_token(user_id=admin.id)
-
-    logger.info(f"Administrator password verified; MFA challenge dispatched (ID: {admin.id}, Phone: {_mask_phone(clean_phone)}).")
-    return MFARequiredResponse(
-        mfa_token=mfa_token,
-        token_type="mfa",
-        expires_in=300,
-        mfa_required=True,
+    logger.info(f"Administrator logged in directly via password (ID: {admin.id}, Phone: {_mask_phone(clean_phone)}).")
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        role=admin.role,
     )
 
 

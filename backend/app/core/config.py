@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
@@ -6,12 +7,13 @@ from dotenv import load_dotenv
 # Base backend directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_PATH = BASE_DIR / ".env"
+ROOT_ENV_PATH = BASE_DIR.parent / ".env"
 
-# Explicitly load environment variables from backend/.env if it exists
+# Explicitly load environment variables
 if ENV_PATH.exists():
     load_dotenv(dotenv_path=ENV_PATH)
-else:
-    load_dotenv()
+if ROOT_ENV_PATH.exists():
+    load_dotenv(dotenv_path=ROOT_ENV_PATH)
 
 
 class Settings:
@@ -41,23 +43,39 @@ class Settings:
     DEV_OTP_CODE: str = os.getenv("DEV_OTP_CODE", "123456")
 
     # Initial Administrator Provisioning
-    ADMIN_NAME: str = os.getenv("ADMIN_NAME", "System Admin")
+    @property
+    def ADMIN_NAME(self) -> str:
+        """Get the initial administrator full name directly from ADMIN_NAME."""
+        name = os.getenv("ADMIN_NAME")
+        if not name or not name.strip():
+            raise ValueError("ADMIN_NAME environment variable is required and cannot be empty.")
+        name = name.strip()
+        if len(name) > 100:
+            raise ValueError("ADMIN_NAME must not exceed 100 characters.")
+        return name
+
+    @ADMIN_NAME.setter
+    def ADMIN_NAME(self, value: str) -> None:
+        os.environ["ADMIN_NAME"] = value
 
     @property
     def ADMIN_PHONE(self) -> str:
-        """Get the initial admin phone, requiring explicit configuration in non-development."""
-        env_phone = os.getenv("ADMIN_PHONE")
-        is_dev = self.ENVIRONMENT.lower() == "development"
-
-        if not is_dev:
-            if not env_phone or not env_phone.strip():
-                raise ValueError(
-                    "In non-development environments, ADMIN_PHONE must be explicitly configured."
-                )
-            return env_phone.strip()
-
-        # Local development fallback
-        return env_phone.strip() if env_phone else "9800000000"
+        """Get the initial administrator phone number directly from ADMIN_PHONE."""
+        phone = os.getenv("ADMIN_PHONE")
+        if not phone or not phone.strip():
+            raise ValueError("ADMIN_PHONE environment variable is required and cannot be empty.")
+        phone = phone.strip()
+        raw_digits = phone.replace(" ", "").replace("-", "")
+        if not re.match(r"^\+?[0-9]{10,15}$", raw_digits):
+            raise ValueError(
+                f"ADMIN_PHONE must be a valid phone number between 10 and 15 digits, got '{phone}'."
+            )
+        digits = "".join(c for c in raw_digits if c.isdigit())
+        if len(digits) == 12 and digits.startswith("91"):
+            digits = digits[2:]
+        if len(digits) == 10:
+            return digits
+        return raw_digits.lstrip("+")
 
     @ADMIN_PHONE.setter
     def ADMIN_PHONE(self, value: str) -> None:
@@ -65,27 +83,19 @@ class Settings:
 
     @property
     def ADMIN_PASSWORD(self) -> str:
-        """Get the initial admin password, requiring an explicit strong password in non-development."""
-        env_pwd = os.getenv("ADMIN_PASSWORD")
-        is_dev = self.ENVIRONMENT.lower() == "development"
-
-        if not is_dev:
-            if not env_pwd:
-                raise ValueError(
-                    "In non-development environments, ADMIN_PASSWORD must be explicitly configured."
-                )
-            if env_pwd == "Admin@ShopEasy2026":
-                raise ValueError(
-                    "In non-development environments, ADMIN_PASSWORD cannot use the default placeholder password."
-                )
-            if len(env_pwd) < 12:
-                raise ValueError(
-                    "In non-development environments, ADMIN_PASSWORD must be at least 12 characters long."
-                )
-            return env_pwd
-
-        # Local development fallback
-        return env_pwd if env_pwd else "Admin@ShopEasy2026"
+        """Get the initial administrator password directly from ADMIN_PASSWORD."""
+        password = os.getenv("ADMIN_PASSWORD")
+        if not password or not password.strip():
+            raise ValueError("ADMIN_PASSWORD environment variable is required and cannot be empty.")
+        if len(password) < 12:
+            raise ValueError(
+                f"ADMIN_PASSWORD must be at least 12 characters long, got {len(password)} characters."
+            )
+        if password.startswith("replace-with"):
+            raise ValueError(
+                "ADMIN_PASSWORD cannot use placeholder value. Please configure a secure password."
+            )
+        return password
 
     @ADMIN_PASSWORD.setter
     def ADMIN_PASSWORD(self, value: str) -> None:

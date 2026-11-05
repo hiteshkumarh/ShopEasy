@@ -10,8 +10,40 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/profile.css">
+  <style>
+    .order-allocation-box {
+      margin-top: var(--space-4);
+      padding: var(--space-4);
+      background-color: var(--color-surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-subtle);
+      font-size: var(--text-xs);
+    }
+    .allocation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+    }
+    .allocation-cell {
+      background-color: #FFFFFF;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    .allocation-label {
+      color: var(--color-muted);
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+    .allocation-val {
+      font-weight: 600;
+      color: var(--color-text);
+      font-size: var(--text-sm);
+    }
+  </style>
 </head>
-<body>
+<body class="auth-protected">
 
   <!-- Site Header -->
   <header class="site-header">
@@ -29,6 +61,7 @@
         <a href="index.html" class="nav-link">Home</a>
         <a href="products.html" class="nav-link">Shop</a>
         <a href="orders.html" class="nav-link active">Orders</a>
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
         <a href="profile.html" class="nav-link">Profile</a>
       </nav>
 
@@ -40,7 +73,7 @@
           </svg>
         </a>
 
-        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+        <a href="login.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
@@ -71,6 +104,7 @@
       <a href="index.html" class="mobile-nav-link">Home</a>
       <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
       <a href="orders.html" class="mobile-nav-link active">My Orders</a>
+      <a href="dashboard.html" class="mobile-nav-link">Earnings Dashboard</a>
       <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
       <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
     </div>
@@ -86,7 +120,10 @@
 
         <!-- Orders container populated dynamically -->
         <div id="orders-container">
-          <!-- Populated by JavaScript -->
+          <div class="empty-state" style="padding:var(--space-12);">
+            <div class="spinner" style="width:36px;height:36px;border:3px solid var(--color-border);border-top-color:var(--color-primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto var(--space-4);"></div>
+            <p style="color:var(--color-muted);">Loading your order history...</p>
+          </div>
         </div>
       </section>
     </div>
@@ -97,7 +134,7 @@
     <div class="container">
       <div class="footer-bottom">
         <p class="footer-disclaimer">
-          &copy; 2026 ShopEasy Inc. Customer Orders UI Prototype.
+          &copy; 2026 ShopEasy Inc. Customer Orders Management.
         </p>
         <div style="display:flex;gap:var(--space-4);">
           <a href="products.html" style="color:var(--color-primary);">Explore Products</a>
@@ -109,94 +146,201 @@
   <!-- Scripts -->
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/navigation.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      renderOrdersPage();
+    document.addEventListener('DOMContentLoaded', async () => {
+      const user = await requireCustomerAuth();
+      if (!user) return;
+      await renderOrdersPage();
     });
 
-    function renderOrdersPage() {
+    async function renderOrdersPage() {
       const container = document.getElementById('orders-container');
       if (!container) return;
 
-      let orders = [];
       try {
-        const stored = localStorage.getItem('shopeasy_orders');
-        orders = stored ? JSON.parse(stored) : [...MOCK_ORDERS];
-      } catch (e) {
-        orders = [...MOCK_ORDERS];
-      }
+        const response = await window.ShopEasyOrders.list();
+        const orders = response && response.items ? response.items : [];
 
-      if (orders.length === 0) {
+        if (orders.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <h2 class="empty-state-title">No Orders Yet</h2>
+              <p class="empty-state-desc">When you place an order, it will appear here with instant tracking status and financial breakdown.</p>
+              <a href="products.html" class="btn btn-primary">Start Shopping</a>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = orders.map(order => {
+          // Format date
+          let formattedDate = 'Recently';
+          if (order.created_at) {
+            try {
+              const d = new Date(order.created_at);
+              formattedDate = d.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            } catch (e) {
+              formattedDate = order.created_at;
+            }
+          }
+
+          // Format status badge class
+          let statusBadgeClass = 'badge-primary';
+          const st = (order.order_status || '').toUpperCase();
+          if (st === 'CONFIRMED' || st === 'DELIVERED') {
+            statusBadgeClass = 'badge-success';
+          } else if (st === 'CANCELLED') {
+            statusBadgeClass = 'badge-danger';
+          } else if (st === 'PENDING') {
+            statusBadgeClass = 'badge-warning';
+          }
+
+          // Render Line Items
+          const itemsList = (order.order_items || []).map(item => `
+            <div class="order-item-row">
+              <div class="order-item-thumb" style="display:flex;align-items:center;justify-content:center;background-color:var(--color-surface);border:1px solid var(--color-border);font-size:var(--text-xs);font-weight:600;color:var(--color-muted);">
+                PKG
+              </div>
+              <div class="order-item-info">
+                <h4 class="order-item-title">${item.product_name}</h4>
+                <span class="order-item-qty">Quantity: ${item.quantity} &times; ${formatINR(parseFloat(item.unit_price))}</span>
+              </div>
+              <div class="order-item-price">${formatINR(parseFloat(item.line_total))}</div>
+            </div>
+          `).join('');
+
+          // Address preview
+          let addressHtml = '';
+          if (order.address) {
+            const addr = order.address;
+            const line2 = addr.address_line2 ? `, ${addr.address_line2}` : '';
+            addressHtml = `
+              <div style="font-size:var(--text-xs);color:var(--color-muted);margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px dashed var(--color-border);">
+                <strong>Delivery To:</strong> ${addr.recipient_name} | ${addr.address_line1}${line2}, ${addr.city}, ${addr.state} — ${addr.pincode} (Ph: ${addr.phone})
+              </div>
+            `;
+          }
+
+          // Referral note
+          const referralHtml = order.applied_referral_code
+            ? `<span class="badge badge-success" style="font-size:11px;">Referral: ${order.applied_referral_code}</span>`
+            : '';
+
+          // Allocation Snapshot preview
+          let allocationHtml = '';
+          if (order.order_allocation) {
+            const alloc = order.order_allocation;
+            allocationHtml = `
+              <div id="alloc-${order.id}" class="order-allocation-box" style="display:none;">
+                <div style="font-weight:600;color:var(--color-text);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
+                  <span>Financial Allocation Snapshot (Immutable Ledger)</span>
+                  <span class="badge badge-muted">${alloc.scenario}</span>
+                </div>
+                <div class="allocation-grid">
+                  <div class="allocation-cell">
+                    <div class="allocation-label">Direct Referral Reward</div>
+                    <div class="allocation-val" style="color:var(--color-success);">${formatINR(parseFloat(alloc.direct_referral_reward))}</div>
+                  </div>
+                  <div class="allocation-cell">
+                    <div class="allocation-label">Sequential Commission</div>
+                    <div class="allocation-val" style="color:var(--color-primary);">${formatINR(parseFloat(alloc.sequential_commission))}</div>
+                  </div>
+                  <div class="allocation-cell">
+                    <div class="allocation-label">Output GST (18%)</div>
+                    <div class="allocation-val">${formatINR(parseFloat(alloc.output_gst))}</div>
+                  </div>
+                  <div class="allocation-cell">
+                    <div class="allocation-label">Import &amp; Sourcing</div>
+                    <div class="allocation-val">${formatINR(parseFloat(alloc.product_import_cost))}</div>
+                  </div>
+                  <div class="allocation-cell">
+                    <div class="allocation-label">Courier &amp; Logistics</div>
+                    <div class="allocation-val">${formatINR(parseFloat(alloc.packing_courier))}</div>
+                  </div>
+                  <div class="allocation-cell">
+                    <div class="allocation-label">Gift Achievement Fund</div>
+                    <div class="allocation-val">${formatINR(parseFloat(alloc.gift_achievement))}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          return `
+            <article class="order-card">
+              <header class="order-card-header">
+                <div class="order-meta-group">
+                  <div class="order-meta-item">
+                    <span class="order-meta-label">Order Number</span>
+                    <span class="order-meta-val">${order.order_number}</span>
+                  </div>
+                  <div class="order-meta-item">
+                    <span class="order-meta-label">Date Placed</span>
+                    <span class="order-meta-val">${formattedDate}</span>
+                  </div>
+                  <div class="order-meta-item">
+                    <span class="order-meta-label">Total Amount</span>
+                    <span class="order-meta-val">${formatINR(parseFloat(order.total_amount))}</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
+                  ${referralHtml}
+                  <span class="badge ${statusBadgeClass}">${order.order_status}</span>
+                  ${order.order_allocation ? `
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      onclick="toggleAllocationDetails(${order.id})"
+                    >
+                      Receipt Details
+                    </button>
+                  ` : ''}
+                </div>
+              </header>
+              <div class="order-card-body">
+                ${itemsList}
+                ${addressHtml}
+                ${allocationHtml}
+              </div>
+            </article>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Failed to fetch orders:', err);
         container.innerHTML = `
-          <div class="empty-state">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            <h2 class="empty-state-title">No Orders Yet</h2>
-            <p class="empty-state-desc">When you place an order, it will appear here with instant tracking status.</p>
-            <a href="products.html" class="btn btn-primary">Start Shopping</a>
+          <div class="empty-state" style="padding:var(--space-12);">
+            <h3 class="empty-state-title" style="color:var(--color-danger);">Unable to load orders</h3>
+            <p class="empty-state-desc">${err.detail || err.message || 'Please check your connection and try again.'}</p>
+            <button type="button" class="btn btn-secondary" onclick="renderOrdersPage()">Retry</button>
           </div>
         `;
-        return;
       }
-
-      container.innerHTML = orders.map(order => {
-        const itemsList = order.items.map(item => `
-          <div class="order-item-row">
-            <img 
-              src="${item.image}" 
-              alt="${item.name}" 
-              class="order-item-thumb" 
-              onerror="handleImageError(this, '${item.name}')"
-            >
-            <div class="order-item-info">
-              <h4 class="order-item-title">${item.name}</h4>
-              <span class="order-item-qty">Quantity: ${item.quantity}</span>
-            </div>
-            <div class="order-item-price">${formatINR(item.price * item.quantity)}</div>
-          </div>
-        `).join('');
-
-        return `
-          <article class="order-card">
-            <header class="order-card-header">
-              <div class="order-meta-group">
-                <div class="order-meta-item">
-                  <span class="order-meta-label">Order Number</span>
-                  <span class="order-meta-val">${order.id}</span>
-                </div>
-                <div class="order-meta-item">
-                  <span class="order-meta-label">Date Placed</span>
-                  <span class="order-meta-val">${order.date}</span>
-                </div>
-                <div class="order-meta-item">
-                  <span class="order-meta-label">Total Amount</span>
-                  <span class="order-meta-val">${formatINR(order.total)}</span>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:var(--space-3);">
-                <span class="badge ${order.statusClass || 'badge-success'}">${order.status}</span>
-                <button 
-                  type="button" 
-                  class="btn btn-secondary btn-sm" 
-                  onclick="showToast('Order ${order.id} is registered in the simulated tracking ledger.')"
-                >
-                  View Details
-                </button>
-              </div>
-            </header>
-            <div class="order-card-body">
-              ${itemsList}
-            </div>
-          </article>
-        `;
-      }).join('');
     }
+
+    function toggleAllocationDetails(orderId) {
+      const box = document.getElementById(`alloc-${orderId}`);
+      if (box) {
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+    window.toggleAllocationDetails = toggleAllocationDetails;
+    window.renderOrdersPage = renderOrdersPage;
   </script>
 </body>
 </html>
-

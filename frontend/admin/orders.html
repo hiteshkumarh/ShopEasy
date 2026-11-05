@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/admin.css">
 </head>
-<body>
+<body class="auth-protected">
 
   <div class="admin-shell">
     <!-- Admin Sidebar -->
@@ -113,7 +113,7 @@
       <!-- Page Body -->
       <main class="admin-body">
         <div class="prototype-tag">
-          <span>PROTOTYPE PLACEHOLDER — Detailed order fulfillment workflows will follow in later phases</span>
+          <span>Live data from backend API</span>
         </div>
 
         <div class="admin-card">
@@ -133,22 +133,11 @@
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="admin-orders-table-body">
                 <tr>
-                  <td><strong style="font-family:var(--font-mono);">SE-98241</strong></td>
-                  <td>Aarav Mehta</td>
-                  <td>28 Oct 2026</td>
-                  <td><strong>₹3,999</strong></td>
-                  <td><span class="badge badge-success">Delivered</span></td>
-                  <td><button type="button" class="table-action-btn" onclick="alert('Order tracking workflow will connect to backend API.')">Inspect</button></td>
-                </tr>
-                <tr>
-                  <td><strong style="font-family:var(--font-mono);">SE-94108</strong></td>
-                  <td>Aarav Mehta</td>
-                  <td>15 Oct 2026</td>
-                  <td><strong>₹4,298</strong></td>
-                  <td><span class="badge badge-success">Delivered</span></td>
-                  <td><button type="button" class="table-action-btn" onclick="alert('Order tracking workflow will connect to backend API.')">Inspect</button></td>
+                  <td colspan="6" style="text-align:center;padding:var(--space-8);color:var(--color-muted);">
+                    No orders recorded yet.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -166,13 +155,13 @@
   </div>
 
   <!-- Scripts -->
-  <script src="../js/data.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/data.js?v=20261105_04"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initAdminShell();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAdminOrdersPage();
     });
   </script>
 </body>
 </html>
-

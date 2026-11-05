@@ -75,6 +75,10 @@ class ProductCreateRequest(BaseModel):
         True,
         description="Whether product is active and visible to public catalog",
     )
+    is_power_bank: Optional[bool] = Field(
+        None,
+        description="Whether product qualifies as Power Bank for commission calculations",
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -136,6 +140,10 @@ class ProductUpdateRequest(BaseModel):
     is_active: Optional[bool] = Field(
         None,
         description="Whether product is active and visible to public catalog",
+    )
+    is_power_bank: Optional[bool] = Field(
+        None,
+        description="Whether product qualifies as Power Bank for commission calculations",
     )
 
     model_config = ConfigDict(extra="forbid")

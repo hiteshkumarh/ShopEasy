@@ -26,12 +26,17 @@ def _mask_phone(phone: str) -> str:
 
 def seed_admin_user(db: Session) -> Dict[str, Any]:
     """Seed the initial pre-provisioned administrator account idempotently."""
-    admin_phone = settings.ADMIN_PHONE.strip()
-    admin_name = settings.ADMIN_NAME.strip()
+    admin_name = settings.ADMIN_NAME
+    admin_phone = settings.ADMIN_PHONE
     admin_password = settings.ADMIN_PASSWORD
 
-    if not admin_password:
-        raise ValueError("ADMIN_PASSWORD must be configured in environment.")
+    # Fail with a clear error if admin configuration is invalid
+    if not admin_name or not admin_name.strip():
+        raise ValueError("Cannot seed admin: ADMIN_NAME is required and cannot be empty.")
+    if not admin_phone or not admin_phone.strip():
+        raise ValueError("Cannot seed admin: ADMIN_PHONE is required and cannot be empty.")
+    if not admin_password or len(admin_password) < 12:
+        raise ValueError("Cannot seed admin: ADMIN_PASSWORD is required and must be at least 12 characters.")
 
     # 1. Search for an existing user with role ADMIN
     existing_admin = (
@@ -76,10 +81,11 @@ def seed_admin_user(db: Session) -> Dict[str, Any]:
     password_hash = hash_password(admin_password)
 
     # Invariant: Admin must have NO referral code and NO referrer
+    # Explicit SQLAlchemy keyword arguments guarantee exact column mapping
     admin_user = User(
-        full_name=admin_name,
-        phone=admin_phone,
-        password_hash=password_hash,
+        full_name=str(admin_name),
+        phone=str(admin_phone),
+        password_hash=str(password_hash),
         role=UserRole.ADMIN,
         referral_code=None,
         referred_by_id=None,
@@ -177,28 +183,41 @@ def seed_queue_control(db: Session) -> Dict[str, Any]:
     }
 
 
-def seed_baseline_data(db: Session) -> Dict[str, Any]:
-    """Execute all baseline seed operations within a single database transaction."""
+def seed_baseline_data(db: Session, include_product: bool = False) -> Dict[str, Any]:
+    """Execute baseline seed operations within a single database transaction.
+
+    Provisions:
+      1. Initial pre-provisioned administrator account (idempotent).
+      2. Singleton QueueControl controller record (idempotent).
+      3. (Optional) Power Bank product only if explicitly requested.
+    """
     logger.info("Beginning baseline data seeding transaction...")
     admin_result = seed_admin_user(db)
-    product_result = seed_power_bank_product(db)
     qc_result = seed_queue_control(db)
+
+    results = {
+        "admin": admin_result,
+        "queue_control": qc_result,
+    }
+
+    if include_product:
+        product_result = seed_power_bank_product(db)
+        results["product"] = product_result
+    else:
+        logger.info("Product seeding skipped: Product catalog starts clean/empty for manual admin creation.")
 
     db.commit()
     logger.info("Baseline data seeding transaction committed successfully.")
 
-    return {
-        "admin": admin_result,
-        "product": product_result,
-        "queue_control": qc_result,
-    }
+    return results
 
 
 def main():
-    """CLI entrypoint to execute baseline seeding."""
+    """CLI entrypoint to execute baseline seeding (Admin & QueueControl only)."""
+    include_product = "--with-product" in sys.argv
     db = SessionLocal()
     try:
-        results = seed_baseline_data(db)
+        results = seed_baseline_data(db, include_product=include_product)
         logger.info(f"Seeding completed. Summary: {results}")
     except Exception as exc:
         db.rollback()

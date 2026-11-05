@@ -1,0 +1,53 @@
+# =============================================================================
+# ShopEasy — Docker Build Ignore Configuration
+# =============================================================================
+
+# Version control
+.git/
+.gitignore
+
+# Local test & scratch artifacts (prevents copying 270+ MB of temporary data)
+scratch/
+chrome_profile*/
+
+# Environment files and sensitive credentials
+.env
+.env.*
+!.env.example
+*.secret
+*.pem
+*.key
+
+# Python virtual environments & build artifacts
+.venv/
+venv/
+ENV/
+env/
+*.venv/
+build/
+dist/
+*.egg-info/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor & IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS temporary files
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+.DS_Store
+
+# Temporary logs
+*.log

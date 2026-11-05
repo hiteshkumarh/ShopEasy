@@ -49,80 +49,49 @@
       <!-- Feedback Banner -->
       <div id="admin-message-banner" class="admin-message-banner" role="alert"></div>
 
-      <!-- Step 1: Phone Number Input -->
-      <div id="admin-phone-step">
+      <!-- Mode: Password Login Step -->
+      <div id="admin-password-step">
         <h1 class="admin-title">ShopEasy Admin</h1>
-        <p class="admin-subtitle">Enter your authorized mobile number to access the administration portal.</p>
+        <p class="admin-subtitle">Enter your authorized mobile number and administrator password.</p>
 
-        <form id="admin-phone-form" novalidate>
+        <form id="admin-password-form" novalidate>
           <div class="admin-input-group">
             <span class="admin-input-prefix">+91</span>
-            <input 
-              type="tel" 
-              id="admin-phone-input" 
-              class="admin-input-field" 
-              placeholder="98765 43210" 
-              maxlength="10" 
+            <input
+              type="tel"
+              id="admin-pwd-phone"
+              class="admin-input-field"
+              placeholder="9800000000"
+              maxlength="10"
               required
               aria-label="Authorized 10-digit mobile number"
               autocomplete="tel"
             >
           </div>
 
-          <button type="submit" id="admin-send-otp-btn" class="btn btn-primary btn-block btn-lg">
-            Send OTP
+          <div class="form-group" style="text-align:left;margin-bottom:var(--space-5);">
+            <input
+              type="password"
+              id="admin-pwd-input"
+              class="form-control"
+              placeholder="Administrator Password"
+              required
+              aria-label="Administrator password"
+              autocomplete="current-password"
+            >
+          </div>
+
+          <button type="submit" id="admin-pwd-btn" class="btn btn-primary btn-block btn-lg">
+            Sign In as Admin
           </button>
         </form>
 
         <div class="admin-security-note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <div>
-            <strong>Restricted Access:</strong> Public admin registration is disabled. Administrator accounts are pre-provisioned server-side with strict role boundaries.
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: OTP Verification Interface -->
-      <div id="admin-otp-step" class="admin-otp-step">
-        <h1 class="admin-title">Verify Admin OTP</h1>
-        <p class="admin-subtitle">
-          Enter the 6-digit one-time password delivered to <strong id="admin-display-phone">+91</strong>
-        </p>
-
-        <form id="admin-otp-form" novalidate>
-          <div class="admin-otp-inputs">
-            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 1">
-            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 2">
-            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 3">
-            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 4">
-            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 5">
-            <input type="text" class="admin-otp-box" maxlength="1" pattern="\d*" inputmode="numeric" required aria-label="OTP Digit 6">
-          </div>
-
-          <button type="submit" id="admin-verify-btn" class="btn btn-primary btn-block btn-lg">
-            Verify OTP
-          </button>
-        </form>
-
-        <div class="admin-resend-link">
-          Didn't receive code? 
-          <button type="button" class="admin-resend-btn" onclick="handleAdminResendOtp()">Resend OTP</button>
-        </div>
-
-        <div id="admin-success-note" style="display:none;margin-top:var(--space-6);padding:var(--space-4);background-color:rgba(36,138,61,0.08);border:1px solid rgba(36,138,61,0.25);border-radius:var(--radius-md);font-size:12px;color:var(--color-success);text-align:left;">
-          <strong>Ready for TASK-003.2:</strong> Administrator credentials authenticated. Next task will implement the Admin Dashboard and catalog management views.
-        </div>
-
-        <div class="admin-security-note" style="margin-top:var(--space-6);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           </svg>
           <div>
-            <strong>Architecture Invariant:</strong> Admin roles receive no referral codes. Server-side session verification enforces role separation.
+            <strong>Authorized Personnel Only:</strong> Administrator access is strictly controlled. Server-side session verification enforces role boundaries.
           </div>
         </div>
       </div>
@@ -137,7 +106,12 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="../js/admin.js"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initAdminLogin();
+    });
+  </script>
 </body>
 </html>
-

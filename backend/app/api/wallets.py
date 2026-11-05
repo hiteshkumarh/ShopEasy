@@ -140,7 +140,7 @@ def withdraw_funds(
     """Execute simulated full-balance withdrawal for Direct Referral or Sequential Commission wallet.
 
     Enforces:
-      - Direct Referral: Available balance >= ₹4,000.00.
+      - Direct Referral: Available balance >= ₹750.00.
       - Sequential Commission: Completed 16/16 cycle and balance == ₹4,000.00.
       - Withdraws full available balance and resets wallet balance to ₹0.00.
       - Idempotent: repeated identical requests return original withdrawal response.

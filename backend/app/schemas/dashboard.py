@@ -45,13 +45,13 @@ class WithdrawalEligibility(BaseModel):
     """Withdrawal eligibility gates for both wallets."""
 
     direct_referral_eligible: bool = Field(
-        ..., description="True if Direct Referral balance >= ₹4,000.00"
+        ..., description="True if Direct Referral balance >= ₹750.00"
     )
     direct_referral_min_required: Decimal = Field(
-        default=Decimal("4000.00"),
+        default=Decimal("750.00"),
         max_digits=10,
         decimal_places=2,
-        description="Minimum threshold for direct referral liquidation (₹4,000.00)",
+        description="Minimum threshold for direct referral liquidation (₹750.00)",
     )
     sequential_commission_eligible: bool = Field(
         ...,

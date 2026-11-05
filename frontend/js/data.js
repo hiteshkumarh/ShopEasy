@@ -320,79 +320,11 @@ const SHOP_PRODUCTS = [
   }
 ];
 
-// Initial mock customer profile data for UI prototype (Clearly fictional sample data)
-const MOCK_PROFILE = {
-  name: 'Aarav Mehta',
-  phone: '+91 98000 12345',
-  memberSince: 'March 2026',
-  addresses: [
-    {
-      id: 'addr-1',
-      type: 'Home',
-      isDefault: true,
-      name: 'Aarav Mehta',
-      street: 'Flat 402, Lotus Residency, 14th Main Road, Sector 3',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560034',
-      phone: '+91 98000 12345'
-    },
-    {
-      id: 'addr-2',
-      type: 'Office',
-      isDefault: false,
-      name: 'Aarav Mehta',
-      street: '4th Floor, Apex Technology Towers, IT Corridor',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560103',
-      phone: '+91 98000 12345'
-    }
-  ]
-};
+// Initial mock customer profile data (reset)
+const MOCK_PROFILE = null;
 
-// Initial mock orders for customer order history prototype
-const MOCK_ORDERS = [
-  {
-    id: 'SE-98241',
-    date: '28 Oct 2026',
-    status: 'Delivered',
-    statusClass: 'badge-success',
-    total: 3999,
-    items: [
-      {
-        id: 'prod-002',
-        name: 'Smart Watch Series X',
-        quantity: 1,
-        price: 3999,
-        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&auto=format&fit=crop&q=80'
-      }
-    ]
-  },
-  {
-    id: 'SE-94108',
-    date: '15 Oct 2026',
-    status: 'Delivered',
-    statusClass: 'badge-success',
-    total: 4298,
-    items: [
-      {
-        id: 'prod-001',
-        name: 'Wireless Noise-Cancelling Headphones',
-        quantity: 1,
-        price: 2499,
-        image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=200&auto=format&fit=crop&q=80'
-      },
-      {
-        id: 'prod-003',
-        name: 'Premium Minimalist Backpack',
-        quantity: 1,
-        price: 1799,
-        image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&auto=format&fit=crop&q=80'
-      }
-    ]
-  }
-];
+// Initial mock orders (reset to empty)
+const MOCK_ORDERS = [];
 
 // Utility: Format currency in Indian Rupees (INR)
 function formatINR(amount) {

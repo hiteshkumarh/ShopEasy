@@ -26,6 +26,15 @@ from app.services.referral import validate_referral_code
 logger = logging.getLogger("shopeasy.checkout")
 
 
+def is_power_bank_product(prod: Product) -> bool:
+    """Check if a product qualifies as the Power Bank product."""
+    return bool(
+        prod.is_power_bank
+        or (prod.product_code and prod.product_code.strip().upper() == "PB-3999")
+        or ("power bank" in prod.name.lower())
+    )
+
+
 def execute_checkout(
     db: Session,
     customer: User,
@@ -192,7 +201,7 @@ def execute_checkout(
 
         # 10. Lock QueueControl and determine sequential commission eligibility
         queue_control = lock_queue_control(db)
-        has_power_bank = any(prod.is_power_bank for qty, prod in items_with_products)
+        has_power_bank = any(is_power_bank_product(prod) for qty, prod in items_with_products)
         seq_applies, active_beneficiary_id = determine_sequential_eligibility(
             queue_control=queue_control,
             buyer_id=customer.id,

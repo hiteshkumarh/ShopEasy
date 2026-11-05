@@ -30,6 +30,7 @@
         <a href="products.html" class="nav-link">Shop</a>
         <a href="index.html#categories" class="nav-link">Categories</a>
         <a href="orders.html" class="nav-link">Orders</a>
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
       </nav>
 
       <div class="nav-actions">
@@ -40,7 +41,7 @@
           </svg>
         </a>
 
-        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+        <a href="login.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
@@ -71,6 +72,7 @@
       <a href="index.html" class="mobile-nav-link">Home</a>
       <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
       <a href="orders.html" class="mobile-nav-link">My Orders</a>
+      <a href="dashboard.html" class="mobile-nav-link">Earnings Dashboard</a>
       <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
       <a href="cart.html" class="mobile-nav-link active">Shopping Bag</a>
     </div>
@@ -97,7 +99,7 @@
     <div class="container">
       <div class="footer-bottom">
         <p class="footer-disclaimer">
-          &copy; 2026 ShopEasy Inc. Shopping cart prototype with localStorage persistence.
+          &copy; 2026 ShopEasy Inc. Shopping cart with live MySQL persistence.
         </p>
         <div style="display:flex;gap:var(--space-4);">
           <span style="color:var(--color-muted);">Currency: INR (₹)</span>
@@ -109,13 +111,15 @@
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/main.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/products.js"></script>
   <script src="js/navigation.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      renderCartPage();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await renderCartPage();
     });
   </script>
 </body>

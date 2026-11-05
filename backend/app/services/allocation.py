@@ -25,6 +25,15 @@ SEQUENTIAL_COMMISSION_AMOUNT = Decimal("250.00")
 ZERO_AMOUNT = Decimal("0.00")
 
 
+def is_power_bank_product(prod: Product) -> bool:
+    """Check if a product qualifies as the Power Bank product."""
+    return bool(
+        prod.is_power_bank
+        or (prod.product_code and prod.product_code.strip().upper() == "PB-3999")
+        or ("power bank" in prod.name.lower())
+    )
+
+
 def calculate_and_create_order_allocation(
     db: Session,
     order: Order,
@@ -67,7 +76,7 @@ def calculate_and_create_order_allocation(
     """
     # 1. Calculate Power Bank quantity
     power_bank_quantity = sum(
-        qty for qty, prod in items_with_products if prod.is_power_bank
+        qty for qty, prod in items_with_products if is_power_bank_product(prod)
     )
 
     pb_qty_dec = Decimal(power_bank_quantity)

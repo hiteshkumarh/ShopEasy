@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/admin.css">
 </head>
-<body>
+<body class="auth-protected">
 
   <div class="admin-shell">
     <!-- Admin Sidebar -->
@@ -123,12 +123,24 @@
             <!-- Product Name -->
             <div class="form-group">
               <label for="product-name" class="form-label">Product Name *</label>
-              <input 
-                type="text" 
-                id="product-name" 
-                class="form-control" 
-                placeholder="e.g. Minimalist Wireless Headphones" 
+              <input
+                type="text"
+                id="product-name"
+                class="form-control"
+                placeholder="e.g. Minimalist Wireless Headphones"
                 required
+              >
+            </div>
+
+            <!-- Product Code / SKU (Optional) -->
+            <div class="form-group">
+              <label for="product-code" class="form-label">Product SKU / Code <span style="font-weight:normal;color:var(--color-muted);">(Optional)</span></label>
+              <input
+                type="text"
+                id="product-code"
+                class="form-control"
+                placeholder="e.g. ELEC-HEADPHONES-01"
+                maxlength="50"
               >
             </div>
 
@@ -158,26 +170,26 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="product-price" class="form-label">Price (INR ₹) *</label>
-                <input 
-                  type="number" 
-                  id="product-price" 
-                  class="form-control" 
-                  placeholder="2499" 
-                  min="0" 
-                  step="1" 
+                <input
+                  type="number"
+                  id="product-price"
+                  class="form-control"
+                  placeholder="2499"
+                  min="0"
+                  step="1"
                   required
                 >
               </div>
 
               <div class="form-group">
                 <label for="product-stock" class="form-label">Stock Quantity *</label>
-                <input 
-                  type="number" 
-                  id="product-stock" 
-                  class="form-control" 
-                  placeholder="25" 
-                  min="0" 
-                  step="1" 
+                <input
+                  type="number"
+                  id="product-stock"
+                  class="form-control"
+                  placeholder="25"
+                  min="0"
+                  step="1"
                   required
                 >
               </div>
@@ -208,10 +220,10 @@
                     <label for="product-image-url" style="font-size:var(--text-xs);font-weight:500;color:var(--color-muted);display:block;margin-bottom:4px;">
                       Or Image URL:
                     </label>
-                    <input 
-                      type="url" 
-                      id="product-image-url" 
-                      class="form-control" 
+                    <input
+                      type="url"
+                      id="product-image-url"
+                      class="form-control"
                       placeholder="https://images.unsplash.com/..."
                     >
                   </div>
@@ -225,10 +237,10 @@
             <!-- Description -->
             <div class="form-group">
               <label for="product-description" class="form-label">Product Description</label>
-              <textarea 
-                id="product-description" 
-                class="form-control" 
-                rows="4" 
+              <textarea
+                id="product-description"
+                class="form-control"
+                rows="4"
                 placeholder="Provide a concise description of craftsmanship, materials, and design details..."
               ></textarea>
             </div>
@@ -256,13 +268,13 @@
   </div>
 
   <!-- Scripts -->
-  <script src="../js/data.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/data.js?v=20261105_04"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initProductForm();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initProductForm();
     });
   </script>
 </body>
 </html>
-

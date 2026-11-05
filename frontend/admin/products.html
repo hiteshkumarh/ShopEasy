@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/admin.css">
 </head>
-<body>
+<body class="auth-protected">
 
   <div class="admin-shell">
     <!-- Admin Sidebar -->
@@ -116,6 +116,8 @@
 
       <!-- Page Body -->
       <main class="admin-body">
+        <div id="admin-message-banner" class="admin-message-banner" role="alert" style="display:none;margin-bottom:var(--space-4);"></div>
+
         <div class="admin-toolbar">
           <div class="admin-toolbar-left">
             <div class="admin-search-wrap">
@@ -123,11 +125,11 @@
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <input 
-                type="search" 
-                id="admin-product-search" 
-                class="admin-search-input" 
-                placeholder="Search products by title or ID..." 
+              <input
+                type="search"
+                id="admin-product-search"
+                class="admin-search-input"
+                placeholder="Search products by title or ID..."
                 aria-label="Search catalog products"
               >
             </div>
@@ -179,13 +181,13 @@
   </div>
 
   <!-- Scripts -->
-  <script src="../js/data.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/data.js?v=20261105_04"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initAdminProductsPage();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAdminProductsPage();
     });
   </script>
 </body>
 </html>
-

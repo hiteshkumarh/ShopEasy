@@ -210,6 +210,18 @@ def process_sequential_commission(
     """
     now = datetime.utcnow()
 
+    # 0. Idempotency guard: prevent duplicate commission for the same order
+    existing_seq_comm = (
+        db.query(SequentialCommission)
+        .filter(SequentialCommission.source_order_id == order.id)
+        .first()
+    )
+    if existing_seq_comm:
+        logger.info(
+            f"Sequential commission for order #{order.id} already processed (ID #{existing_seq_comm.id}). Skipping duplicate."
+        )
+        return existing_seq_comm
+
     # 1. Lock active commission cycle
     active_cycle = (
         db.query(CommissionCycle)

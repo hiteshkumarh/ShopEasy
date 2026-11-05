@@ -85,11 +85,12 @@ def register_customer(
         )
 
     try:
-        # 1. Create user entity
+        # 1. Create user entity with secure bcrypt password hash
+        hashed_pwd = hash_password(payload.password)
         new_customer = User(
             full_name=payload.full_name,
             phone=clean_phone,
-            password_hash=None,
+            password_hash=hashed_pwd,
             role=UserRole.CUSTOMER,
             referral_code=referral_code,
             referred_by_id=None,
@@ -276,6 +277,12 @@ def login_customer_via_otp(
     )
 
 
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Log in customer using phone and password",
+)
 @router.post(
     "/login/password",
     response_model=TokenResponse,

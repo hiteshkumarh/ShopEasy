@@ -1,0 +1,75 @@
+# =============================================================================
+# ShopEasy — Multi-Container Docker Compose Stack
+# Services:
+#   1. mysql : Isolated MySQL 8.0 relational database with persistent volume
+#   2. app   : Unified FastAPI API backend & static storefront on port 8000
+# =============================================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: shopeasy_mysql
+    restart: unless-stopped
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-shopeasy_db}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - shopeasy_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopeasy_app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DEBUG: ${DEBUG:-False}
+      HOST: 0.0.0.0
+      PORT: 8000
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      OTP_HMAC_SECRET: ${OTP_HMAC_SECRET}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-shopeasy_db}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ENABLE_MOCK_PAYMENT: ${ENABLE_MOCK_PAYMENT:-True}
+      DEV_OTP_CODE: ${DEV_OTP_CODE:-123456}
+      ADMIN_NAME: ${ADMIN_NAME:-System Admin}
+      ADMIN_PHONE: ${ADMIN_PHONE}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      # Persist user/admin-uploaded catalog images across container rebuilds
+      - uploads_data:/app/frontend/uploads
+    networks:
+      - shopeasy_network
+
+volumes:
+  mysql_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  shopeasy_network:
+    driver: bridge

@@ -110,7 +110,7 @@ def get_earnings_dashboard(
     )
 
     # 3. Compute withdrawal eligibility
-    dr_eligible = dr_wallet.balance >= Decimal("4000.00")
+    dr_eligible = dr_wallet.balance >= Decimal("750.00")
     sc_eligible = (
         cycle is not None
         and cycle.completed_commissions == 16
@@ -119,7 +119,7 @@ def get_earnings_dashboard(
 
     eligibility = WithdrawalEligibility(
         direct_referral_eligible=dr_eligible,
-        direct_referral_min_required=Decimal("4000.00"),
+        direct_referral_min_required=Decimal("750.00"),
         sequential_commission_eligible=sc_eligible,
         sequential_commission_required=Decimal("4000.00"),
     )

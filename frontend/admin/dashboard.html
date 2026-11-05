@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/admin.css">
 </head>
-<body>
+<body class="auth-protected">
 
   <div class="admin-shell">
     <!-- Admin Sidebar -->
@@ -121,7 +121,7 @@
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          <span>PROTOTYPE DEMONSTRATION DATA ONLY</span>
+          <span>Live data from backend API</span>
         </div>
 
         <!-- Metric Stat Cards Grid -->
@@ -136,7 +136,7 @@
                 </svg>
               </div>
             </div>
-            <div class="stat-value" id="stat-total-products">12</div>
+            <div class="stat-value" id="stat-total-products">0</div>
             <span class="stat-hint">Active in catalog</span>
           </article>
 
@@ -150,7 +150,7 @@
                 </svg>
               </div>
             </div>
-            <div class="stat-value" id="stat-total-orders">2</div>
+            <div class="stat-value" id="stat-total-orders">0</div>
             <span class="stat-hint">Delivered &amp; Processing</span>
           </article>
 
@@ -165,7 +165,7 @@
                 </svg>
               </div>
             </div>
-            <div class="stat-value" id="stat-total-customers">18</div>
+            <div class="stat-value" id="stat-total-customers">0</div>
             <span class="stat-hint">Registered accounts</span>
           </article>
 
@@ -180,8 +180,8 @@
                 </svg>
               </div>
             </div>
-            <div class="stat-value" id="stat-total-revenue">₹8,297</div>
-            <span class="stat-hint">Simulated checkout ledger</span>
+            <div class="stat-value" id="stat-total-revenue">₹0</div>
+            <span class="stat-hint">Confirmed orders revenue</span>
           </article>
         </section>
 
@@ -240,13 +240,13 @@
   </div>
 
   <!-- Scripts -->
-  <script src="../js/data.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/data.js?v=20261105_04"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initAdminDashboard();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAdminDashboard();
     });
   </script>
 </body>
 </html>
-

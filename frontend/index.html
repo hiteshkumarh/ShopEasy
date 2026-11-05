@@ -34,6 +34,7 @@
         <a href="products.html" class="nav-link">Shop</a>
         <a href="#categories" class="nav-link">Categories</a>
         <a href="orders.html" class="nav-link">Orders</a>
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
       </nav>
 
       <!-- Navigation Actions -->
@@ -45,7 +46,7 @@
           </svg>
         </a>
 
-        <a href="profile.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
+        <a href="login.html" class="nav-icon-btn" title="Customer Account" aria-label="Customer Account">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
@@ -79,6 +80,7 @@
       <a href="products.html?category=electronics" class="mobile-nav-link">Electronics</a>
       <a href="products.html?category=accessories" class="mobile-nav-link">Accessories</a>
       <a href="orders.html" class="mobile-nav-link">My Orders</a>
+      <a href="dashboard.html" class="mobile-nav-link">Earnings Dashboard</a>
       <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
       <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
       <div style="margin-top:auto;padding-top:var(--space-6);">
@@ -202,7 +204,7 @@
           <!-- Populated dynamically by products.js -->
         </div>
 
-        <div style="text-align:center;margin-top:var(--space-12);">
+        <div id="browse-catalog-cta" style="text-align:center;margin-top:var(--space-12);">
           <a href="products.html" class="btn btn-secondary btn-lg">Browse Full Catalog &rarr;</a>
         </div>
       </div>
@@ -316,13 +318,14 @@
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/main.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/products.js"></script>
   <script src="js/navigation.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initHomePageProducts();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initHomePageProducts();
     });
   </script>
 </body>

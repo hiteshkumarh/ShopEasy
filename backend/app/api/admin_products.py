@@ -56,6 +56,15 @@ def create_product(
                 detail=f"A product with code '{payload.product_code}' already exists.",
             )
 
+    # Determine is_power_bank: explicit flag or designated power bank indicators
+    if payload.is_power_bank is not None:
+        is_pb = payload.is_power_bank
+    else:
+        is_pb = bool(
+            (payload.product_code and payload.product_code.strip().upper() == "PB-3999")
+            or ("power bank" in payload.name.lower())
+        )
+
     try:
         new_product = Product(
             name=payload.name,
@@ -65,7 +74,7 @@ def create_product(
             image_url=payload.image_url,
             product_code=payload.product_code,
             is_active=payload.is_active,
-            is_power_bank=False,  # strictly non-power-bank for regular catalog additions
+            is_power_bank=is_pb,
         )
         db.add(new_product)
         db.commit()
@@ -212,6 +221,12 @@ def update_product(
     update_fields = payload.model_dump(exclude_unset=True)
     for field_name, new_val in update_fields.items():
         setattr(product, field_name, new_val)
+
+    if payload.is_power_bank is None and (
+        (product.product_code and product.product_code.strip().upper() == "PB-3999")
+        or ("power bank" in product.name.lower())
+    ):
+        product.is_power_bank = True
 
     try:
         db.commit()

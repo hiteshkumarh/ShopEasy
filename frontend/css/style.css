@@ -241,3 +241,8 @@ ol {
     margin-bottom: var(--space-8);
   }
 }
+
+/* Auth protection guard to prevent flashing protected content before authentication checks complete */
+body.auth-protected {
+  visibility: hidden !important;
+}

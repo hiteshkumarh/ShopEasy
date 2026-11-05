@@ -27,6 +27,18 @@ class CustomerRegisterRequest(BaseModel):
         pattern=PHONE_REGEX,
         description="10-digit mobile number",
     )
+    password: str = Field(
+        ...,
+        min_length=6,
+        max_length=128,
+        description="Customer account password",
+    )
+    confirm_password: str = Field(
+        ...,
+        min_length=6,
+        max_length=128,
+        description="Confirmation of password",
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -37,6 +49,13 @@ class CustomerRegisterRequest(BaseModel):
         if not clean:
             raise ValueError("Full name cannot be empty or whitespace only.")
         return clean
+
+    @field_validator("confirm_password")
+    @classmethod
+    def validate_passwords_match(cls, v: str, info) -> str:
+        if "password" in info.data and v != info.data["password"]:
+            raise ValueError("Confirm password must match password.")
+        return v
 
 
 class CustomerRegisterResponse(BaseModel):

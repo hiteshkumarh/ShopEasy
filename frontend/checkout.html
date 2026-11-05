@@ -10,8 +10,9 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/cart.css">
+  <link rel="stylesheet" href="css/profile.css">
 </head>
-<body>
+<body class="auth-protected">
 
   <!-- Site Header -->
   <header class="site-header">
@@ -29,6 +30,8 @@
         <a href="index.html" class="nav-link">Home</a>
         <a href="products.html" class="nav-link">Shop</a>
         <a href="orders.html" class="nav-link">Orders</a>
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="profile.html" class="nav-link">Profile</a>
       </nav>
 
       <div class="nav-actions">
@@ -70,6 +73,7 @@
       <a href="index.html" class="mobile-nav-link">Home</a>
       <a href="products.html" class="mobile-nav-link">Shop Catalog</a>
       <a href="orders.html" class="mobile-nav-link">My Orders</a>
+      <a href="dashboard.html" class="mobile-nav-link">Earnings Dashboard</a>
       <a href="profile.html" class="mobile-nav-link">Customer Profile</a>
       <a href="cart.html" class="mobile-nav-link">Shopping Bag</a>
       <div style="margin-top:auto;padding-top:var(--space-6);">
@@ -83,7 +87,7 @@
       <section class="checkout-section">
         <header style="margin-bottom:var(--space-8);">
           <h1 style="font-size:var(--text-3xl);font-weight:700;letter-spacing:-0.025em;margin-bottom:var(--space-2);">Checkout</h1>
-          <p style="color:var(--color-muted);font-size:var(--text-base);">Confirm your delivery details to complete your simulated order.</p>
+          <p style="color:var(--color-muted);font-size:var(--text-base);">Confirm your delivery details to complete your order.</p>
         </header>
 
         <form id="checkout-form" class="checkout-layout">
@@ -99,17 +103,17 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="checkout-name" class="form-label">Full Name</label>
-                  <input type="text" id="checkout-name" class="form-control" value="Aarav Mehta" required>
+                  <input type="text" id="checkout-name" class="form-control" readonly required>
                 </div>
                 <div class="form-group">
                   <label for="checkout-phone" class="form-label">Phone Number</label>
-                  <input type="tel" id="checkout-phone" class="form-control" value="+91 98000 12345" required>
+                  <input type="tel" id="checkout-phone" class="form-control" readonly required>
                 </div>
               </div>
 
-              <div class="form-group">
+              <div class="form-group" style="margin-bottom:0;">
                 <label for="checkout-email" class="form-label">Email Address (Optional notification receipt)</label>
-                <input type="email" id="checkout-email" class="form-control" placeholder="aarav.sample@shopeasy.example">
+                <input type="email" id="checkout-email" class="form-control" placeholder="customer@example.com">
               </div>
             </div>
 
@@ -120,38 +124,115 @@
                 Shipping Address
               </h2>
 
-              <div class="form-group">
-                <label for="checkout-address" class="form-label">Street Address &amp; Landmark</label>
-                <input type="text" id="checkout-address" class="form-control" value="Flat 402, Lotus Residency, 14th Main Road, Sector 3" required>
+              <!-- Saved Addresses Radio List -->
+              <div id="checkout-address-list" class="checkout-address-list">
+                <!-- Populated dynamically -->
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="checkout-city" class="form-label">City</label>
-                  <input type="text" id="checkout-city" class="form-control" value="Bengaluru" required>
-                </div>
-                <div class="form-group">
-                  <label for="checkout-state" class="form-label">State</label>
-                  <input type="text" id="checkout-state" class="form-control" value="Karnataka" required>
-                </div>
+              <!-- Button to Toggle New Address Form -->
+              <div id="add-address-toggle-wrapper" style="margin-bottom:var(--space-3);">
+                <button type="button" id="toggle-new-address-btn" class="checkout-new-address-toggle">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Deliver to a new address</span>
+                </button>
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="checkout-pincode" class="form-label">PIN Code</label>
-                  <input type="text" id="checkout-pincode" class="form-control" value="560034" maxlength="6" required>
+              <!-- Inline New Address Form -->
+              <div id="new-address-form-box" class="checkout-new-address-form" style="display:none;">
+                <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-4);">Add Delivery Address</h3>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="new-addr-name" class="form-label">Recipient Name *</label>
+                    <input type="text" id="new-addr-name" class="form-control" placeholder="Recipient's Full Name">
+                  </div>
+                  <div class="form-group">
+                    <label for="new-addr-phone" class="form-label">Recipient Phone *</label>
+                    <input type="tel" id="new-addr-phone" class="form-control" placeholder="10-digit mobile number">
+                  </div>
                 </div>
+
                 <div class="form-group">
-                  <label for="checkout-country" class="form-label">Country</label>
-                  <input type="text" id="checkout-country" class="form-control" value="India" readonly>
+                  <label for="new-addr-line1" class="form-label">Street Address &amp; House/Flat No. *</label>
+                  <input type="text" id="new-addr-line1" class="form-control" placeholder="House/Flat number, building, street, area">
+                </div>
+
+                <div class="form-group">
+                  <label for="new-addr-line2" class="form-label">Landmark / Secondary Line (Optional)</label>
+                  <input type="text" id="new-addr-line2" class="form-control" placeholder="Near park, landmark, etc.">
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="new-addr-city" class="form-label">City *</label>
+                    <input type="text" id="new-addr-city" class="form-control" placeholder="City">
+                  </div>
+                  <div class="form-group">
+                    <label for="new-addr-state" class="form-label">State *</label>
+                    <input type="text" id="new-addr-state" class="form-control" placeholder="State">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="new-addr-pincode" class="form-label">PIN Code *</label>
+                    <input type="text" id="new-addr-pincode" class="form-control" maxlength="10" placeholder="PIN Code">
+                  </div>
+                  <div class="form-group" style="display:flex;align-items:center;padding-top:var(--space-5);">
+                    <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;font-size:var(--text-sm);">
+                      <input type="checkbox" id="new-addr-default" style="accent-color:var(--color-primary);width:16px;height:16px;">
+                      <span>Save as default address</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:var(--space-3);margin-top:var(--space-3);">
+                  <button type="button" id="save-new-address-btn" class="btn btn-secondary btn-sm">
+                    Save &amp; Select Address
+                  </button>
+                  <button type="button" id="cancel-new-address-btn" class="btn btn-subtle btn-sm">
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- Step 3: Dummy Payment Simulation -->
+            <!-- Step 3: Referral Code (Optional) -->
             <div class="checkout-card">
               <h2 class="checkout-step-title">
                 <span class="step-number">3</span>
+                Referral Code (Optional)
+              </h2>
+              <p style="font-size:var(--text-xs);color:var(--color-muted);margin-bottom:var(--space-3);">
+                If you were invited by another customer, enter their referral code below. Referral rewards are established permanently on your first successful order.
+              </p>
+
+              <div class="referral-box-checkout">
+                <input
+                  type="text"
+                  id="checkout-referral-code"
+                  class="form-control"
+                  placeholder="e.g. REF12345678"
+                  maxlength="20"
+                >
+                <button type="button" id="apply-referral-btn" class="btn btn-secondary" style="white-space:nowrap;">
+                  Apply Code
+                </button>
+                <button type="button" id="remove-referral-btn" class="btn btn-subtle" style="display:none;white-space:nowrap;">
+                  Remove
+                </button>
+              </div>
+
+              <div id="referral-status-msg" class="referral-message"></div>
+            </div>
+
+            <!-- Step 4: Payment Method (Simulation) -->
+            <div class="checkout-card">
+              <h2 class="checkout-step-title">
+                <span class="step-number">4</span>
                 Payment Method (Simulation)
               </h2>
 
@@ -166,7 +247,7 @@
               </div>
 
               <p style="font-size:var(--text-xs);color:var(--color-muted);line-height:1.5;">
-                <strong>Notice:</strong> This is an educational UI simulation. No actual payment gateway is connected and no credit card or financial data will be captured.
+                <strong>Notice:</strong> This is a secure checkout simulation. Backend order allocation, stock decrement, and referral tracking will be executed atomically upon submission.
               </p>
             </div>
           </div>
@@ -175,10 +256,10 @@
           <div>
             <div class="summary-card">
               <h2 class="summary-title">Order Review</h2>
-              
+
               <!-- Items list preview -->
               <div id="checkout-items-preview" style="margin-bottom:var(--space-4);">
-                <!-- Populated dynamically -->
+                <p style="color:var(--color-muted);font-size:var(--text-sm);">Loading bag items...</p>
               </div>
 
               <div class="summary-row">
@@ -226,97 +307,438 @@
   <!-- Scripts -->
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/navigation.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initCheckoutPage();
+    let currentCustomer = null;
+    let customerCart = null;
+    let customerAddresses = [];
+    let selectedAddressId = null;
+    let validatedReferralCode = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initCheckoutPage();
     });
 
-    function initCheckoutPage() {
-      const cart = getCart();
+    async function initCheckoutPage() {
+      // 1. Guard customer authentication
+      currentCustomer = await requireCustomerAuth();
+      if (!currentCustomer) return;
+
+      // Populate customer contact
+      const nameInput = document.getElementById('checkout-name');
+      const phoneInput = document.getElementById('checkout-phone');
+      if (nameInput) nameInput.value = currentCustomer.full_name || '';
+      if (phoneInput) phoneInput.value = currentCustomer.phone ? `+91 ${currentCustomer.phone}` : '';
+
+      // 2. Load Cart
+      await loadCheckoutCart();
+
+      // 3. Load Addresses
+      await loadCheckoutAddresses();
+
+      // 4. Wire Referral validation
+      initReferralHandlers();
+
+      // 5. Wire Form Submission
+      initFormSubmission();
+    }
+
+    async function loadCheckoutCart() {
       const previewContainer = document.getElementById('checkout-items-preview');
       const subtotalEl = document.getElementById('checkout-subtotal');
       const shippingEl = document.getElementById('checkout-shipping');
       const totalEl = document.getElementById('checkout-total');
-      const form = document.getElementById('checkout-form');
 
-      // If cart empty, redirect to products or cart
-      if (cart.length === 0) {
-        showToast('Your bag is empty! Add products before checking out.', 'error');
-        setTimeout(() => {
-          window.location.href = 'products.html';
-        }, 800);
-        return;
-      }
-
-      // Render summary items
-      const subtotal = getCartSubtotal();
-      const shipping = subtotal > 1999 ? 0 : 99;
-      const total = subtotal + shipping;
-
-      if (previewContainer) {
-        previewContainer.innerHTML = cart.map(item => `
-          <div class="checkout-summary-item">
-            <span style="font-weight:500;">${item.product.name} &times; ${item.quantity}</span>
-            <span style="font-weight:600;">${formatINR(item.product.price * item.quantity)}</span>
-          </div>
-        `).join('');
-      }
-
-      if (subtotalEl) subtotalEl.textContent = formatINR(subtotal);
-      if (shippingEl) shippingEl.innerHTML = shipping === 0 ? '<strong style="color:var(--color-success)">FREE</strong>' : formatINR(shipping);
-      if (totalEl) totalEl.textContent = formatINR(total);
-
-      // Handle checkout submission
-      if (form) {
-        form.addEventListener('submit', (e) => {
-          e.preventDefault();
-
-          const placeBtn = document.getElementById('place-order-btn');
-          if (placeBtn) {
-            placeBtn.disabled = true;
-            placeBtn.textContent = 'Processing Order...';
+      try {
+        customerCart = await window.ShopEasyCart.get();
+        if (!customerCart || !customerCart.items || customerCart.items.length === 0) {
+          if (typeof showToast === 'function') {
+            showToast('Your bag is empty! Add products before checking out.', 'error');
           }
-
-          // Generate simulated order
-          const randomOrderNum = Math.floor(10000 + Math.random() * 90000);
-          const newOrder = {
-            id: `SE-${randomOrderNum}`,
-            date: 'Just now',
-            status: 'Confirmed (Processing)',
-            statusClass: 'badge-primary',
-            total: total,
-            items: cart.map(c => ({
-              id: c.productId,
-              name: c.product.name,
-              quantity: c.quantity,
-              price: c.product.price,
-              image: c.product.image
-            }))
-          };
-
-          // Save to simulated orders in localStorage
-          try {
-            const rawOrders = localStorage.getItem('shopeasy_orders');
-            const orders = rawOrders ? JSON.parse(rawOrders) : [...MOCK_ORDERS];
-            orders.unshift(newOrder);
-            localStorage.setItem('shopeasy_orders', JSON.stringify(orders));
-          } catch (err) {
-            console.error('Failed to save order to localStorage', err);
+          if (previewContainer) {
+            previewContainer.innerHTML = '<p style="color:var(--color-danger);font-size:var(--text-sm);">Your bag is empty. Redirecting to cart...</p>';
           }
-
-          // Clear cart
-          clearCart();
-
           setTimeout(() => {
-            showToast(`Order #${newOrder.id} placed successfully!`);
-            window.location.href = 'orders.html';
-          }, 800);
+            window.location.href = 'cart.html';
+          }, 1000);
+          return;
+        }
+
+        const subtotal = parseFloat(customerCart.subtotal) || 0;
+        const shipping = subtotal > 1999 ? 0 : 99;
+        const total = subtotal + shipping;
+
+        if (previewContainer) {
+          previewContainer.innerHTML = customerCart.items.map(item => `
+            <div class="checkout-summary-item">
+              <span style="font-weight:500;">${item.product_name} &times; ${item.quantity}</span>
+              <span style="font-weight:600;">${formatINR(item.line_total)}</span>
+            </div>
+          `).join('');
+        }
+
+        if (subtotalEl) subtotalEl.textContent = formatINR(subtotal);
+        if (shippingEl) shippingEl.innerHTML = shipping === 0 ? '<strong style="color:var(--color-success)">FREE</strong>' : formatINR(shipping);
+        if (totalEl) totalEl.textContent = formatINR(total);
+
+      } catch (err) {
+        console.error('Failed to load cart for checkout:', err);
+        if (typeof showToast === 'function') {
+          showToast(err.detail || err.message || 'Unable to load shopping bag.', 'error');
+        }
+      }
+    }
+
+    async function loadCheckoutAddresses() {
+      const listContainer = document.getElementById('checkout-address-list');
+      const newAddrBox = document.getElementById('new-address-form-box');
+      const toggleWrapper = document.getElementById('add-address-toggle-wrapper');
+      if (!listContainer) return;
+
+      try {
+        customerAddresses = await window.ShopEasyAddresses.list();
+
+        if (!customerAddresses || customerAddresses.length === 0) {
+          // No addresses exist: reveal new address form directly
+          listContainer.innerHTML = '<p style="color:var(--color-muted);font-size:var(--text-sm);margin-bottom:var(--space-3);">No saved addresses found. Please enter a delivery address below:</p>';
+          if (newAddrBox) newAddrBox.style.display = 'block';
+          if (toggleWrapper) toggleWrapper.style.display = 'none';
+          selectedAddressId = null;
+          return;
+        }
+
+        // Render saved addresses
+        if (toggleWrapper) toggleWrapper.style.display = 'block';
+        if (newAddrBox) newAddrBox.style.display = 'none';
+
+        // Select default address or first address
+        const defaultAddr = customerAddresses.find(a => a.is_default) || customerAddresses[0];
+        selectedAddressId = defaultAddr.id;
+
+        listContainer.innerHTML = customerAddresses.map(addr => {
+          const isSelected = addr.id === selectedAddressId;
+          const line2Str = addr.address_line2 ? `, ${addr.address_line2}` : '';
+          return `
+            <label class="checkout-address-option ${isSelected ? 'selected' : ''}" data-address-id="${addr.id}">
+              <input
+                type="radio"
+                name="selected_address"
+                value="${addr.id}"
+                class="checkout-address-radio"
+                ${isSelected ? 'checked' : ''}
+                onchange="handleAddressSelection(${addr.id})"
+              >
+              <div class="checkout-address-body">
+                <div class="checkout-address-name">
+                  ${addr.recipient_name}
+                  ${addr.is_default ? '<span class="badge badge-primary" style="margin-left:var(--space-2);font-size:10px;">Default</span>' : ''}
+                </div>
+                <div class="checkout-address-text">
+                  ${addr.address_line1}${line2Str}, ${addr.city}, ${addr.state} — ${addr.pincode}
+                </div>
+                <div style="font-size:var(--text-xs);color:var(--color-muted);margin-top:2px;">
+                  Phone: ${addr.phone}
+                </div>
+              </div>
+            </label>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Failed to load customer addresses:', err);
+        listContainer.innerHTML = '<p style="color:var(--color-danger);font-size:var(--text-sm);">Failed to load delivery addresses. Please refresh the page.</p>';
+      }
+    }
+
+    function handleAddressSelection(addrId) {
+      selectedAddressId = parseInt(addrId, 10);
+      const options = document.querySelectorAll('.checkout-address-option');
+      options.forEach(opt => {
+        const id = parseInt(opt.getAttribute('data-address-id'), 10);
+        if (id === selectedAddressId) {
+          opt.classList.add('selected');
+        } else {
+          opt.classList.remove('selected');
+        }
+      });
+      // If new address form was open, hide it
+      const newAddrBox = document.getElementById('new-address-form-box');
+      if (newAddrBox) newAddrBox.style.display = 'none';
+    }
+    window.handleAddressSelection = handleAddressSelection;
+
+    // Toggle new address form
+    const toggleBtn = document.getElementById('toggle-new-address-btn');
+    const newAddrBox = document.getElementById('new-address-form-box');
+    const cancelNewAddrBtn = document.getElementById('cancel-new-address-btn');
+    const saveNewAddrBtn = document.getElementById('save-new-address-btn');
+
+    if (toggleBtn && newAddrBox) {
+      toggleBtn.addEventListener('click', () => {
+        newAddrBox.style.display = newAddrBox.style.display === 'none' ? 'block' : 'none';
+        if (newAddrBox.style.display === 'block') {
+          // Pre-fill name and phone from customer
+          const nameField = document.getElementById('new-addr-name');
+          const phoneField = document.getElementById('new-addr-phone');
+          if (nameField && !nameField.value && currentCustomer) nameField.value = currentCustomer.full_name || '';
+          if (phoneField && !phoneField.value && currentCustomer) phoneField.value = currentCustomer.phone || '';
+          // Uncheck existing address radios
+          const radios = document.querySelectorAll('input[name="selected_address"]');
+          radios.forEach(r => r.checked = false);
+          const options = document.querySelectorAll('.checkout-address-option');
+          options.forEach(opt => opt.classList.remove('selected'));
+          selectedAddressId = null;
+        }
+      });
+    }
+
+    if (cancelNewAddrBtn && newAddrBox) {
+      cancelNewAddrBtn.addEventListener('click', () => {
+        newAddrBox.style.display = 'none';
+        if (customerAddresses.length > 0) {
+          const firstAddr = customerAddresses.find(a => a.is_default) || customerAddresses[0];
+          handleAddressSelection(firstAddr.id);
+          const radio = document.querySelector(`input[name="selected_address"][value="${firstAddr.id}"]`);
+          if (radio) radio.checked = true;
+        }
+      });
+    }
+
+    if (saveNewAddrBtn) {
+      saveNewAddrBtn.addEventListener('click', async () => {
+        const name = (document.getElementById('new-addr-name')?.value || '').trim();
+        const phone = (document.getElementById('new-addr-phone')?.value || '').trim().replace(/\D/g, '');
+        const line1 = (document.getElementById('new-addr-line1')?.value || '').trim();
+        const line2 = (document.getElementById('new-addr-line2')?.value || '').trim();
+        const city = (document.getElementById('new-addr-city')?.value || '').trim();
+        const state = (document.getElementById('new-addr-state')?.value || '').trim();
+        const pincode = (document.getElementById('new-addr-pincode')?.value || '').trim();
+        const isDefault = document.getElementById('new-addr-default')?.checked || false;
+
+        if (!name) {
+          showToast('Please enter recipient name.', 'error');
+          return;
+        }
+        if (!phone || phone.length < 10 || phone.length > 15) {
+          showToast('Please enter a valid 10 to 15-digit phone number.', 'error');
+          return;
+        }
+        if (!line1) {
+          showToast('Please enter street address.', 'error');
+          return;
+        }
+        if (!city) {
+          showToast('Please enter city.', 'error');
+          return;
+        }
+        if (!state) {
+          showToast('Please enter state.', 'error');
+          return;
+        }
+        if (!pincode || pincode.length < 4 || pincode.length > 10) {
+          showToast('Please enter a valid PIN code (4-10 digits).', 'error');
+          return;
+        }
+
+        saveNewAddrBtn.disabled = true;
+        saveNewAddrBtn.textContent = 'Saving...';
+
+        try {
+          const newAddress = await window.ShopEasyAddresses.create({
+            recipient_name: name,
+            phone: phone,
+            address_line1: line1,
+            address_line2: line2 || null,
+            city: city,
+            state: state,
+            pincode: pincode,
+            is_default: isDefault,
+          });
+
+          showToast('Delivery address saved successfully!');
+          await loadCheckoutAddresses();
+          handleAddressSelection(newAddress.id);
+          const radio = document.querySelector(`input[name="selected_address"][value="${newAddress.id}"]`);
+          if (radio) radio.checked = true;
+        } catch (err) {
+          showToast(err.detail || err.message || 'Failed to save address.', 'error');
+        } finally {
+          saveNewAddrBtn.disabled = false;
+          saveNewAddrBtn.textContent = 'Save & Select Address';
+        }
+      });
+    }
+
+    // Referral Validation Handlers
+    function initReferralHandlers() {
+      const codeInput = document.getElementById('checkout-referral-code');
+      const applyBtn = document.getElementById('apply-referral-btn');
+      const removeBtn = document.getElementById('remove-referral-btn');
+      const msgEl = document.getElementById('referral-status-msg');
+
+      if (!applyBtn || !codeInput) return;
+
+      applyBtn.addEventListener('click', async () => {
+        const code = codeInput.value.trim().toUpperCase();
+        if (!code) {
+          msgEl.className = 'referral-message error';
+          msgEl.textContent = 'Please enter a referral code.';
+          return;
+        }
+
+        applyBtn.disabled = true;
+        applyBtn.textContent = 'Checking...';
+        msgEl.className = 'referral-message';
+        msgEl.textContent = '';
+
+        try {
+          const resp = await window.ShopEasyReferrals.validate(code);
+          validatedReferralCode = resp.referral_code;
+          msgEl.className = 'referral-message success';
+          msgEl.textContent = `✓ Valid referral code! Referred by ${resp.referrer_name}.`;
+          codeInput.disabled = true;
+          applyBtn.style.display = 'none';
+          if (removeBtn) removeBtn.style.display = 'inline-flex';
+          if (typeof showToast === 'function') {
+            showToast(`Referral code "${resp.referral_code}" applied!`);
+          }
+        } catch (err) {
+          validatedReferralCode = null;
+          msgEl.className = 'referral-message error';
+          msgEl.textContent = err.detail || err.message || 'Invalid referral code.';
+        } finally {
+          applyBtn.disabled = false;
+          applyBtn.textContent = 'Apply Code';
+        }
+      });
+
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          validatedReferralCode = null;
+          codeInput.disabled = false;
+          codeInput.value = '';
+          applyBtn.style.display = 'inline-flex';
+          removeBtn.style.display = 'none';
+          msgEl.className = 'referral-message';
+          msgEl.textContent = '';
+          if (typeof showToast === 'function') {
+            showToast('Referral code removed.');
+          }
         });
       }
+    }
+
+    // Form Submission & Order Placement
+    function initFormSubmission() {
+      const form = document.getElementById('checkout-form');
+      if (!form) return;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const placeBtn = document.getElementById('place-order-btn');
+
+        // Verify cart has items
+        if (!customerCart || !customerCart.items || customerCart.items.length === 0) {
+          showToast('Your bag is empty! Add products before checking out.', 'error');
+          return;
+        }
+
+        // Check if an address is selected or being submitted
+        let targetAddressId = selectedAddressId;
+
+        // If new address form is visible, create it first if fields filled
+        const newAddrBox = document.getElementById('new-address-form-box');
+        if (newAddrBox && newAddrBox.style.display !== 'none') {
+          const name = (document.getElementById('new-addr-name')?.value || '').trim();
+          const phone = (document.getElementById('new-addr-phone')?.value || '').trim().replace(/\D/g, '');
+          const line1 = (document.getElementById('new-addr-line1')?.value || '').trim();
+          const line2 = (document.getElementById('new-addr-line2')?.value || '').trim();
+          const city = (document.getElementById('new-addr-city')?.value || '').trim();
+          const state = (document.getElementById('new-addr-state')?.value || '').trim();
+          const pincode = (document.getElementById('new-addr-pincode')?.value || '').trim();
+          const isDefault = document.getElementById('new-addr-default')?.checked || false;
+
+          if (!name || !phone || !line1 || !city || !state || !pincode) {
+            showToast('Please fill in all required address fields or select an existing address.', 'error');
+            return;
+          }
+
+          if (placeBtn) {
+            placeBtn.disabled = true;
+            placeBtn.textContent = 'Saving Address...';
+          }
+
+          try {
+            const newAddress = await window.ShopEasyAddresses.create({
+              recipient_name: name,
+              phone: phone,
+              address_line1: line1,
+              address_line2: line2 || null,
+              city: city,
+              state: state,
+              pincode: pincode,
+              is_default: isDefault,
+            });
+            targetAddressId = newAddress.id;
+          } catch (err) {
+            if (placeBtn) {
+              placeBtn.disabled = false;
+              placeBtn.textContent = 'Complete Simulated Order';
+            }
+            showToast(err.detail || err.message || 'Failed to save address.', 'error');
+            return;
+          }
+        }
+
+        if (!targetAddressId) {
+          showToast('Please select or add a delivery address to complete your order.', 'error');
+          return;
+        }
+
+        if (placeBtn) {
+          placeBtn.disabled = true;
+          placeBtn.textContent = 'Processing Order...';
+        }
+
+        // Generate client-side unique idempotency key (valid 1-64 characters)
+        const idempotencyKey = `chk_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
+
+        const checkoutPayload = {
+          address_id: targetAddressId,
+          idempotency_key: idempotencyKey,
+        };
+        if (validatedReferralCode) {
+          checkoutPayload.referral_code = validatedReferralCode;
+        }
+
+        try {
+          const order = await window.ShopEasyOrders.checkout(checkoutPayload);
+
+          showToast(`Order #${order.order_number} placed successfully!`);
+
+          // Sync badge count & cart state
+          if (window.fetchCart) {
+            await window.fetchCart();
+          }
+
+          setTimeout(() => {
+            window.location.href = 'orders.html';
+          }, 800);
+
+        } catch (err) {
+          console.error('Checkout error:', err);
+          if (placeBtn) {
+            placeBtn.disabled = false;
+            placeBtn.textContent = 'Complete Simulated Order';
+          }
+          showToast(err.detail || err.message || 'Failed to place order. Please review your bag and try again.', 'error');
+        }
+      });
     }
   </script>
 </body>
 </html>
-
