@@ -35,8 +35,11 @@ def clean_env_and_engine():
     try:
         yield
     finally:
-        os.environ.clear()
-        os.environ.update(original_env)
+        for key in list(os.environ.keys()):
+            if key not in original_env and not key.startswith("PYTEST_"):
+                os.environ.pop(key, None)
+        for key, val in original_env.items():
+            os.environ[key] = val
         settings.DB_SSL_CA = original_ssl_ca
         settings.ENVIRONMENT = original_env_val
         reset_database_engine(None)

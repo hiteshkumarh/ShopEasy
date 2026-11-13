@@ -16,8 +16,11 @@ def clean_env():
     """Preserve and restore os.environ around each test."""
     original_env = dict(os.environ)
     yield
-    os.environ.clear()
-    os.environ.update(original_env)
+    for key in list(os.environ.keys()):
+        if key not in original_env and not key.startswith("PYTEST_"):
+            os.environ.pop(key, None)
+    for key, val in original_env.items():
+        os.environ[key] = val
 
 
 def test_development_defaults_preserve_local_workflow():
