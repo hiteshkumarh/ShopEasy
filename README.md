@@ -540,6 +540,8 @@ Use this command only when you intentionally want to reset the local database an
 
 GitHub: https://github.com/hiteshkumarh/ShopEasy
 
+Render: https://shopeasy-jhls.onrender.com
+
 ## License
 
 Add a license file if you intend to distribute this project under a specific open-source license.
