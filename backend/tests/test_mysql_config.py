@@ -181,40 +181,114 @@ def test_alembic_cart_items_timestamp_migration_linear_and_valid() -> None:
 
 
 @pytest.mark.unit
-def test_alembic_compare_server_default_reconciles_mysql_timestamps() -> None:
-    """18. Verify Alembic compare_server_default accurately normalizes MySQL/TiDB timestamps.
+def test_alembic_mysql_impl_compare_server_default_reconciles_timestamps() -> None:
+    """18. Verify MySQLImpl.compare_server_default accurately normalizes MySQL timestamps.
 
     Confirms:
-    - DATETIME now() versus CURRENT_TIMESTAMP is treated as equivalent.
-    - TIMESTAMP equivalents are treated as equivalent.
-    - Unrelated column types (Integer, String, Enum) are strictly denied this exception.
+    - Scoped context manager restores the original comparator on exit and exception.
+    - Repeated or nested execution does not repeatedly wrap the comparator.
+    - DATETIME now() versus CURRENT_TIMESTAMP is treated as equivalent (returns False).
+    - TIMESTAMP now() versus CURRENT_TIMESTAMP is treated as equivalent (returns False).
     - Variations in casing and harmless parentheses are correctly handled.
-    - Genuine differences in numeric and string defaults remain detectable (return None).
-    - SQLite/PostgreSQL behavior remains unchanged (return None).
+    - An explicit spy test proves the original comparator is called with preserved arguments
+      and return values for:
+        * Missing inspector column (inspector is None).
+        * Missing metadata column (metadata is None).
+        * Both columns missing (both are None).
+        * Integer defaults (0 vs 1, 100 vs 100).
+        * String and Enum defaults ('admin' vs 'customer', 'active' vs 'active').
+        * Genuine timestamp differences (fixed timestamp vs now).
+        * Mismatched column types (DateTime vs Integer).
+        * Defaults with ON UPDATE differences.
+    - SQLite and PostgreSQL comparators remain completely untouched.
+    - Alembic autogenerate pipeline exercises real column comparison on Computed columns
+      (beneficiary_queue.active_flag) without triggering AttributeError.
     """
     import importlib.util
     from pathlib import Path
-    from sqlalchemy import Column, Integer, String, DateTime, TIMESTAMP, Enum
+    from unittest.mock import MagicMock
+    from sqlalchemy import Column, Integer, String, DateTime, TIMESTAMP, Enum, Computed, MetaData, Table
+    from sqlalchemy.dialects import mysql
+    from alembic.ddl.mysql import MySQLImpl
+    from alembic.autogenerate.api import AutogenContext
+    from alembic.autogenerate.compare import server_defaults as sd
+    from alembic.autogenerate.compare.tables import _compare_columns
+    from alembic.operations.ops import AlterColumnOp, ModifyTableOps
+    from alembic.runtime.migration import MigrationContext
+    from alembic.util import PriorityDispatchResult
 
     backend_dir = Path(__file__).resolve().parent.parent
     env_path = backend_dir / "alembic" / "env.py"
     spec = importlib.util.spec_from_file_location("alembic_env", env_path)
     env_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(env_mod)
-    compare_server_default = env_mod.compare_server_default
 
-    class _MockDialect:
-        def __init__(self, name: str):
-            self.name = name
+    # 1. Scoped execution and restoration verification
+    unwrapped_fn = getattr(
+        MySQLImpl, "_unwrapped_compare_server_default", MySQLImpl.compare_server_default
+    )
 
-    class _MockContext:
-        def __init__(self, dialect_name: str):
-            self.dialect = _MockDialect(dialect_name)
+    # Before scoped execution: ensure class comparator is original unwrapped and no leftover attr
+    MySQLImpl.compare_server_default = unwrapped_fn
+    if hasattr(MySQLImpl, "_unwrapped_compare_server_default"):
+        delattr(MySQLImpl, "_unwrapped_compare_server_default")
+    assert MySQLImpl.compare_server_default is unwrapped_fn
+    assert not hasattr(MySQLImpl, "_unwrapped_compare_server_default")
 
-    ctx_mysql = _MockContext("mysql")
-    ctx_tidb = _MockContext("tidb")
-    ctx_sqlite = _MockContext("sqlite")
-    ctx_pg = _MockContext("postgresql")
+    # Inside scoped execution: comparator is wrapped and temporary unwrapped attr is tracked
+    with env_mod.scoped_mysql_compare_server_default():
+        assert MySQLImpl.compare_server_default is not unwrapped_fn
+        assert hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+        # Nested scoped execution does not double-wrap
+        with env_mod.scoped_mysql_compare_server_default():
+            assert MySQLImpl.compare_server_default is not unwrapped_fn
+            assert hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+
+    # After scoped execution exits: original comparator is restored and attribute cleaned up
+    assert MySQLImpl.compare_server_default is unwrapped_fn
+    assert not hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+
+    # Scoped execution restores original comparator and cleans up attribute even if an exception occurs
+    try:
+        with env_mod.scoped_mysql_compare_server_default():
+            assert hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+            raise RuntimeError("forced scope error")
+    except RuntimeError:
+        pass
+    assert MySQLImpl.compare_server_default is unwrapped_fn
+    assert not hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+
+    # Verify concurrent usage across threads is safely serialized without attribute corruption
+    import threading
+    concurrency_errors = []
+
+    def worker():
+        try:
+            for _ in range(10):
+                with env_mod.scoped_mysql_compare_server_default():
+                    assert MySQLImpl.compare_server_default is not unwrapped_fn
+                    assert hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+        except Exception as exc:
+            concurrency_errors.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not concurrency_errors
+    assert MySQLImpl.compare_server_default is unwrapped_fn
+    assert not hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+
+    impl = MySQLImpl(
+        dialect=MagicMock(),
+        connection=MagicMock(),
+        as_sql=False,
+        transactional_ddl=False,
+        output_buffer=MagicMock(),
+        context_opts={},
+    )
 
     col_dt = Column("created_at", DateTime)
     col_ts = Column("created_at", TIMESTAMP)
@@ -222,60 +296,161 @@ def test_alembic_compare_server_default_reconciles_mysql_timestamps() -> None:
     col_str = Column("full_name", String(50))
     col_enum = Column("role", Enum("customer", "admin"))
 
-    # 1. DATETIME now() versus CURRENT_TIMESTAMP treated as equivalent on MySQL and TiDB
-    equiv_pairs = [
-        ("CURRENT_TIMESTAMP", "now()"),
-        ("now()", "CURRENT_TIMESTAMP"),
-        ("(CURRENT_TIMESTAMP)", "now()"),
-        ("CURRENT_TIMESTAMP()", "NOW()"),
-        ("(now())", "CURRENT_TIMESTAMP"),
-        ("((NOW()))", "((current_timestamp()))"),
-    ]
-    for ins, met in equiv_pairs:
-        res_mysql = compare_server_default(ctx_mysql, col_dt, col_dt, ins, None, met)
-        assert res_mysql is False, f"MySQL DATETIME failed for ({ins}, {met}): got {res_mysql}"
-        res_tidb = compare_server_default(ctx_tidb, col_dt, col_dt, ins, None, met)
-        assert res_tidb is False, f"TiDB DATETIME failed for ({ins}, {met}): got {res_tidb}"
+    with env_mod.scoped_mysql_compare_server_default():
+        # 2. DATETIME now() versus CURRENT_TIMESTAMP treated as equivalent (returns False)
+        equiv_pairs = [
+            ("now()", "CURRENT_TIMESTAMP"),
+            ("CURRENT_TIMESTAMP", "now()"),
+            ("now()", "(CURRENT_TIMESTAMP)"),
+            ("NOW()", "CURRENT_TIMESTAMP()"),
+            ("CURRENT_TIMESTAMP", "(now())"),
+            ("((current_timestamp()))", "((NOW()))"),
+        ]
+        for met, ins in equiv_pairs:
+            res = impl.compare_server_default(col_dt, col_dt, met, ins)
+            assert res is False, f"MySQL DATETIME failed for ({met}, {ins}): got {res}"
 
-    # 2. TIMESTAMP column equivalents are also treated as equivalent (both datetime-compatible)
-    assert compare_server_default(ctx_mysql, col_ts, col_ts, "CURRENT_TIMESTAMP", None, "now()") is False
-    assert compare_server_default(ctx_tidb, col_ts, col_ts, "now()", None, "CURRENT_TIMESTAMP") is False
-    assert compare_server_default(ctx_mysql, col_dt, col_ts, "CURRENT_TIMESTAMP", None, "now()") is False
+        # 3. TIMESTAMP column equivalents are also treated as equivalent (returns False)
+        assert impl.compare_server_default(col_ts, col_ts, "now()", "CURRENT_TIMESTAMP") is False
+        assert impl.compare_server_default(col_ts, col_ts, "CURRENT_TIMESTAMP", "now()") is False
+        assert impl.compare_server_default(col_dt, col_ts, "now()", "CURRENT_TIMESTAMP") is False
 
-    # 3. Fail-closed: missing inspected_column or metadata_column returns None
-    assert compare_server_default(ctx_mysql, None, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_mysql, col_dt, None, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_mysql, None, None, "CURRENT_TIMESTAMP", None, "now()") is None
+        # 4. Explicit spy verification: prove original MySQL comparator is invoked with exact args
+        spy_orig = MagicMock(return_value="sentinel_drift_result")
+        MySQLImpl._unwrapped_compare_server_default = spy_orig
+        try:
+            # A. Missing inspector column (inspector is None)
+            res_none_ins = impl.compare_server_default(None, col_dt, "now()", "CURRENT_TIMESTAMP")
+            assert res_none_ins == "sentinel_drift_result"
+            spy_orig.assert_called_once_with(impl, None, col_dt, "now()", "CURRENT_TIMESTAMP")
 
-    # 4. Unrelated column types (Integer, String, Enum) and mismatched types are strictly denied
-    assert compare_server_default(ctx_mysql, col_int, col_int, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_mysql, col_str, col_str, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_mysql, col_enum, col_enum, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_mysql, col_dt, col_int, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_mysql, col_int, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
+            # B. Missing metadata column (metadata is None)
+            spy_orig.reset_mock()
+            res_none_met = impl.compare_server_default(col_dt, None, "now()", "CURRENT_TIMESTAMP")
+            assert res_none_met == "sentinel_drift_result"
+            spy_orig.assert_called_once_with(impl, col_dt, None, "now()", "CURRENT_TIMESTAMP")
 
-    # 5. Genuine numeric differences remain detectable (returns None so Alembic flags drift)
-    assert compare_server_default(ctx_mysql, col_int, col_int, "0", None, "1") is None
-    assert compare_server_default(ctx_mysql, col_int, col_int, "100", None, "200") is None
+            # C. Both columns missing (both are None)
+            spy_orig.reset_mock()
+            res_both_none = impl.compare_server_default(None, None, "now()", "CURRENT_TIMESTAMP")
+            assert res_both_none == "sentinel_drift_result"
+            spy_orig.assert_called_once_with(impl, None, None, "now()", "CURRENT_TIMESTAMP")
 
-    # 6. Genuine string differences remain detectable (returns None so Alembic flags drift)
-    assert compare_server_default(ctx_mysql, col_str, col_str, "'active'", None, "'waiting'") is None
-    assert compare_server_default(ctx_mysql, col_str, col_str, "'customer'", None, "'admin'") is None
+            # D. Integer defaults
+            spy_orig.reset_mock()
+            spy_orig.return_value = True
+            res_int_diff = impl.compare_server_default(col_int, col_int, "1", "0")
+            assert res_int_diff is True
+            spy_orig.assert_called_once_with(impl, col_int, col_int, "1", "0")
 
-    # 7. Unmatched ON UPDATE clauses remain detectable
-    assert (
-        compare_server_default(
-            ctx_mysql,
-            col_dt,
-            col_dt,
-            "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-            None,
-            "now()",
-        )
-        is None
+            spy_orig.reset_mock()
+            spy_orig.return_value = False
+            res_int_same = impl.compare_server_default(col_int, col_int, "100", "100")
+            assert res_int_same is False
+            spy_orig.assert_called_once_with(impl, col_int, col_int, "100", "100")
+
+            # E. String and Enum defaults
+            spy_orig.reset_mock()
+            spy_orig.return_value = True
+            res_str_diff = impl.compare_server_default(col_str, col_str, "'admin'", "'customer'")
+            assert res_str_diff is True
+            spy_orig.assert_called_once_with(impl, col_str, col_str, "'admin'", "'customer'")
+
+            spy_orig.reset_mock()
+            res_enum_diff = impl.compare_server_default(col_enum, col_enum, "'admin'", "'customer'")
+            assert res_enum_diff is True
+            spy_orig.assert_called_once_with(impl, col_enum, col_enum, "'admin'", "'customer'")
+
+            # F. Genuine timestamp differences
+            spy_orig.reset_mock()
+            res_dt_diff = impl.compare_server_default(col_dt, col_dt, "'2026-01-01 00:00:00'", "CURRENT_TIMESTAMP")
+            assert res_dt_diff is True
+            spy_orig.assert_called_once_with(impl, col_dt, col_dt, "'2026-01-01 00:00:00'", "CURRENT_TIMESTAMP")
+
+            # G. Mismatched column types
+            spy_orig.reset_mock()
+            res_mismatch = impl.compare_server_default(col_dt, col_int, "now()", "CURRENT_TIMESTAMP")
+            assert res_mismatch is True
+            spy_orig.assert_called_once_with(impl, col_dt, col_int, "now()", "CURRENT_TIMESTAMP")
+
+            # H. Defaults with ON UPDATE differences
+            spy_orig.reset_mock()
+            res_onupdate = impl.compare_server_default(
+                col_dt, col_dt, "now()", "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+            )
+            assert res_onupdate is True
+            spy_orig.assert_called_once_with(impl, col_dt, col_dt, "now()", "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+
+            # I. Reconciled timestamp synonyms must NOT call the original comparator
+            spy_orig.reset_mock()
+            res_reconciled = impl.compare_server_default(col_dt, col_dt, "now()", "CURRENT_TIMESTAMP")
+            assert res_reconciled is False
+            spy_orig.assert_not_called()
+
+        finally:
+            MySQLImpl._unwrapped_compare_server_default = unwrapped_fn
+
+    assert MySQLImpl.compare_server_default is unwrapped_fn
+    assert not hasattr(MySQLImpl, "_unwrapped_compare_server_default")
+
+    # 5. Dialect isolation: verify SQLite and PostgreSQL comparators remain unchanged
+    from alembic.ddl.impl import DefaultImpl
+    from alembic.ddl.sqlite import SQLiteImpl
+    from alembic.ddl.postgresql import PostgresqlImpl
+
+    assert getattr(DefaultImpl, "compare_server_default", None) is not MySQLImpl.compare_server_default
+    assert getattr(SQLiteImpl, "compare_server_default", None) is not MySQLImpl.compare_server_default
+    assert getattr(PostgresqlImpl, "compare_server_default", None) is not MySQLImpl.compare_server_default
+
+    # 6. Unit check: comparator-level handling of Computed column active_flag
+    col_comp = Column(
+        "active_flag",
+        Integer,
+        Computed("CASE WHEN status = 'active' THEN 1 ELSE NULL END", persisted=True),
+    )
+    op = AlterColumnOp("beneficiary_queue", "active_flag")
+    ctx_mock = MagicMock()
+    ctx_mock.migration_context._user_compare_server_default = None
+
+    # Verify _user_compare_server_default safely returns CONTINUE without accessing .arg.text
+    res_user = sd._user_compare_server_default(
+        ctx_mock, op, None, "beneficiary_queue", "active_flag", col_comp, col_comp
+    )
+    assert res_user == PriorityDispatchResult.CONTINUE
+
+    # Verify _compare_computed_default handles the Computed column and stops
+    ctx_mock.dialect.name = "mysql"
+    res_comp = sd._compare_computed_default(
+        ctx_mock, op, None, "beneficiary_queue", "active_flag", col_comp, col_comp
+    )
+    assert res_comp == PriorityDispatchResult.STOP
+
+    # 7. Real autogenerate pipeline integration test with Computed column
+    # Exercises Alembic's actual _compare_columns generator on a simulated schema
+    expr = "CASE WHEN status = 1 THEN 1 ELSE NULL END"
+    md_meta = MetaData()
+    t_meta = Table(
+        "beneficiary_queue",
+        md_meta,
+        Column("id", Integer, primary_key=True),
+        Column("active_flag", Integer, Computed(expr, persisted=True)),
+    )
+    md_conn = MetaData()
+    t_conn = Table(
+        "beneficiary_queue",
+        md_conn,
+        Column("id", Integer, primary_key=True),
+        Column("active_flag", Integer, Computed(expr, persisted=True)),
     )
 
-    # 8. Non-MySQL dialects are unaffected (returns None)
-    assert compare_server_default(ctx_sqlite, col_dt, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
-    assert compare_server_default(ctx_pg, col_dt, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
+    mig_ctx = MigrationContext(mysql.dialect(), None, {"autogenerate": True})
+    autogen_ctx = AutogenContext(mig_ctx, md_meta)
+    modify_ops = ModifyTableOps("beneficiary_queue", [])
+    mock_inspector = MagicMock()
+
+    # Must complete without raising AttributeError: 'Computed' object has no attribute 'arg'
+    with _compare_columns(None, "beneficiary_queue", t_conn, t_meta, modify_ops, autogen_ctx, mock_inspector):
+        pass
+
+    assert len(modify_ops.ops) == 0, f"Expected 0 diff ops for identical computed columns, got {modify_ops.ops}"
 
