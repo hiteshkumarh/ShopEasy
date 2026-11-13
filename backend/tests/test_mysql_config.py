@@ -149,3 +149,33 @@ def test_ci_service_guard_blocks_unauthorized_connections(monkeypatch) -> None:
     with pytest.raises(RuntimeError, match="SAFETY VIOLATION.*unauthorized MySQL host"):
         engine.connect()
 
+
+@pytest.mark.unit
+def test_alembic_cart_items_timestamp_migration_linear_and_valid() -> None:
+    """17. Verify Alembic migration history is linear and timestamp alignment migration is valid."""
+    from pathlib import Path
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from sqlalchemy.dialects import mysql
+
+    backend_dir = Path(__file__).resolve().parent.parent
+    ini_path = backend_dir / "alembic.ini"
+    cfg = Config(str(ini_path))
+    cfg.set_main_option("script_location", str(backend_dir / "alembic"))
+
+    script = ScriptDirectory.from_config(cfg)
+    heads = script.get_heads()
+    assert len(heads) == 1
+    assert heads[0] == "4bed57dc0ac3"
+
+    rev = script.get_revision("4bed57dc0ac3")
+    assert rev.down_revision == "c895961fa0f1"
+
+    # Verify upgrade and downgrade execute valid DDL for MySQL dialect in dry-run mode
+    ctx = MigrationContext.configure(dialect=mysql.dialect(), opts={"as_sql": True})
+    with Operations.context(ctx):
+        rev.module.upgrade()
+        rev.module.downgrade()
+
