@@ -179,3 +179,103 @@ def test_alembic_cart_items_timestamp_migration_linear_and_valid() -> None:
         rev.module.upgrade()
         rev.module.downgrade()
 
+
+@pytest.mark.unit
+def test_alembic_compare_server_default_reconciles_mysql_timestamps() -> None:
+    """18. Verify Alembic compare_server_default accurately normalizes MySQL/TiDB timestamps.
+
+    Confirms:
+    - DATETIME now() versus CURRENT_TIMESTAMP is treated as equivalent.
+    - TIMESTAMP equivalents are treated as equivalent.
+    - Unrelated column types (Integer, String, Enum) are strictly denied this exception.
+    - Variations in casing and harmless parentheses are correctly handled.
+    - Genuine differences in numeric and string defaults remain detectable (return None).
+    - SQLite/PostgreSQL behavior remains unchanged (return None).
+    """
+    import importlib.util
+    from pathlib import Path
+    from sqlalchemy import Column, Integer, String, DateTime, TIMESTAMP, Enum
+
+    backend_dir = Path(__file__).resolve().parent.parent
+    env_path = backend_dir / "alembic" / "env.py"
+    spec = importlib.util.spec_from_file_location("alembic_env", env_path)
+    env_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(env_mod)
+    compare_server_default = env_mod.compare_server_default
+
+    class _MockDialect:
+        def __init__(self, name: str):
+            self.name = name
+
+    class _MockContext:
+        def __init__(self, dialect_name: str):
+            self.dialect = _MockDialect(dialect_name)
+
+    ctx_mysql = _MockContext("mysql")
+    ctx_tidb = _MockContext("tidb")
+    ctx_sqlite = _MockContext("sqlite")
+    ctx_pg = _MockContext("postgresql")
+
+    col_dt = Column("created_at", DateTime)
+    col_ts = Column("created_at", TIMESTAMP)
+    col_int = Column("quantity", Integer)
+    col_str = Column("full_name", String(50))
+    col_enum = Column("role", Enum("customer", "admin"))
+
+    # 1. DATETIME now() versus CURRENT_TIMESTAMP treated as equivalent on MySQL and TiDB
+    equiv_pairs = [
+        ("CURRENT_TIMESTAMP", "now()"),
+        ("now()", "CURRENT_TIMESTAMP"),
+        ("(CURRENT_TIMESTAMP)", "now()"),
+        ("CURRENT_TIMESTAMP()", "NOW()"),
+        ("(now())", "CURRENT_TIMESTAMP"),
+        ("((NOW()))", "((current_timestamp()))"),
+    ]
+    for ins, met in equiv_pairs:
+        res_mysql = compare_server_default(ctx_mysql, col_dt, col_dt, ins, None, met)
+        assert res_mysql is False, f"MySQL DATETIME failed for ({ins}, {met}): got {res_mysql}"
+        res_tidb = compare_server_default(ctx_tidb, col_dt, col_dt, ins, None, met)
+        assert res_tidb is False, f"TiDB DATETIME failed for ({ins}, {met}): got {res_tidb}"
+
+    # 2. TIMESTAMP column equivalents are also treated as equivalent (both datetime-compatible)
+    assert compare_server_default(ctx_mysql, col_ts, col_ts, "CURRENT_TIMESTAMP", None, "now()") is False
+    assert compare_server_default(ctx_tidb, col_ts, col_ts, "now()", None, "CURRENT_TIMESTAMP") is False
+    assert compare_server_default(ctx_mysql, col_dt, col_ts, "CURRENT_TIMESTAMP", None, "now()") is False
+
+    # 3. Fail-closed: missing inspected_column or metadata_column returns None
+    assert compare_server_default(ctx_mysql, None, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_mysql, col_dt, None, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_mysql, None, None, "CURRENT_TIMESTAMP", None, "now()") is None
+
+    # 4. Unrelated column types (Integer, String, Enum) and mismatched types are strictly denied
+    assert compare_server_default(ctx_mysql, col_int, col_int, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_mysql, col_str, col_str, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_mysql, col_enum, col_enum, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_mysql, col_dt, col_int, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_mysql, col_int, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
+
+    # 5. Genuine numeric differences remain detectable (returns None so Alembic flags drift)
+    assert compare_server_default(ctx_mysql, col_int, col_int, "0", None, "1") is None
+    assert compare_server_default(ctx_mysql, col_int, col_int, "100", None, "200") is None
+
+    # 6. Genuine string differences remain detectable (returns None so Alembic flags drift)
+    assert compare_server_default(ctx_mysql, col_str, col_str, "'active'", None, "'waiting'") is None
+    assert compare_server_default(ctx_mysql, col_str, col_str, "'customer'", None, "'admin'") is None
+
+    # 7. Unmatched ON UPDATE clauses remain detectable
+    assert (
+        compare_server_default(
+            ctx_mysql,
+            col_dt,
+            col_dt,
+            "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            None,
+            "now()",
+        )
+        is None
+    )
+
+    # 8. Non-MySQL dialects are unaffected (returns None)
+    assert compare_server_default(ctx_sqlite, col_dt, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
+    assert compare_server_default(ctx_pg, col_dt, col_dt, "CURRENT_TIMESTAMP", None, "now()") is None
+
