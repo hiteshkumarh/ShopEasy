@@ -1,3 +1,4 @@
+from decimal import Decimal
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -29,11 +30,13 @@ def test_mysql_connection_and_database_name(mysql_engine: Engine) -> None:
 def test_mysql_crud_record_lifecycle(mysql_db_session: Session) -> None:
     """Verify record insertion and query retrieval using MySQL 8 test session."""
     test_phone = "+919999900001"
+    test_referral = "REF_TEST_0001"
     user = User(
         phone=test_phone,
         full_name="MySQL Test User",
         password_hash="test_hashed_password",
         role=UserRole.CUSTOMER,
+        referral_code=test_referral,
     )
     mysql_db_session.add(user)
     mysql_db_session.commit()
@@ -42,6 +45,7 @@ def test_mysql_crud_record_lifecycle(mysql_db_session: Session) -> None:
     assert fetched is not None
     assert fetched.full_name == "MySQL Test User"
     assert fetched.role == UserRole.CUSTOMER
+    assert fetched.referral_code == test_referral
 
 
 @pytest.mark.mysql
@@ -53,6 +57,7 @@ def test_mysql_transaction_rollback(mysql_db_session: Session) -> None:
         full_name="Rollback Test User",
         password_hash="test_hashed_password",
         role=UserRole.CUSTOMER,
+        referral_code="REF_TEST_0002",
     )
     mysql_db_session.add(user)
     mysql_db_session.flush()
@@ -70,8 +75,8 @@ def test_mysql_foreign_key_enforcement(mysql_db_session: Session) -> None:
     # Attempt to insert a Wallet with a non-existent user_id (99999999)
     orphan_wallet = Wallet(
         user_id=99999999,
-        wallet_type=WalletType.MAIN,
-        balance=0.0,
+        wallet_type=WalletType.DIRECT_REFERRAL,
+        balance=Decimal("0.00"),
     )
     mysql_db_session.add(orphan_wallet)
     with pytest.raises(IntegrityError):
