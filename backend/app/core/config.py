@@ -22,9 +22,7 @@ if ENV_PATH.exists():
 class Settings:
     """Application configuration loaded from environment variables."""
 
-    # Application settings
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
+    # Server & network defaults
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))
     CORS_ORIGINS: list[str] = [
@@ -33,8 +31,7 @@ class Settings:
         if origin.strip()
     ]
 
-    # Security & JWT
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    # JWT Algorithm & Expiry defaults
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
@@ -50,7 +47,134 @@ class Settings:
 
     # Simulated Mock Services
     ENABLE_MOCK_PAYMENT: bool = os.getenv("ENABLE_MOCK_PAYMENT", "True").lower() in ("true", "1", "yes")
-    DEV_OTP_CODE: str = os.getenv("DEV_OTP_CODE", "123456")
+
+    def __init__(self) -> None:
+        """Initialize settings and execute production safeguards if running in production."""
+        self.validate_production_configuration()
+
+    @property
+    def ENVIRONMENT(self) -> str:
+        """Get the active application environment mode.
+
+        Defaults to 'development' for local development. If running in a cloud
+        deployment environment (e.g. Render) without an explicit ENVIRONMENT setting,
+        fails fast to prevent accidental development fallbacks in production.
+        """
+        env = os.getenv("ENVIRONMENT")
+        if not env or not env.strip():
+            if os.getenv("RENDER"):
+                raise ValueError(
+                    "ENVIRONMENT environment variable must be explicitly configured when running on Render "
+                    "(e.g. ENVIRONMENT=production)."
+                )
+            return "development"
+        return env.strip()
+
+    @ENVIRONMENT.setter
+    def ENVIRONMENT(self, value: str) -> None:
+        os.environ["ENVIRONMENT"] = value
+
+    @property
+    def is_production(self) -> bool:
+        """Check whether the active environment is production."""
+        return self.ENVIRONMENT.lower() in ("production", "prod")
+
+    @property
+    def DEBUG(self) -> bool:
+        """Get the application debug flag.
+
+        In production environments, DEBUG must strictly be False. Enabling DEBUG
+        in production raises a ValueError to prevent query logging and internal
+        information leakage.
+        In development environments, defaults to True if unset.
+        """
+        raw = os.getenv("DEBUG")
+        if self.is_production:
+            if raw is not None and raw.strip().lower() in ("true", "1", "yes"):
+                raise ValueError(
+                    "DEBUG must not be enabled in production environments. "
+                    "Set DEBUG=False to prevent query logging and sensitive data exposure."
+                )
+            return False
+
+        if raw is None:
+            return True
+        return raw.strip().lower() in ("true", "1", "yes")
+
+    @DEBUG.setter
+    def DEBUG(self, value: bool) -> None:
+        os.environ["DEBUG"] = str(value)
+
+    @property
+    def SECRET_KEY(self) -> str:
+        """Get the JWT secret key.
+
+        In production, requires an explicit, cryptographically strong secret of at
+        least 32 characters and strictly rejects placeholders and weak keys.
+        In development, falls back to a development placeholder if unset.
+        """
+        secret = os.getenv("SECRET_KEY")
+        if self.is_production:
+            if not secret or not secret.strip():
+                raise ValueError(
+                    "SECRET_KEY environment variable is required in production and cannot be empty. "
+                    "Please configure a cryptographically strong secret key of at least 32 characters."
+                )
+            clean_secret = secret.strip()
+            placeholder_prefixes = ("replace-with", "change-this", "dev-secret", "your-secret")
+            known_placeholders = (
+                "dev-secret-key-change-in-production",
+                "change-this-to-a-secure-random-secret-key-at-least-32-chars",
+                "change-this-to-a-secure-random-secret-key-minimum-32-characters",
+            )
+            if clean_secret in known_placeholders or any(clean_secret.lower().startswith(p) for p in placeholder_prefixes):
+                raise ValueError(
+                    "SECRET_KEY cannot use placeholder value in production. "
+                    "Please configure a cryptographically strong secret key of at least 32 characters."
+                )
+            if len(clean_secret) < 32:
+                raise ValueError(
+                    f"SECRET_KEY must be at least 32 characters long in production (got {len(clean_secret)} characters). "
+                    "Please configure a cryptographically strong secret."
+                )
+            return clean_secret
+
+        # Development / test mode fallback
+        if secret and secret.strip():
+            return secret.strip()
+        return "dev-secret-key-change-in-production"
+
+    @SECRET_KEY.setter
+    def SECRET_KEY(self, value: str) -> None:
+        os.environ["SECRET_KEY"] = value
+
+    @property
+    def DEV_OTP_CODE(self) -> str:
+        """Get the development fixed OTP code.
+
+        Strictly prohibited and inaccessible in non-development environments.
+        """
+        if self.is_production or self.ENVIRONMENT.lower() != "development":
+            raise RuntimeError(
+                "DEV_OTP_CODE is strictly prohibited and inaccessible in non-development environments. "
+                "Development OTP codes must never be queried or used in production."
+            )
+        return os.getenv("DEV_OTP_CODE", "123456").strip()
+
+    @DEV_OTP_CODE.setter
+    def DEV_OTP_CODE(self, value: str) -> None:
+        os.environ["DEV_OTP_CODE"] = value
+
+    def validate_production_configuration(self) -> None:
+        """Validate critical security safeguards when running in production.
+
+        Fails fast at application initialization time if any critical security
+        setting is missing or unsafe.
+        """
+        if self.is_production:
+            _ = self.SECRET_KEY
+            _ = self.DEBUG
+            _ = self.OTP_HMAC_SECRET
 
     # Initial Administrator Provisioning
     @property
