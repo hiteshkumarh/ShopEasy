@@ -1,0 +1,50 @@
+# =============================================================================
+# ShopEasy — Dedicated Local MySQL 8.0 Integration Test Environment
+#
+# USAGE:
+#   docker compose -f docker-compose.test.yml up -d
+#   docker compose -f docker-compose.test.yml ps
+#   docker compose -f docker-compose.test.yml down -v
+#
+# SAFETY NOTICE:
+#   This stack is strictly isolated for local automated testing.
+#   - Exposes MySQL ONLY on loopback (127.0.0.1:3307).
+#   - Creates an isolated test database: shopeasy_test_local.
+#   - Does NOT connect to TiDB Cloud or any production/staging database.
+# =============================================================================
+
+services:
+  test_mysql:
+    image: mysql:8.0
+    container_name: shopeasy_test_mysql
+    restart: "no"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${TEST_MYSQL_ROOT_PASSWORD:-test_root_password_123}
+      MYSQL_DATABASE: shopeasy_test_local
+      MYSQL_USER: ${TEST_MYSQL_USER:-test_user}
+      MYSQL_PASSWORD: ${TEST_MYSQL_PASSWORD:-test_password_123}
+    ports:
+      # Bind strictly to loopback 127.0.0.1 on port 3307
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - shopeasy_test_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - shopeasy_test_network
+
+volumes:
+  shopeasy_test_mysql_data:
+    name: shopeasy_test_mysql_data
+
+networks:
+  shopeasy_test_network:
+    name: shopeasy_test_network

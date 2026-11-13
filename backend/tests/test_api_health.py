@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.core.database import get_db
 from app.main import app
 
+pytestmark = pytest.mark.unit
+
 
 def test_api_health_endpoint(api_client: TestClient) -> None:
     """Verify root /api/health endpoint returns 200 and expected payload."""

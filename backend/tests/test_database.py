@@ -25,6 +25,8 @@ from app.core.database import (
     reset_database_engine,
 )
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture(autouse=True)
 def clean_env_and_engine():

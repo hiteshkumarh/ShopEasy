@@ -10,6 +10,8 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.core.config import Settings
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture(autouse=True)
 def clean_env():
