@@ -9,8 +9,8 @@ from alembic import context
 # Ensure backend root directory is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Import Base and models so metadata is fully populated
-from app.core.database import Base, DATABASE_URL
+# Import Base, models, and connection helpers so metadata and TLS options are populated
+from app.core.database import Base, DATABASE_URL, get_database_url, get_ssl_connect_args
 import app.models  # noqa: F401 - ensures all 15 models are imported
 
 # this is the Alembic Config object, which provides
@@ -63,11 +63,19 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
     """
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = DATABASE_URL
+    target_url = get_database_url()
+    configuration["sqlalchemy.url"] = target_url
+
+    ssl_args = get_ssl_connect_args(target_url)
+    connect_args = dict(ssl_args) if ssl_args else {}
+    if target_url.startswith("sqlite"):
+        connect_args["check_same_thread"] = False
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     with connectable.connect() as connection:
