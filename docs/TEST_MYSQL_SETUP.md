@@ -103,3 +103,29 @@ docker compose -f docker-compose.test.yml down -v
 
 > [!NOTE]
 > This command removes only the dedicated `shopeasy_test_mysql_data` volume. It will not touch any production data, Docker images, or development volumes.
+
+---
+
+## 7. Automated Continuous Integration (GitHub Actions)
+
+ShopEasy includes an automated GitHub Actions pipeline (`.github/workflows/ci.yml`) that runs on every push and pull request targeting `feature/arya-dual-plan-referral-platform`.
+
+### What CI Runs
+1. **Python Compilation:** Checks all backend Python files for syntax errors using `compileall`.
+2. **Unit Tests:** Executes all fast, isolated SQLite tests (`python -m pytest -m unit`).
+3. **MySQL Integration Tests:** Runs tests against a fresh ephemeral MySQL 8.0 service container (`python -m pytest -m mysql`).
+4. **Full Regression Suite:** Runs the entire pytest suite (`python -m pytest`).
+5. **Alembic Migration Verification:** Validates that `alembic upgrade head` runs cleanly against MySQL 8.0.
+
+### Database Isolation in CI
+- The CI pipeline spins up an isolated MySQL 8.0 service container initialized with database `shopeasy_test_ci` and ephemeral runner-only credentials.
+- CI tests connect strictly to `127.0.0.1:3306/shopeasy_test_ci`.
+- TiDB Cloud hosts and production schemas (`shopeasy_arya`, `shopeasy_app`, etc.) are actively blocked by the global connection guard.
+
+### Local Development Independence
+- Local Docker Desktop is **not** required for code development or unit testing; developers can run `python -m pytest -m unit` locally at any time.
+- Full integration test coverage against real MySQL 8.0 is automatically guaranteed by GitHub-hosted Ubuntu runners in CI.
+
+### Viewing Workflow Results
+- Navigate to the **Actions** tab in the GitHub repository.
+- Select the latest run under **ShopEasy CI** to view detailed logs and step-by-step verification output.

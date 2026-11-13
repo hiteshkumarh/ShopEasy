@@ -116,3 +116,36 @@ def test_existing_sqlite_fixtures_and_guard_intact(db_session: Session) -> None:
     with pytest.raises(RuntimeError, match="SAFETY VIOLATION.*live TiDB Cloud host"):
         fake_tidb.connect()
 
+
+@pytest.mark.unit
+def test_ci_service_hostname_accepted_in_github_actions(monkeypatch) -> None:
+    """13. Verify hostname 'mysql' is accepted in GitHub Actions for shopeasy_test_ci."""
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    validate_test_mysql_url("mysql+pymysql://root:root@mysql:3306/shopeasy_test_ci")
+
+
+@pytest.mark.unit
+def test_ci_service_hostname_rejected_for_other_db_in_github_actions(monkeypatch) -> None:
+    """14. Verify hostname 'mysql' is rejected in GitHub Actions if DB is not shopeasy_test_ci."""
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    for db in ("shopeasy_test_local", "shopeasy_arya", "shopeasy_app", "shopeasy_dev"):
+        with pytest.raises(RuntimeError, match="SAFETY VIOLATION"):
+            validate_test_mysql_url(f"mysql+pymysql://root:root@mysql:3306/{db}")
+
+
+@pytest.mark.unit
+def test_ci_service_hostname_rejected_outside_github_actions(monkeypatch) -> None:
+    """15. Verify hostname 'mysql' is strictly rejected when GITHUB_ACTIONS is not true."""
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    with pytest.raises(RuntimeError, match="SAFETY VIOLATION"):
+        validate_test_mysql_url("mysql+pymysql://root:root@mysql:3306/shopeasy_test_ci")
+
+
+@pytest.mark.unit
+def test_ci_service_guard_blocks_unauthorized_connections(monkeypatch) -> None:
+    """16. Verify do_connect guard blocks hostname 'mysql' outside GitHub Actions before connect."""
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    engine = create_engine("mysql+pymysql://root:root@mysql:3306/shopeasy_test_ci")
+    with pytest.raises(RuntimeError, match="SAFETY VIOLATION.*unauthorized MySQL host"):
+        engine.connect()
+

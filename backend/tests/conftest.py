@@ -69,9 +69,21 @@ def validate_test_mysql_url(url: Optional[str]) -> None:
         )
 
     host = (parsed.hostname or "").lower()
-    if not host or host not in ("localhost", "127.0.0.1", "::1"):
+    db_path = parsed.path.lstrip("/").split("?")[0].strip()
+    db_name = db_path.lower()
+
+    # Determine permitted hosts:
+    # 1. Local loopback hosts (localhost, 127.0.0.1, ::1) are always permitted.
+    # 2. In GitHub Actions (GITHUB_ACTIONS == 'true'), service hostname 'mysql' is
+    #    permitted ONLY when the target database is strictly 'shopeasy_test_ci'.
+    is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+    is_local_host = host in ("localhost", "127.0.0.1", "::1")
+    is_ci_service_host = is_ci and host == "mysql" and db_name == "shopeasy_test_ci"
+
+    if not host or (not is_local_host and not is_ci_service_host):
         raise RuntimeError(
-            "SAFETY VIOLATION: TEST_MYSQL_URL host must be strictly local (localhost, 127.0.0.1, or ::1). "
+            "SAFETY VIOLATION: TEST_MYSQL_URL host must be strictly local (localhost, 127.0.0.1, or ::1), "
+            "or the designated CI service container ('mysql') in GitHub Actions with database 'shopeasy_test_ci'. "
             "Remote hosts and TiDB Cloud clusters are strictly prohibited."
         )
 
@@ -79,9 +91,6 @@ def validate_test_mysql_url(url: Optional[str]) -> None:
         raise RuntimeError(
             "SAFETY VIOLATION: TEST_MYSQL_URL cannot target a TiDB Cloud host."
         )
-
-    db_path = parsed.path.lstrip("/").split("?")[0].strip()
-    db_name = db_path.lower()
 
     if not db_name.startswith("shopeasy_test_"):
         raise RuntimeError(
@@ -137,10 +146,14 @@ def block_live_database_connections(dialect, conn_rec, cargs, cparams) -> None:
                 "SAFETY VIOLATION: Automated test attempted to connect to a non-test MySQL database! "
                 "Only databases starting with 'shopeasy_test_' are permitted."
             )
-        if host not in ("localhost", "127.0.0.1", "::1"):
+        is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+        is_local_host = host in ("localhost", "127.0.0.1", "::1")
+        is_ci_service_host = is_ci and host == "mysql" and database == "shopeasy_test_ci"
+
+        if not is_local_host and not is_ci_service_host:
             raise RuntimeError(
-                "SAFETY VIOLATION: Automated test attempted to connect to a non-local MySQL host! "
-                "Only local test hosts (localhost, 127.0.0.1, ::1) are permitted."
+                "SAFETY VIOLATION: Automated test attempted to connect to an unauthorized MySQL host! "
+                "Only local test hosts (localhost, 127.0.0.1, ::1) or the GitHub Actions CI service ('mysql') are permitted."
             )
 
 
