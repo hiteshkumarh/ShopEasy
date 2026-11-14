@@ -48,7 +48,7 @@ backend/app/
   models/            existing + programme, billing, plan_a, plan_b, ledger, withdrawal, audit, notification, settings
   services/
     programmes/      programme rules registry (PLAN_A, PLAN_B)
-    referrals/       code generation, validation, direction rules, checkout binding (BR-X1)
+    referrals/       code generation, validation, direction rules, checkout binding (BR-X1 Option B)
     payments/        provider interface, simulated provider, event ingestion
     fulfilment/      orchestrator: payment event → billing IDs → engine dispatch
     billing/         Billing ID allocator (locked counter)
@@ -162,7 +162,6 @@ flowchart TD
   S3 --> S4[Stage 4 Payment abstraction · orders · Billing IDs · fulfilment]
   S4 --> S5[Stage 5 Plan A commission]
   S4 --> S7[Stage 7 Plan B commission & distributor]
-  S4 -. "BR-X1 (repeat-order rule)" .-> S5 & S7
   S5 --> S8[Stage 8 Wallets & withdrawal state machines]
   S7 --> S8
   S4 --> S6[Stage 6 Plan A cashback engine]
@@ -186,8 +185,8 @@ flowchart TD
 | WP-4 | Registration with programme selection, programme-aware login, referral codes, direction rules | WP-3 | — | API + tests |
 | WP-5 | Payment abstraction, payment events, simulated provider guard | WP-3 | — | |
 | WP-6 | Billing ID allocator + fulfilment orchestrator + recovery worker | WP-5 | — | Concurrency tests |
-| WP-7 | Plan A commission engine | WP-6, WP-2 | BR-X1 (repeat-order attribution) | ₹700 × N tests |
-| WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | BR-B1/B2/X2 | ₹500/₹50 tests |
+| WP-7 | Plan A commission engine | WP-6, WP-2 | — | ₹700 × N tests |
+| WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | BR-B2, BR-X2 | ₹500/₹50 tests |
 | WP-9 | Wallet ledger + withdrawal state machines + sandbox payouts | WP-7, WP-8 | BR-A6, BR-B2 (enablement) | |
 | WP-10 | Plan A cashback: queues/cycles/contributions/policy interfaces, bulbs API | WP-6 | **BR-A1..A5** for production | Sample-policy tests only |
 | WP-11 | Admin APIs + reports (xlsx/pdf) + notifications | WP-9, WP-10 | — | |
@@ -217,7 +216,7 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 | ID | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
 | RK-01 | Cashback allocation rules (BR-A1..A5) remain unconfirmed | High | High | Policy interfaces; production flag off; `PENDING_POLICY` obligations ledger; escalate questions now |
-| RK-02 | Referral repeat-order attribution rule (BR-X1) unconfirmed | Medium | High | Single-referrer DB constraint; repeat-order question flagged for confirmation |
+| RK-02 | Referral repeat-order attribution rule (BR-X1) confirmed (Option B); Plan B ₹500 timing (BR-B1) confirmed (Option A) | Low | Low | Single-referrer DB constraint; non-retroactive; ₹500 paid on qualifying later order |
 | RK-03 | TiDB silently ignores CHECK/FK | High | High | Service-level invariants + reconciliation job + TiDB test gate |
 | RK-04 | Legacy production data inconsistent with new model | Medium | High | Additive migrations; LEGACY tag; snapshot + restore rehearsal before migration; client decision OP-11 |
 | RK-05 | Global locks become throughput bottleneck | Medium | Medium | Per-queue locks, short transactions, lock ordering; load test |
@@ -231,7 +230,7 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 ## 9. Approval gates (work stops here until the client confirms)
 
 1. BR-A1..A5, BR-A7 → before cashback contributions are credited to anyone.
-2. BR-X1 (repeat-order rule), BR-X2, BR-B1 → before referral repeat-order attribution is enabled outside test.
+2. BR-X2, BR-B2 → before Plan B commission rules are finalized for production.
 3. BR-A6, BR-B2 → before any withdrawal (even sandbox) is enabled in a shared environment.
 4. OP-11 → before running migrations against any database containing real data.
 5. OP-03 + explicit authorisation → before any production deployment.

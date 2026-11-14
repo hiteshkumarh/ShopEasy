@@ -13,11 +13,11 @@ Branch: `feature/arya-dual-plan-referral-platform` · Last updated: 2026-11-14
 | WP-1 Test harness + MySQL CI | A+B | `backend/tests/`, CI | COMPLETE | 30 MySQL config + 7 MySQL integration tests in CI | — |
 | WP-2 Money utils & financial settings | A+B | `app/core/money.py`, `app/models/financial_settings.py`, `app/services/financial_settings.py`, `app/core/seed.py` | COMPLETE | 140 unit tests + 10 MySQL integration tests passed in CI | — |
 | WP-3 Additive migration (programme, status, referrals, audit, notifications) | A+B | `app/models/`, `alembic/versions/79b742f969d6_*.py` | COMPLETE | 160 unit + 11 MySQL integration in CI Run #12 (171 passed, 0 skipped); SQLite & isolated MySQL lifecycle tests; Alembic check clean | OP-11 before running on real data |
-| WP-4 Programme registration & referral rules | A+B | — | NOT_STARTED | — | — (referral timing confirmed at checkout for both programmes; repeat-order question BR-X1 open) |
+| WP-4 Programme registration & referral rules | A+B | — | NOT_STARTED | — | — (referral timing confirmed at checkout; BR-X1 confirmed Option B: later-order binding allowed) |
 | WP-5 Payment abstraction | A+B | — | NOT_STARTED | — | — |
 | WP-6 Billing IDs + fulfilment + recovery | A+B | — | NOT_STARTED | — | — |
-| WP-7 Plan A commission | A | — | NOT_STARTED | — | BR-X1 (repeat-order attribution) |
-| WP-8 Plan B commission & distributor controls | B | — | NOT_STARTED | — | BR-B1, BR-B2, BR-X2 |
+| WP-7 Plan A commission | A | — | NOT_STARTED | — | — |
+| WP-8 Plan B commission & distributor controls | B | — | NOT_STARTED | — | BR-B2, BR-X2 (BR-B1 resolved: Option A) |
 | WP-9 Wallets & withdrawals | A+B | — | NOT_STARTED | — | BR-A6, BR-B2 |
 | WP-10 Plan A cashback engine | A | — | BLOCKED (production) | — | BR-A1–A5, BR-A7 |
 | WP-11 Admin, reports, notifications | A+B | — | NOT_STARTED | — | — |

@@ -36,7 +36,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | RG-06 | A §4.1(7–8), B §4.4 | No referrer change; no self-referral | A+B | P0 | PART | referrals | T-RG-06 | Relationship permanent once bound on successful order; attempts to change rejected; self-referral rejected; DB unique constraint per referee | — |
 | RG-07 | A §4.1(9–10) | Inactive (no purchase) Plan A customer's code rejected | A | P0 | PART | referrals | T-RG-07 | Code of customer with 0 paid Billing IDs rejected | — |
 | RG-08 | B §4.2 p.26 | Allowed: A→A, B→A. Forbidden: A→B, B→B | A+B | P0 | NONE | referrals | T-RG-08 | Matrix of 4 directions tested | — |
-| RG-09 | Confirmed decision | Referral code entered during checkout for both programmes; bound on successful order | A+B | P0 | PART | referrals, checkout | T-RG-09 | Code entered at checkout for Plan A and Plan B; validated per programme rules; bound only after successful order placement; single referrer per referee | BR-X1 |
+| RG-09 | Confirmed decision | Referral code entered during checkout for both programmes; bound on successful order | A+B | P0 | PART | referrals, checkout | T-RG-09 | Code entered at checkout for Plan A and Plan B; validated per programme rules; bound only after successful order placement; single referrer per referee. Per BR-X1 (Option B), customer without an established referral relationship may enter a code on a later order; prior orders not retroactively attributed | — |
 | RG-10 | B §4.3 p.26 | Plan B checkout validation: "Wrong Referral ID", distributor name preview, confirmation | B→A | P0 | PART | referrals, checkout | T-RG-10 | Preview returns distributor name only (no other PII); confirmed before order; "Wrong Referral ID" on invalid | — |
 | RG-11 | B §4.4 | Relationship permanent after successful order | A+B | P0 | PART | referrals, checkout | T-RG-11 | Saved to referral_relationships only after successful order; no update path; audit row on creation | — |
 | RG-12 | B §3.3 | Separate Plan B login → distributor dashboard | B | P1 | NONE | auth, frontend | T-RG-12 | Plan A credentials cannot log into Plan B portal and vice versa | — |
@@ -96,11 +96,11 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 
 | Req ID | PRD § / page | Requirement | Prog | Pri | Status | Module | Tests | Acceptance criteria | Clarif. |
 |---|---|---|---|---|---|---|---|---|---|
-| PB-01 | B §5.2, §26.3 | ₹500 once per referred customer after first qualifying purchase | B | P0 | NONE | commissions/plan_b | T-PB-01 | Exactly one row per referee lifetime (DB unique) | BR-B1 |
+| PB-01 | B §5.2, §26.3 | ₹500 once per referred customer after first qualifying purchase | B | P0 | NONE | commissions/plan_b | T-PB-01 | Exactly one row per referee lifetime (DB unique). Per BR-B1 (Option A), payable on the first successful order establishing relationship (even on later order; non-retroactive) | — |
 | PB-02 | B §5.3 | ₹50 per eligible Billing ID | B | P0 | NONE | commissions/plan_b | T-PB-02 | 3 units → ₹150; later 2 units → +₹100 | — |
 | PB-03 | B §5.4–5.6 | Combined example: first order 3 units → ₹650; later 2 → ₹100 | B | P0 | NONE | commissions/plan_b | T-PB-03 | Exact totals | — |
 | PB-04 | B §5.7, §22.1 | No upstream/multi-level ₹50 | B | P0 | NONE | commissions/plan_b | T-PB-04 | Only direct distributor credited | R-05 |
-| PB-05 | B §5.6, §26.4 | Never both Plan A and Plan B commission on one Billing ID | A+B | P0 | NONE | fulfilment | T-PB-05 | DB unique `(billing_id)` on commission "engine claim" | R-03, BR-X1 |
+| PB-05 | B §5.6, §26.4 | Never both Plan A and Plan B commission on one Billing ID | A+B | P0 | NONE | fulfilment | T-PB-05 | DB unique `(billing_id)` on commission "engine claim" | R-03 |
 | PB-06 | B §6.3 | Commission record fields (txn, distributor, customer, order, Billing ID, type, amount, status, time) | B | P0 | NONE | commissions | T-PB-06 | Schema test | — |
 | PB-07 | B §9 | Independent distributor wallet; totals; history | B | P0 | NONE | wallets | T-PB-07 | Balance == ledger sum | — |
 | PB-08 | B §9.2 | Admin cannot add/deduct wallet money | B | P0 | NONE | admin | T-PB-08 | No endpoint; attempt → 404/405 | — |

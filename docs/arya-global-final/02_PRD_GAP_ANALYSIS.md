@@ -28,7 +28,7 @@ No existing feature is FIT: the repository has no automated tests.
 | Register without referral code | A §4.1(1), B §4.3 | FIT-untested | Customers and distributors in both programmes register without entering referral codes |
 | Permanent unique referral code | A §4.1(2,6), B §4.1 | PART | Exists; needs per-programme prefix (e.g. `PA…`/`PB…`), copy button, tests |
 | "Invalid Referral" (Plan A) / "Wrong Referral ID" (Plan B) messages | A §4.1(5), B §4.3 | DEFECT | Generic messages today; must display exact programme-specific error messages |
-| Referral entry at checkout (both Plan A and Plan B) | A §4.1, B §4.3 | PART | Confirmed business rule: entered during checkout for both programmes (supersedes Plan A §4.1 registration timing); bound only after successful order; repeat-order question open (BR-X1) |
+| Referral entry at checkout (both Plan A and Plan B) | A §4.1, B §4.3 | PART | Confirmed business rule: entered during checkout for both programmes; bound only after successful order; BR-X1 Option B confirmed (later-order entry allowed if unreferred; non-retroactive); BR-B1 Option A confirmed (₹500 direct commission payable on qualifying later order) |
 | Plan B code validated at checkout, show distributor name, confirm | B §4.3, §8.1 | PART | Checkout validation exists; distributor name preview (no other PII) and customer confirmation to implement |
 | Allowed directions A→A, B→A only | B §4.2 | NONE | Direction check in referral service |
 | Inactive Plan A referrer rejected | A §4.1(9–10) | PART | "Active" today = account active, not "has purchased" |
@@ -75,7 +75,7 @@ No existing feature is FIT: the repository has no automated tests.
 
 | Capability | PRD ref | Status | Gap |
 |---|---|---|---|
-| ₹500 once per referred customer after first qualifying purchase | B §5.2, §26.3 | NONE (BR-B1) | |
+| ₹500 once per referred customer after first qualifying purchase | B §5.2, §26.3 | NONE | Confirmed per BR-B1 Option A: payable on first qualifying purchase that establishes relationship (even if on later order; non-retroactive) |
 | ₹50 per eligible Billing ID to direct distributor | B §5.3 | NONE | |
 | Commission record fields | B §6.3 | NONE | |
 | Distributor wallet (earned/direct/generation/withdrawn/available) | B §9 | NONE | |
