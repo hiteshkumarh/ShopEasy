@@ -399,11 +399,44 @@ class TestFinancialSettingsAlembicMigration:
 
         # 1. Exactly one single head
         assert len(heads) == 1
-        assert heads[0] == "2270de96fe73"
+        assert heads[0] == "79b742f969d6"
 
-        # 2. Linear down_revision chain
+        # 2. Linear down_revision chain including new WP-3 head and existing chain
+        head_rev = script.get_revision("79b742f969d6")
+        assert head_rev is not None
+        assert head_rev.down_revision == "2270de96fe73"
+
         rev = script.get_revision("2270de96fe73")
+        assert rev is not None
         assert rev.down_revision == "4bed57dc0ac3"
+
+        rev_cart = script.get_revision("4bed57dc0ac3")
+        assert rev_cart is not None
+        assert rev_cart.down_revision == "c895961fa0f1"
+
+        rev_cart_table = script.get_revision("c895961fa0f1")
+        assert rev_cart_table is not None
+        assert rev_cart_table.down_revision == "71dba0e1425f"
+
+        rev_otp = script.get_revision("71dba0e1425f")
+        assert rev_otp is not None
+        assert rev_otp.down_revision == "ed2396d847bc"
+
+        rev_root = script.get_revision("ed2396d847bc")
+        assert rev_root is not None
+        assert rev_root.down_revision is None
+
+        # Verify complete linear chain without branches or altered revision IDs
+        expected_chain = [
+            "79b742f969d6",
+            "2270de96fe73",
+            "4bed57dc0ac3",
+            "c895961fa0f1",
+            "71dba0e1425f",
+            "ed2396d847bc",
+        ]
+        actual_chain = [r.revision for r in script.walk_revisions()]
+        assert actual_chain == expected_chain
 
         # 3. Dry-run DDL generation for MySQL dialect
         ctx = MigrationContext.configure(dialect=mysql.dialect(), opts={"as_sql": True})

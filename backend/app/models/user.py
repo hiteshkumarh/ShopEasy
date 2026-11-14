@@ -16,13 +16,22 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.enums import OTPPurpose, UserRole, sql_enum
+from app.models.enums import (
+    AccountStatus,
+    OTPPurpose,
+    Programme,
+    UserRole,
+    sql_enum,
+)
 
 if TYPE_CHECKING:
+    from app.models.audit import AuditLog
     from app.models.cart import CartItem
     from app.models.commission import ReferralCommission, SequentialCommission
+    from app.models.notification import Notification
     from app.models.order import Order
     from app.models.queue import BeneficiaryQueue, CommissionCycle
+    from app.models.referral import ReferralRelationship
     from app.models.wallet import Wallet, Withdrawal
 
 
@@ -37,6 +46,12 @@ class User(Base):
     password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     role: Mapped[UserRole] = mapped_column(
         sql_enum(UserRole), default=UserRole.CUSTOMER, nullable=False
+    )
+    programme: Mapped[Programme] = mapped_column(
+        sql_enum(Programme), default=Programme.LEGACY, server_default="LEGACY", nullable=False
+    )
+    account_status: Mapped[AccountStatus] = mapped_column(
+        sql_enum(AccountStatus), default=AccountStatus.ACTIVE, server_default="ACTIVE", nullable=False
     )
     referral_code: Mapped[Optional[str]] = mapped_column(
         String(20), nullable=True
@@ -57,6 +72,9 @@ class User(Base):
     __table_args__ = (
         UniqueConstraint("phone", name="uq_users_phone"),
         UniqueConstraint("referral_code", name="uq_users_referral_code"),
+        Index("idx_users_programme", "programme"),
+        Index("idx_users_account_status", "account_status"),
+        Index("idx_users_prog_role", "programme", "role"),
         CheckConstraint(
             "(role = 'customer' AND referral_code IS NOT NULL) OR "
             "(role = 'admin' AND referral_code IS NULL AND referred_by_id IS NULL)",
@@ -110,6 +128,77 @@ class User(Base):
         back_populates="beneficiary",
         foreign_keys="[SequentialCommission.beneficiary_id]",
         overlaps="cycle,sequential_commissions",
+    )
+    status_history: Mapped[List["AccountStatusHistory"]] = relationship(
+        "AccountStatusHistory",
+        back_populates="user",
+        foreign_keys="[AccountStatusHistory.user_id]",
+        passive_deletes=True,
+    )
+    referral_as_referee: Mapped[Optional["ReferralRelationship"]] = relationship(
+        "ReferralRelationship",
+        back_populates="referee",
+        foreign_keys="[ReferralRelationship.referee_id]",
+        uselist=False,
+    )
+    referral_relationships_as_referrer: Mapped[List["ReferralRelationship"]] = relationship(
+        "ReferralRelationship",
+        back_populates="referrer",
+        foreign_keys="[ReferralRelationship.referrer_id]",
+    )
+    notifications: Mapped[List["Notification"]] = relationship(
+        "Notification",
+        back_populates="user",
+        foreign_keys="[Notification.user_id]",
+        cascade="all, delete-orphan",
+    )
+    audit_logs_authored: Mapped[List["AuditLog"]] = relationship(
+        "AuditLog",
+        back_populates="actor",
+        foreign_keys="[AuditLog.actor_id]",
+    )
+
+
+class AccountStatusHistory(Base):
+    """Immutable audit trail for user account status transitions."""
+
+    __tablename__ = "account_status_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    old_status: Mapped[Optional[AccountStatus]] = mapped_column(
+        sql_enum(AccountStatus), nullable=True
+    )
+    new_status: Mapped[AccountStatus] = mapped_column(
+        sql_enum(AccountStatus), nullable=False
+    )
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    changed_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="RESTRICT", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_account_status_hist_user", "user_id", "created_at"),
+        Index("idx_account_status_hist_changed_by", "changed_by_id"),
+    )
+
+    user: Mapped["User"] = relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="status_history",
+    )
+    changed_by: Mapped[Optional["User"]] = relationship(
+        "User",
+        foreign_keys=[changed_by_id],
     )
 
 

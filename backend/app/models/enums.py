@@ -90,6 +90,13 @@ class SettingAction(str, enum.Enum):
     REACTIVATED = "REACTIVATED"
 
 
+class AccountStatus(str, enum.Enum):
+    """Account status classification for dual-programme platform users."""
+    ACTIVE = "ACTIVE"
+    BLOCKED = "BLOCKED"
+    DEACTIVATED = "DEACTIVATED"
+
+
 from sqlalchemy import Enum as _SAEnum
 
 
