@@ -400,43 +400,52 @@ def test_mysql_concurrent_billing_allocation():
     engine = create_engine(mysql_url, pool_pre_ping=True)
     SessionMaker = sessionmaker(bind=engine)
 
-    # Initialize counter in DB
-    with SessionMaker() as init_session:
-        seed_billing_counter(init_session, start_value=500)
-        user = create_user(init_session, phone="9911223344", programme=Programme.PLAN_A, referral_code="PAMYSQL1")
-        prod = create_product(init_session, name="PB-MySQL")
-        orders = []
-        for i in range(5):
-            ord_i = create_order(init_session, user, order_number=f"ORD-CONC-{i}", idempotency_key=f"idemp-conc-{i}")
-            add_order_item(init_session, ord_i, prod, quantity=2)
-            orders.append(ord_i.id)
+    orders: List[int] = []
+    try:
+        # Initialize counter in DB
+        with SessionMaker() as init_session:
+            seed_billing_counter(init_session, start_value=500)
+            user = create_user(init_session, phone="9911223344", programme=Programme.PLAN_A, referral_code="PAMYSQL1")
+            prod = create_product(init_session, name="PB-MySQL")
+            for i in range(5):
+                ord_i = create_order(init_session, user, order_number=f"ORD-CONC-{i}", idempotency_key=f"idemp-conc-{i}")
+                orders.append(ord_i.id)
+                add_order_item(init_session, ord_i, prod, quantity=2)
 
-    errors = []
-    all_allocated_numbers = []
-    lock = threading.Lock()
+        errors = []
+        all_allocated_numbers = []
+        lock = threading.Lock()
 
-    def worker(order_id: int):
-        session = SessionMaker()
-        try:
-            order = session.query(Order).filter_by(id=order_id).first()
-            bids = BillingAllocatorService.allocate_for_order(session, order)
-            session.commit()
-            with lock:
-                all_allocated_numbers.extend([b.sequence_number for b in bids])
-        except Exception as e:
-            session.rollback()
-            with lock:
-                errors.append(e)
-        finally:
-            session.close()
+        def worker(order_id: int):
+            session = SessionMaker()
+            try:
+                order = session.query(Order).filter_by(id=order_id).first()
+                bids = BillingAllocatorService.allocate_for_order(session, order)
+                session.commit()
+                with lock:
+                    all_allocated_numbers.extend([b.sequence_number for b in bids])
+            except Exception as e:
+                session.rollback()
+                with lock:
+                    errors.append(e)
+            finally:
+                session.close()
 
-    threads = [threading.Thread(target=worker, args=(oid,)) for oid in orders]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+        threads = [threading.Thread(target=worker, args=(oid,)) for oid in orders]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-    assert not errors, f"Concurrent allocation encountered errors: {errors}"
-    assert len(all_allocated_numbers) == 10  # 5 orders * 2 units each = 10 IDs
-    assert len(set(all_allocated_numbers)) == 10  # Zero duplicate sequence numbers!
-    assert sorted(all_allocated_numbers) == list(range(501, 511))  # Contiguous from 501 to 510!
+        assert not errors, f"Concurrent allocation encountered errors: {errors}"
+        assert len(all_allocated_numbers) == 10  # 5 orders * 2 units each = 10 IDs
+        assert len(set(all_allocated_numbers)) == 10  # Zero duplicate sequence numbers!
+        assert sorted(all_allocated_numbers) == list(range(501, 511))  # Contiguous from 501 to 510!
+    finally:
+        if orders:
+            with SessionMaker() as cleanup_session:
+                # Clean up only the exact orders created by this allocator test to prevent leaking unfulfilled orders
+                cleanup_session.query(BillingId).filter(BillingId.order_id.in_(orders)).delete(synchronize_session=False)
+                cleanup_session.query(OrderItem).filter(OrderItem.order_id.in_(orders)).delete(synchronize_session=False)
+                cleanup_session.query(Order).filter(Order.id.in_(orders)).delete(synchronize_session=False)
+                cleanup_session.commit()
