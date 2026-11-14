@@ -34,6 +34,7 @@ Install the following software before running the project:
 2. **Docker Desktop:** https://www.docker.com/products/docker-desktop/
 
 Make sure Docker Desktop is running before executing Docker commands.
+You can also open in  https://shopeasy-jhls.onrender.com
 
 For native Windows setup without Docker, Python 3.12 and MySQL 8.0 are required.
 
