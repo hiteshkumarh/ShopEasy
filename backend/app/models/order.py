@@ -26,7 +26,9 @@ from app.models.enums import (
 )
 
 if TYPE_CHECKING:
+    from app.models.billing import BillingId
     from app.models.commission import ReferralCommission, SequentialCommission
+    from app.models.payment import PaymentAttempt
     from app.models.product import Product
     from app.models.user import Address, User
 
@@ -67,6 +69,12 @@ class Order(Base):
     is_first_successful_order: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
+    is_fulfilled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    fulfilled_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
@@ -84,6 +92,12 @@ class Order(Base):
     address: Mapped["Address"] = relationship("Address", back_populates="orders")
     order_items: Mapped[List["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
+    )
+    payment_attempts: Mapped[List["PaymentAttempt"]] = relationship(
+        "PaymentAttempt", back_populates="order", cascade="all, delete-orphan"
+    )
+    billing_ids: Mapped[List["BillingId"]] = relationship(
+        "BillingId", back_populates="order", cascade="all, delete-orphan"
     )
     order_allocation: Mapped[Optional["OrderAllocation"]] = relationship(
         "OrderAllocation", back_populates="order", uselist=False
@@ -132,6 +146,9 @@ class OrderItem(Base):
 
     order: Mapped["Order"] = relationship("Order", back_populates="order_items")
     product: Mapped["Product"] = relationship("Product", back_populates="order_items")
+    billing_ids: Mapped[List["BillingId"]] = relationship(
+        "BillingId", back_populates="order_item", cascade="all, delete-orphan"
+    )
 
 
 class OrderAllocation(Base):

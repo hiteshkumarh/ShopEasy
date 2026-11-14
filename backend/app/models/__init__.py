@@ -2,6 +2,11 @@
 
 from app.models.audit import AuditLog
 from app.models.cart import CartItem
+from app.models.billing import (
+    BillingCounter,
+    BillingEngineClaim,
+    BillingId,
+)
 from app.models.commission import ReferralCommission, SequentialCommission
 from app.models.enums import (
     AccountStatus,
@@ -25,6 +30,7 @@ from app.models.financial_settings import (
 )
 from app.models.notification import Notification
 from app.models.order import Order, OrderAllocation, OrderItem
+from app.models.payment import PaymentAttempt, PaymentEvent
 from app.models.product import Product
 from app.models.queue import BeneficiaryQueue, CommissionCycle, QueueControl
 from app.models.referral import ReferralRelationship
@@ -60,6 +66,11 @@ __all__ = [
     "Order",
     "OrderItem",
     "OrderAllocation",
+    "PaymentAttempt",
+    "PaymentEvent",
+    "BillingCounter",
+    "BillingId",
+    "BillingEngineClaim",
     "BeneficiaryQueue",
     "CommissionCycle",
     "QueueControl",

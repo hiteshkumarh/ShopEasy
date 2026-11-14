@@ -48,6 +48,97 @@ class Settings:
     # Simulated Mock Services
     ENABLE_MOCK_PAYMENT: bool = os.getenv("ENABLE_MOCK_PAYMENT", "True").lower() in ("true", "1", "yes")
 
+    # WP-5 Payment Abstraction Configuration
+    @property
+    def PAYMENT_PROVIDER(self) -> str:
+        """Active payment provider name (e.g. 'simulated', 'razorpay').
+
+        In production, defaults to 'razorpay' (or requires explicit provider setting).
+        In development/testing, defaults to 'simulated'.
+        """
+        raw = os.getenv("PAYMENT_PROVIDER")
+        if raw is not None and not raw.strip():
+            raise ValueError("PAYMENT_PROVIDER environment variable cannot be empty.")
+        if raw and raw.strip():
+            return raw.strip().lower()
+        if self.is_production:
+            return "razorpay"
+        return "simulated"
+
+    @PAYMENT_PROVIDER.setter
+    def PAYMENT_PROVIDER(self, value: str) -> None:
+        os.environ["PAYMENT_PROVIDER"] = value
+
+    @property
+    def ALLOW_SIMULATED_PAYMENTS(self) -> bool:
+        """Whether simulated payments and simulated test endpoints are permitted.
+
+        Strictly False by default in production. In development/testing, defaults to True.
+        """
+        raw = os.getenv("ALLOW_SIMULATED_PAYMENTS")
+        if raw is not None:
+            return raw.strip().lower() in ("true", "1", "yes")
+        return not self.is_production
+
+    @ALLOW_SIMULATED_PAYMENTS.setter
+    def ALLOW_SIMULATED_PAYMENTS(self, value: bool) -> None:
+        os.environ["ALLOW_SIMULATED_PAYMENTS"] = str(value)
+
+    @property
+    def SIMULATED_PAYMENT_SECRET(self) -> str:
+        """Authentication secret for simulated payment callbacks in dev/test."""
+        return os.getenv("SIMULATED_PAYMENT_SECRET", "dev-simulated-payment-secret-12345").strip()
+
+    @SIMULATED_PAYMENT_SECRET.setter
+    def SIMULATED_PAYMENT_SECRET(self, value: str) -> None:
+        os.environ["SIMULATED_PAYMENT_SECRET"] = value
+
+    # WP-6 Fulfilment Recovery Worker Configuration
+    @property
+    def FULFILMENT_RECOVERY_ENABLED(self) -> bool:
+        """Whether background fulfilment recovery scheduler is enabled.
+
+        Defaults to False (conservative default). Can be enabled via FULFILMENT_RECOVERY_ENABLED=True.
+        """
+        raw = os.getenv("FULFILMENT_RECOVERY_ENABLED")
+        if raw is not None:
+            return raw.strip().lower() in ("true", "1", "yes")
+        return False
+
+    @FULFILMENT_RECOVERY_ENABLED.setter
+    def FULFILMENT_RECOVERY_ENABLED(self, value: bool) -> None:
+        os.environ["FULFILMENT_RECOVERY_ENABLED"] = str(value)
+
+    @property
+    def FULFILMENT_RECOVERY_INTERVAL_SECONDS(self) -> int:
+        """Interval between recovery worker sweeps in seconds. Default: 60."""
+        raw = os.getenv("FULFILMENT_RECOVERY_INTERVAL_SECONDS")
+        if raw is not None and raw.strip():
+            try:
+                return max(1, int(raw.strip()))
+            except ValueError:
+                pass
+        return 60
+
+    @FULFILMENT_RECOVERY_INTERVAL_SECONDS.setter
+    def FULFILMENT_RECOVERY_INTERVAL_SECONDS(self, value: int) -> None:
+        os.environ["FULFILMENT_RECOVERY_INTERVAL_SECONDS"] = str(value)
+
+    @property
+    def FULFILMENT_RECOVERY_BATCH_SIZE(self) -> int:
+        """Maximum number of unfulfilled orders to process per recovery sweep. Default: 50."""
+        raw = os.getenv("FULFILMENT_RECOVERY_BATCH_SIZE")
+        if raw is not None and raw.strip():
+            try:
+                return max(1, int(raw.strip()))
+            except ValueError:
+                pass
+        return 50
+
+    @FULFILMENT_RECOVERY_BATCH_SIZE.setter
+    def FULFILMENT_RECOVERY_BATCH_SIZE(self, value: int) -> None:
+        os.environ["FULFILMENT_RECOVERY_BATCH_SIZE"] = str(value)
+
     def __init__(self) -> None:
         """Initialize settings and execute production safeguards if running in production."""
         self.validate_production_configuration()
@@ -171,10 +262,27 @@ class Settings:
         Fails fast at application initialization time if any critical security
         setting is missing or unsafe.
         """
+        valid_providers = ("simulated", "razorpay")
+        if self.PAYMENT_PROVIDER not in valid_providers:
+            raise ValueError(
+                f"Unsupported PAYMENT_PROVIDER '{self.PAYMENT_PROVIDER}'. Allowed providers: {list(valid_providers)}"
+            )
+
         if self.is_production:
             _ = self.SECRET_KEY
             _ = self.DEBUG
             _ = self.OTP_HMAC_SECRET
+
+            # WP-5 Payment safety safeguards
+            if self.PAYMENT_PROVIDER == "simulated":
+                raise RuntimeError(
+                    "CRITICAL SAFETY VIOLATION: PAYMENT_PROVIDER cannot be 'simulated' in production environment. "
+                    "Zero fallback permitted."
+                )
+            if self.ALLOW_SIMULATED_PAYMENTS:
+                raise RuntimeError(
+                    "CRITICAL SAFETY VIOLATION: ALLOW_SIMULATED_PAYMENTS must be False in production environment."
+                )
 
     # Initial Administrator Provisioning
     @property

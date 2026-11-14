@@ -694,9 +694,17 @@ class TestWP3MigrationA:
         script_dir = ScriptDirectory.from_config(cfg)
         heads = script_dir.get_heads()
         assert len(heads) == 1, f"Expected exactly 1 Alembic head, got {heads}"
-        assert heads[0] == "79b742f969d6", f"Expected head '79b742f969d6', got '{heads[0]}'"
+        assert heads[0] == "b7f2d4e8c1a9", f"Expected head 'b7f2d4e8c1a9', got '{heads[0]}'"
 
-        # Walk revisions and verify linear link from 79b742f969d6 to 2270de96fe73
+        # Walk revisions and verify linear link from b7f2d4e8c1a9 to a8f5c3b1e9d2, 79b742f969d6 and 2270de96fe73
+        rev_wp6 = script_dir.get_revision("b7f2d4e8c1a9")
+        assert rev_wp6 is not None
+        assert rev_wp6.down_revision == "a8f5c3b1e9d2"
+
+        rev_wp5 = script_dir.get_revision("a8f5c3b1e9d2")
+        assert rev_wp5 is not None
+        assert rev_wp5.down_revision == "79b742f969d6"
+
         rev_head = script_dir.get_revision("79b742f969d6")
         assert rev_head is not None
         assert rev_head.down_revision == "2270de96fe73"

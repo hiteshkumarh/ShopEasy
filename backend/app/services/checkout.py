@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+import json
 import logging
 import secrets
 from typing import List, Tuple
@@ -9,14 +10,17 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.audit import AuditLog
 from app.models.cart import CartItem
-from app.models.enums import OrderStatus, PaymentStatus, UserRole
+from app.models.enums import OrderStatus, PaymentStatus, Programme, UserRole
 from app.models.order import Order, OrderItem
 from app.models.product import Product
+from app.models.referral import ReferralRelationship
 from app.models.user import Address, User
 from app.schemas.order import CheckoutRequest
 from app.services.allocation import calculate_and_create_order_allocation
 from app.services.earning_engine import process_order_earnings
+from app.services.payment.service import PaymentService
 from app.services.queue_service import (
     determine_sequential_eligibility,
     lock_queue_control,
@@ -137,7 +141,7 @@ def execute_checkout(
             Decimal(qty) * prod.price for qty, prod in items_with_products
         )
 
-        # 6. Referral code validation and first successful order attribution
+        # 6. Referral code validation and referral attribution
         prior_confirmed_orders = (
             db.query(Order.id)
             .filter(
@@ -150,6 +154,7 @@ def execute_checkout(
 
         applied_referral_code = None
         code_input = checkout_data.referral_code.strip() if checkout_data.referral_code else None
+        referrer = None
 
         if code_input:
             referrer = validate_referral_code(
@@ -158,16 +163,13 @@ def execute_checkout(
                 referral_code=code_input,
             )
             applied_referral_code = referrer.referral_code
-            if is_first_successful_order and customer.referred_by_id is None:
-                customer.referred_by_id = referrer.id
         else:
             # No referral code supplied
             applied_referral_code = None
 
-        # 7. Simulated payment execution
-        payment_status = PaymentStatus.COMPLETED
-        order_status = OrderStatus.CONFIRMED
-        payment_reference = f"SIM-{secrets.token_hex(8).upper()}"
+        # 7. Initial Order creation with PENDING_PAYMENT status
+        order_status = OrderStatus.PENDING_PAYMENT
+        payment_status = PaymentStatus.PENDING
         order_number = f"ORD-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(3).upper()}"
 
         # 8. Create Order record
@@ -179,12 +181,32 @@ def execute_checkout(
             total_amount=order_total_amount,
             order_status=order_status,
             payment_status=payment_status,
-            payment_reference=payment_reference,
+            payment_reference=None,
             applied_referral_code=applied_referral_code,
             is_first_successful_order=is_first_successful_order,
         )
         db.add(order)
-        db.flush()
+        try:
+            with db.begin_nested():
+                db.flush()
+        except IntegrityError:
+            # Handle concurrent checkout race with identical (user_id, idempotency_key)
+            existing = (
+                db.query(Order)
+                .options(
+                    joinedload(Order.order_items),
+                    joinedload(Order.order_allocation),
+                    joinedload(Order.address),
+                )
+                .filter(
+                    Order.user_id == customer.id,
+                    Order.idempotency_key == checkout_data.idempotency_key,
+                )
+                .first()
+            )
+            if existing:
+                return existing
+            raise
 
         # 9. Create OrderItem records
         for qty, prod in items_with_products:
@@ -199,46 +221,17 @@ def execute_checkout(
             db.add(order_item)
         db.flush()
 
-        # 10. Lock QueueControl and determine sequential commission eligibility
-        queue_control = lock_queue_control(db)
-        has_power_bank = any(is_power_bank_product(prod) for qty, prod in items_with_products)
-        seq_applies, active_beneficiary_id = determine_sequential_eligibility(
-            queue_control=queue_control,
-            buyer_id=customer.id,
-            has_power_bank=has_power_bank,
-        )
+        # 10. Create PaymentAttempt via PaymentService (WP-5)
+        # Note: Referral binding, cart clearing, and fulfilment are deferred to payment confirmation
+        attempt, _ = PaymentService.create_payment_attempt(db=db, order=order)
 
-        # 11. Generate immutable OrderAllocation snapshot with synchronized eligibility
-        order_allocation = calculate_and_create_order_allocation(
-            db=db,
-            order=order,
-            items_with_products=items_with_products,
-            buyer_id=customer.id,
-            is_first_successful_order=is_first_successful_order,
-            has_valid_referral_code=(applied_referral_code is not None),
-            sequential_commission_applies=seq_applies,
-        )
-
-        # 12. Process order earnings (Direct Referral, Queue Enrollment, Sequential Commission)
-        process_order_earnings(
-            db=db,
-            order=order,
-            order_allocation=order_allocation,
-            customer=customer,
-            queue_control=queue_control,
-            active_beneficiary_id=active_beneficiary_id,
-        )
-
-        # 13. Clear customer cart only upon successful order confirmation
-        db.query(CartItem).filter(CartItem.user_id == customer.id).delete()
-
-        # 12. Commit transaction
+        # 11. Commit transaction
         db.commit()
         db.refresh(order)
         # Touch relationships to ensure loaded in session
         _ = order.order_items
-        _ = order.order_allocation
         _ = order.address
+        _ = order.payment_attempts
 
         logger.info(
             f"Successfully placed order #{order.id} ({order.order_number}) "

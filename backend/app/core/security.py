@@ -37,6 +37,7 @@ def create_access_token(
     role: str,
     phone: str,
     expires_delta: Optional[timedelta] = None,
+    extra_claims: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Generate an HS256 JWT access token for an authenticated user.
 
@@ -47,6 +48,7 @@ def create_access_token(
       - type: 'access'
       - iat: issued-at timestamp (UTC)
       - exp: expiration timestamp (UTC)
+      - additional optional claims via extra_claims (e.g. programme, account_status)
     """
     now = datetime.now(timezone.utc)
     if expires_delta is not None:
@@ -62,6 +64,8 @@ def create_access_token(
         "iat": now,
         "exp": expire,
     }
+    if extra_claims:
+        payload.update(extra_claims)
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

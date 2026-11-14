@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 
@@ -16,22 +17,42 @@ from app.api import (
     cart,
     customer_auth,
     dashboard,
+    distributor_auth,
     identity,
     orders,
+    payments_simulated,
+    payments_webhook,
     products,
     referrals,
     wallets,
 )
 from app.core.config import settings
 from app.core.database import get_db
+from app.services.fulfilment.scheduler import recovery_scheduler
 
 # Configure logger
 logger = logging.getLogger("shopeasy")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI application lifespan context manager for graceful startup and shutdown."""
+    # Startup: Start fulfilment recovery background scheduler if enabled
+    if settings.FULFILMENT_RECOVERY_ENABLED:
+        logger.info("Starting background fulfilment recovery scheduler...")
+        recovery_scheduler.start()
+    yield
+    # Shutdown: Gracefully stop background scheduler and drain active workers
+    if recovery_scheduler.is_running:
+        logger.info("Gracefully stopping background fulfilment recovery scheduler...")
+        await recovery_scheduler.stop()
+
 
 app = FastAPI(
     title="ShopEasy API",
     description="Backend API for ShopEasy e-commerce application",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Same-origin deployment needs no CORS origins. Cross-origin deployments may
@@ -89,6 +110,7 @@ def health_check_db(db: Session = Depends(get_db)):
 
 # Mount API v1 Authentication & Identity Routers
 app.include_router(customer_auth.router, prefix="/api/v1/auth")
+app.include_router(distributor_auth.router, prefix="/api/v1/auth")
 app.include_router(admin_auth.router, prefix="/api/v1/auth")
 app.include_router(identity.router, prefix="/api/v1/auth")
 
@@ -108,6 +130,14 @@ app.include_router(dashboard.router, prefix="/api/v1")
 
 # Mount API v1 Referral Code Validation Router
 app.include_router(referrals.router, prefix="/api/v1")
+
+# Mount API v1 Payments Routers (WP-5)
+# Webhook router is mounted unconditionally in all environments
+app.include_router(payments_webhook.router, prefix="/api/v1")
+
+# Simulated payment router is mounted strictly outside production when simulation is enabled
+if not settings.is_production and settings.ALLOW_SIMULATED_PAYMENTS:
+    app.include_router(payments_simulated.router, prefix="/api/v1")
 
 # Mount static frontend files after all API routers to prevent route shadowing
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"

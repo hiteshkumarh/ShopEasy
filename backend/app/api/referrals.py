@@ -38,11 +38,13 @@ def validate_referral(
         db=db,
         customer=current_user,
         referral_code=payload.referral_code,
+        target_programme=payload.programme,
     )
 
     return ReferralValidateResponse(
         is_valid=True,
         referral_code=referrer.referral_code,
         referrer_name=referrer.full_name,
+        referrer_programme=referrer.programme,
         message="Valid referral code.",
     )

@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.enums import UserRole
+from app.models.enums import AccountStatus, Programme, UserRole
 
 # Regular expressions for validation
 PHONE_REGEX = r"^\d{10}$"
@@ -39,6 +39,10 @@ class CustomerRegisterRequest(BaseModel):
         max_length=128,
         description="Confirmation of password",
     )
+    programme: Programme = Field(
+        ...,
+        description="Selected programme: PLAN_A or PLAN_B",
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -57,6 +61,13 @@ class CustomerRegisterRequest(BaseModel):
             raise ValueError("Confirm password must match password.")
         return v
 
+    @field_validator("programme")
+    @classmethod
+    def validate_programme(cls, v: Programme) -> Programme:
+        if v not in (Programme.PLAN_A, Programme.PLAN_B):
+            raise ValueError("Programme must be PLAN_A or PLAN_B.")
+        return v
+
 
 class CustomerRegisterResponse(BaseModel):
     """Response returned upon successful customer registration."""
@@ -64,6 +75,8 @@ class CustomerRegisterResponse(BaseModel):
     full_name: str
     phone: str
     role: UserRole = UserRole.CUSTOMER
+    programme: Programme
+    account_status: AccountStatus
     referral_code: str
     is_active: bool = True
     created_at: datetime
@@ -77,6 +90,10 @@ class CustomerOTPRequest(BaseModel):
         ...,
         pattern=PHONE_REGEX,
         description="10-digit customer mobile number",
+    )
+    programme: Optional[Programme] = Field(
+        None,
+        description="Optional portal programme expectation (PLAN_A or PLAN_B)",
     )
 
     model_config = ConfigDict(extra="forbid")
@@ -94,6 +111,10 @@ class CustomerOTPVerifyRequest(BaseModel):
         pattern=OTP_REGEX,
         description="6-digit one-time password",
     )
+    programme: Optional[Programme] = Field(
+        None,
+        description="Optional portal programme expectation (PLAN_A or PLAN_B)",
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -110,6 +131,10 @@ class CustomerPasswordLoginRequest(BaseModel):
         min_length=1,
         max_length=128,
         description="Customer account password",
+    )
+    programme: Optional[Programme] = Field(
+        None,
+        description="Optional portal programme expectation (PLAN_A or PLAN_B)",
     )
 
     model_config = ConfigDict(extra="forbid")
@@ -221,6 +246,8 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: UserRole
+    programme: Optional[Programme] = None
+    account_status: Optional[AccountStatus] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -245,6 +272,8 @@ class AuthUserResponse(BaseModel):
     full_name: str
     phone: str
     role: UserRole
+    programme: Programme
+    account_status: AccountStatus
     referral_code: Optional[str] = None
     is_active: bool
 

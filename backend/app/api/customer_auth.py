@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token, hash_password, verify_password
-from app.models.enums import OTPPurpose, UserRole, WalletType
+from app.models.enums import AccountStatus, OTPPurpose, Programme, UserRole, WalletType
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.auth import (
@@ -66,7 +66,14 @@ def register_customer(
             detail=str(exc),
         )
 
-    # Check phone uniqueness
+    # Programme validation for customer portal (Plan A only)
+    if payload.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Customer portal registration is strictly for Plan A. Plan B distributors must register via the distributor portal.",
+        )
+
+    # Check phone uniqueness across all users
     existing_user = db.query(User.id).filter(User.phone == clean_phone).first()
     if existing_user:
         raise HTTPException(
@@ -74,9 +81,9 @@ def register_customer(
             detail="A user with this mobile number already exists.",
         )
 
-    # Generate collision-checked unique referral code
+    # Generate collision-checked unique referral code with programme prefix
     try:
-        referral_code = generate_referral_code(db)
+        referral_code = generate_referral_code(db, programme=payload.programme)
     except RuntimeError as exc:
         logger.error(f"Referral code generation failed: {exc}")
         raise HTTPException(
@@ -92,6 +99,8 @@ def register_customer(
             phone=clean_phone,
             password_hash=hashed_pwd,
             role=UserRole.CUSTOMER,
+            programme=payload.programme,
+            account_status=AccountStatus.ACTIVE,
             referral_code=referral_code,
             referred_by_id=None,
             is_active=True,
@@ -173,7 +182,14 @@ def request_customer_login_otp(
             detail="Customer account not found. Please register first.",
         )
 
-    if not customer.is_active:
+    # Separate Plan B login -> RG-12: Plan A credentials cannot log into Plan B portal and vice versa
+    if customer.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials for Plan A customer portal. Plan B distributors must log in via the distributor portal.",
+        )
+
+    if customer.account_status == AccountStatus.DEACTIVATED or not customer.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Customer account is deactivated.",
@@ -238,7 +254,14 @@ def login_customer_via_otp(
             detail="Invalid credentials.",
         )
 
-    if not customer.is_active:
+    # Separate Plan B login -> RG-12
+    if customer.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials for Plan A customer portal. Plan B distributors must log in via the distributor portal.",
+        )
+
+    if customer.account_status == AccountStatus.DEACTIVATED or not customer.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Customer account is deactivated.",
@@ -267,6 +290,10 @@ def login_customer_via_otp(
         user_id=customer.id,
         role=customer.role.value,
         phone=customer.phone,
+        extra_claims={
+            "programme": customer.programme.value,
+            "account_status": customer.account_status.value,
+        },
     )
 
     logger.info(f"Customer logged in via OTP (ID: {customer.id}, Phone: {_mask_phone(clean_phone)}).")
@@ -274,6 +301,8 @@ def login_customer_via_otp(
         access_token=access_token,
         token_type="bearer",
         role=customer.role,
+        programme=customer.programme,
+        account_status=customer.account_status,
     )
 
 
@@ -314,7 +343,14 @@ def login_customer_via_password(
             detail="Invalid mobile number or password.",
         )
 
-    if not customer.is_active:
+    # Separate Plan B login -> RG-12
+    if customer.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials for Plan A customer portal. Plan B distributors must log in via the distributor portal.",
+        )
+
+    if customer.account_status == AccountStatus.DEACTIVATED or not customer.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Customer account is deactivated.",
@@ -336,6 +372,10 @@ def login_customer_via_password(
         user_id=customer.id,
         role=customer.role.value,
         phone=customer.phone,
+        extra_claims={
+            "programme": customer.programme.value,
+            "account_status": customer.account_status.value,
+        },
     )
 
     logger.info(f"Customer logged in via password (ID: {customer.id}, Phone: {_mask_phone(clean_phone)}).")
@@ -343,6 +383,8 @@ def login_customer_via_password(
         access_token=access_token,
         token_type="bearer",
         role=customer.role,
+        programme=customer.programme,
+        account_status=customer.account_status,
     )
 
 
@@ -376,7 +418,13 @@ def request_password_reset_otp(
             detail="Customer account not found.",
         )
 
-    if not customer.is_active:
+    if customer.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials for Plan A customer portal.",
+        )
+
+    if customer.account_status == AccountStatus.DEACTIVATED or not customer.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Customer account is deactivated.",
@@ -439,7 +487,13 @@ def confirm_password_reset(
             detail="Customer account not found.",
         )
 
-    if not customer.is_active:
+    if customer.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials for Plan A customer portal.",
+        )
+
+    if customer.account_status == AccountStatus.DEACTIVATED or not customer.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Customer account is deactivated.",

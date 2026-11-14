@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
-from app.models.enums import UserRole
+from app.models.enums import AccountStatus, UserRole
 from app.models.user import User
 
 logger = logging.getLogger("shopeasy.auth")
@@ -91,7 +91,7 @@ def get_current_user(
             headers=AUTH_HEADER,
         )
 
-    if not user.is_active:
+    if user.account_status == AccountStatus.DEACTIVATED or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account is deactivated.",
