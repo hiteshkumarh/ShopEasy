@@ -144,7 +144,7 @@ Power Bank detection uses `is_power_bank OR product_code == 'PB-3999' OR 'power 
 ## 7. Referral, wallet & withdrawal (as found)
 
 - Referral codes: `REF` + 6 random chars, uniqueness checked with retry; permanent. Self-referral blocked; admin codes rejected; inactive referrers rejected.
-- **Referral is bound at checkout**, matching Plan B §4.3 but **not** Plan A §4.1 (registration).
+- **Referral is bound at checkout**, matching the confirmed business rule for both Plan A and Plan B (the business owner confirmed checkout-time referral entry supersedes the Plan A §4.1 registration-time description). However, referral relationships are currently only stored in `users.referred_by_id` without persisting to the authoritative `referral_relationships` table or capturing programme snapshots.
 - Two wallets per user: `direct_referral`, `sequential_commission`; credits via `credit_wallet()` with idempotency key and row lock — a sound pattern to reuse.
 - Withdrawal: full balance only; direct-referral wallet needs ≥ ₹750; sequential wallet needs a 16/16 cycle; **executed instantly as COMPLETED** — no request, approval, payout or reconciliation state.
 
@@ -222,7 +222,7 @@ Conflicts: admin can **edit product price and delete products** — Plan B §7.2
 | Admin login with MFA | Fully implemented, **not tested** |
 | Unique phone | Implemented globally — PRD needs uniqueness *across* programmes (same phone cannot join both) → compatible |
 | Permanent referral codes | Implemented, untested |
-| Referral binding | Existing but defective for Plan A (checkout instead of registration); matches Plan B timing |
+| Referral binding | Partially implemented at checkout (timing matches confirmed rule for both programmes; defective in persistence and direction validation) |
 | Product catalogue / admin CRUD | Partially implemented; defective vs fixed-product rule |
 | Cart / checkout / orders | Partially implemented (simulated payment fused into checkout) |
 | Billing IDs | Not implemented |

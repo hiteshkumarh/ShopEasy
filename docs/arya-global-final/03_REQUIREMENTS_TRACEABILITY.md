@@ -31,14 +31,14 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | RG-01 | B §2.1 p.24 | Select programme before account creation, with explanation | A+B | P0 | NONE | auth, frontend | T-RG-01 | Registration fails without programme | — |
 | RG-02 | B §2.2–2.3 | Same mobile cannot register in both; programme permanent; admin cannot change | A+B | P0 | PART | users | T-RG-02 | Second registration with same phone (any programme) → 409; no programme-change API | R-04 |
 | RG-03 | A §4.1(2), B §4.1 | Unique permanent referral code generated on account creation | A+B | P0 | PART | referrals | T-RG-03 | Code non-editable; collision retry tested | — |
-| RG-04 | A §4.1(1) | Plan A can register without referral | A | P0 | FIT* | auth | T-RG-04 | 201 with no code | — |
-| RG-05 | A §4.1(5) | Invalid code → "Invalid Referral" | A | P0 | DEFECT | referrals | T-RG-05 | Exact message | — |
-| RG-06 | A §4.1(7–8) | No referrer change; no self-referral | A | P0 | PART | referrals | T-RG-06 | Attempts rejected; DB unique per referee | — |
+| RG-04 | A §4.1(1), B §4.3 | Both programmes register without referral code | A+B | P0 | FIT* | auth | T-RG-04 | 201 with no referral code on registration for both Plan A and Plan B | — |
+| RG-05 | A §4.1(5) | Invalid Plan A code → "Invalid Referral" | A | P0 | DEFECT | referrals | T-RG-05 | Exact message "Invalid Referral" returned on invalid code | — |
+| RG-06 | A §4.1(7–8), B §4.4 | No referrer change; no self-referral | A+B | P0 | PART | referrals | T-RG-06 | Relationship permanent once bound on successful order; attempts to change rejected; self-referral rejected; DB unique constraint per referee | — |
 | RG-07 | A §4.1(9–10) | Inactive (no purchase) Plan A customer's code rejected | A | P0 | PART | referrals | T-RG-07 | Code of customer with 0 paid Billing IDs rejected | — |
 | RG-08 | B §4.2 p.26 | Allowed: A→A, B→A. Forbidden: A→B, B→B | A+B | P0 | NONE | referrals | T-RG-08 | Matrix of 4 directions tested | — |
-| RG-09 | A §4.1 vs B §4.3 | Referral binding timing & single-referrer rule | A+B | P0 | BLOCKED | referrals | T-RG-09 | Per confirmed rule | **BR-X1** |
-| RG-10 | B §4.3 p.26 | Checkout validation; "Wrong Referral ID"; show distributor name; confirm | B→A | P0 | PART | referrals, checkout | T-RG-10 | Preview returns name only (no PII beyond name) | BR-X1 |
-| RG-11 | B §4.4 | Relationship permanent after successful order | A+B | P0 | PART | referrals | T-RG-11 | No update path; audit row on creation | — |
+| RG-09 | Confirmed decision | Referral code entered during checkout for both programmes; bound on successful order | A+B | P0 | PART | referrals, checkout | T-RG-09 | Code entered at checkout for Plan A and Plan B; validated per programme rules; bound only after successful order placement; single referrer per referee | BR-X1 |
+| RG-10 | B §4.3 p.26 | Plan B checkout validation: "Wrong Referral ID", distributor name preview, confirmation | B→A | P0 | PART | referrals, checkout | T-RG-10 | Preview returns distributor name only (no other PII); confirmed before order; "Wrong Referral ID" on invalid | — |
+| RG-11 | B §4.4 | Relationship permanent after successful order | A+B | P0 | PART | referrals, checkout | T-RG-11 | Saved to referral_relationships only after successful order; no update path; audit row on creation | — |
 | RG-12 | B §3.3 | Separate Plan B login → distributor dashboard | B | P1 | NONE | auth, frontend | T-RG-12 | Plan A credentials cannot log into Plan B portal and vice versa | — |
 | RG-13 | B §3.1 | Registration fields: name, mobile, email, password ×2, address | A+B | P1 | PART | auth | T-RG-13 | Validation tests | OP-04 |
 | RG-14 | B §11.1 | Blocked distributor: login & view yes; refer/earn no | B | P0 | DEFECT | users | T-RG-14 | Blocked code rejected; login 200 | — |

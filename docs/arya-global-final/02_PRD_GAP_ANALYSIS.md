@@ -25,11 +25,11 @@ No existing feature is FIT: the repository has no automated tests.
 
 | Capability | PRD ref | Status | Gap |
 |---|---|---|---|
-| Register without referral code | A §4.1(1) | FIT-untested | — |
+| Register without referral code | A §4.1(1), B §4.3 | FIT-untested | Customers and distributors in both programmes register without entering referral codes |
 | Permanent unique referral code | A §4.1(2,6), B §4.1 | PART | Exists; needs per-programme prefix (e.g. `PA…`/`PB…`), copy button, tests |
-| "Invalid Referral" (Plan A) / "Wrong Referral ID" (Plan B) messages | A §4.1(5), B §4.3 | DEFECT | Generic messages today |
-| Plan A referral at registration | A §4.1 | DEFECT/BLOCKED | Bound at checkout today; final timing BR-X1 |
-| Plan B code validated at checkout, show distributor name, confirm | B §4.3, §8.1 | PART/BLOCKED | Checkout validation exists; no name preview; BR-X1 |
+| "Invalid Referral" (Plan A) / "Wrong Referral ID" (Plan B) messages | A §4.1(5), B §4.3 | DEFECT | Generic messages today; must display exact programme-specific error messages |
+| Referral entry at checkout (both Plan A and Plan B) | A §4.1, B §4.3 | PART | Confirmed business rule: entered during checkout for both programmes (supersedes Plan A §4.1 registration timing); bound only after successful order; repeat-order question open (BR-X1) |
+| Plan B code validated at checkout, show distributor name, confirm | B §4.3, §8.1 | PART | Checkout validation exists; distributor name preview (no other PII) and customer confirmation to implement |
 | Allowed directions A→A, B→A only | B §4.2 | NONE | Direction check in referral service |
 | Inactive Plan A referrer rejected | A §4.1(9–10) | PART | "Active" today = account active, not "has purchased" |
 | Self-referral incl. other account/phone | A §4.1(8) | PART | Same-account blocked; cross-account detection needs a rule (same phone impossible; other heuristics undefined) |
