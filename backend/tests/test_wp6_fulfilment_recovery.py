@@ -539,7 +539,12 @@ class TestFulfilmentRecoveryWorker:
             assert db_order.is_fulfilled is True
             # Exactly 2 Billing IDs created (for quantity 2)
             assert verify_db.query(BillingId).filter_by(order_id=order_id).count() == 2
-            assert verify_db.query(BillingEngineClaim).count() == 2
+            assert (
+                verify_db.query(BillingEngineClaim)
+                .join(BillingId, BillingEngineClaim.billing_id == BillingId.id)
+                .filter(BillingId.order_id == order_id)
+                .count()
+            ) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -713,4 +718,9 @@ def test_mysql_concurrent_recovery_workers():
         db_order = verify_session.query(Order).filter_by(id=order_id).first()
         assert db_order.is_fulfilled is True
         assert verify_session.query(BillingId).filter_by(order_id=order_id).count() == 2
-        assert verify_session.query(BillingEngineClaim).count() == 2
+        assert (
+            verify_session.query(BillingEngineClaim)
+            .join(BillingId, BillingEngineClaim.billing_id == BillingId.id)
+            .filter(BillingId.order_id == order_id)
+            .count()
+        ) == 2
