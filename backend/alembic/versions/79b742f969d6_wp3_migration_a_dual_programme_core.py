@@ -197,29 +197,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Revert WP-3 Migration A additive schema changes."""
-    # 1. Drop notifications table and indexes
-    op.drop_index('idx_notifications_user_prog', table_name='notifications')
-    op.drop_index('idx_notifications_user_read', table_name='notifications')
+    # 1. Drop child tables in reverse foreign-key dependency order
+    # (Dropping each table automatically drops its indexes and constraints)
     op.drop_table('notifications')
-
-    # 2. Drop audit_logs table and indexes
-    op.drop_index('idx_audit_logs_created', table_name='audit_logs')
-    op.drop_index('idx_audit_logs_action', table_name='audit_logs')
-    op.drop_index('idx_audit_logs_actor', table_name='audit_logs')
-    op.drop_index('idx_audit_logs_entity', table_name='audit_logs')
     op.drop_table('audit_logs')
-
-    # 3. Drop referral_relationships table and indexes
-    op.drop_index('idx_ref_rel_code', table_name='referral_relationships')
-    op.drop_index('idx_ref_rel_referrer', table_name='referral_relationships')
     op.drop_table('referral_relationships')
-
-    # 4. Drop account_status_history table and indexes
-    op.drop_index('idx_account_status_hist_changed_by', table_name='account_status_history')
-    op.drop_index('idx_account_status_hist_user', table_name='account_status_history')
     op.drop_table('account_status_history')
 
-    # 5. Drop indexes and columns from users table
+    # 2. Drop indexes and columns from users table
     op.drop_index('idx_users_prog_role', table_name='users')
     op.drop_index('idx_users_account_status', table_name='users')
     op.drop_index('idx_users_programme', table_name='users')
