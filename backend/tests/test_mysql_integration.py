@@ -205,3 +205,113 @@ def test_mysql_financial_settings_service_lifecycle_and_history(mysql_db_session
     assert len(history) == 2
     assert history[0].action == SettingAction.UPDATED
     assert history[1].action == SettingAction.CREATED
+
+
+@pytest.mark.mysql
+def test_mysql_seed_financial_settings_and_idempotency(mysql_db_session: Session) -> None:
+    """Verify seed_financial_settings runs idempotently against real MySQL 8."""
+    from app.services.financial_settings import seed_financial_settings
+    from app.models.financial_settings import FinancialSetting, FinancialSettingHistory
+
+    # Initial seeding on MySQL 8
+    res1 = seed_financial_settings(mysql_db_session)
+    mysql_db_session.commit()
+    assert res1["action"] == "created"
+    assert res1["created_count"] == 14
+    assert res1["skipped_count"] == 0
+
+    count_settings_1 = mysql_db_session.query(FinancialSetting).count()
+    count_history_1 = mysql_db_session.query(FinancialSettingHistory).count()
+    assert count_settings_1 >= 14
+    assert count_history_1 >= 14
+
+    # Second execution must be strictly idempotent
+    res2 = seed_financial_settings(mysql_db_session)
+    mysql_db_session.commit()
+    assert res2["action"] == "skipped"
+    assert res2["created_count"] == 0
+    assert res2["skipped_count"] == 14
+
+    count_settings_2 = mysql_db_session.query(FinancialSetting).count()
+    count_history_2 = mysql_db_session.query(FinancialSettingHistory).count()
+    assert count_settings_2 == count_settings_1
+    assert count_history_2 == count_history_1
+
+
+@pytest.mark.mysql
+def test_mysql_pa24_allocation_and_commission_split(mysql_db_session: Session) -> None:
+    """Verify PA-24 allocation reconciliation and commission split calculations against MySQL 8."""
+    from datetime import datetime
+    from app.core.money import Money, calculate_commission_split
+    from app.models.enums import Programme
+    from app.services.financial_settings import (
+        SettingKey,
+        resolve_setting,
+        seed_financial_settings,
+    )
+
+    seed_financial_settings(mysql_db_session)
+    mysql_db_session.commit()
+
+    t_txn = datetime(2026, 1, 15, 0, 0, 0)
+
+    # 1. PA-24 Unit Allocation Reconciliation on MySQL 8
+    m_import = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.ALLOC_PRODUCT_IMPORT, t_txn).as_money()
+    m_gst = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.ALLOC_GST_RESERVE, t_txn).as_money()
+    m_courier = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.ALLOC_PACKING_COURIER, t_txn).as_money()
+    m_cashback = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.CASHBACK_PER_UNIT, t_txn).as_money()
+    m_comm = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.COMMISSION_GROSS, t_txn).as_money()
+    m_gift = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.ALLOC_GIFT_FUND, t_txn).as_money()
+    m_staff = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.ALLOC_OFFICE_STAFF, t_txn).as_money()
+
+    seven_allocations = [m_import, m_gst, m_courier, m_cashback, m_comm, m_gift, m_staff]
+    total_alloc = sum(seven_allocations, Money("0.00", "INR"))
+    assert total_alloc == Money("3300.00", "INR")
+
+    product_price = Money("3999.00", "INR")
+    residual_company_balance = product_price - total_alloc
+    assert residual_company_balance == Money("699.00", "INR")
+    assert total_alloc + residual_company_balance == product_price
+    assert residual_company_balance not in seven_allocations
+
+    # 2. Plan A Commission Split on MySQL 8: 750 -> 35 / 15 / 700
+    s_gross = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.COMMISSION_GROSS, t_txn)
+    s_op = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.OP_COST_RATE, t_txn)
+    s_tds = resolve_setting(mysql_db_session, Programme.PLAN_A, SettingKey.TDS_RATE, t_txn)
+
+    pa_split = calculate_commission_split(
+        gross=s_gross.as_money(),
+        op_cost_rate=s_op.as_rate(),
+        tds_rate=s_tds.as_rate(),
+    )
+    assert pa_split.gross == Money("750.00", "INR")
+    assert pa_split.op_cost == Money("35.00", "INR")
+    assert pa_split.tds == Money("15.00", "INR")
+    assert pa_split.net == Money("700.00", "INR")
+    assert pa_split.gross == pa_split.op_cost + pa_split.tds + pa_split.net
+
+    # 3. Plan B Commission Split on MySQL 8: 500 -> 0 / 0 / 500, 50 -> 0 / 0 / 50
+    pb_direct = resolve_setting(mysql_db_session, Programme.PLAN_B, SettingKey.DIRECT_COMMISSION_GROSS, t_txn)
+    pb_gen = resolve_setting(mysql_db_session, Programme.PLAN_B, SettingKey.GENERATION_COMMISSION_GROSS, t_txn)
+    pb_op = resolve_setting(mysql_db_session, Programme.PLAN_B, SettingKey.OP_COST_RATE, t_txn)
+    pb_tds = resolve_setting(mysql_db_session, Programme.PLAN_B, SettingKey.TDS_RATE, t_txn)
+
+    pb_direct_split = calculate_commission_split(
+        gross=pb_direct.as_money(),
+        op_cost_rate=pb_op.as_rate(),
+        tds_rate=pb_tds.as_rate(),
+    )
+    assert pb_direct_split.gross == Money("500.00", "INR")
+    assert pb_direct_split.op_cost == Money("0.00", "INR")
+    assert pb_direct_split.tds == Money("0.00", "INR")
+    assert pb_direct_split.net == Money("500.00", "INR")
+
+    pb_gen_split = calculate_commission_split(
+        gross=pb_gen.as_money(),
+        op_cost_rate=pb_op.as_rate(),
+        tds_rate=pb_tds.as_rate(),
+    )
+    assert pb_gen_split.gross == Money("50.00", "INR")
+    assert pb_gen_split.op_cost == Money("0.00", "INR")
+    assert pb_gen_split.tds == Money("0.00", "INR")
+    assert pb_gen_split.net == Money("50.00", "INR")

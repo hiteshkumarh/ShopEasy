@@ -382,8 +382,10 @@ def calculate_commission_split(
         raise ValueError(f"Gross commission cannot be negative: {gross_money.amount}")
 
     # Gross commission must have at most two decimal places (no fractional paise).
-    # Do not silently round an invalid gross amount.
-    if (gross_money.amount * Decimal("100")) % Decimal("1") != Decimal("0") or gross_money.amount.as_tuple().exponent < -2:
+    # Do not silently round an invalid gross amount with non-zero fractional paise (e.g. 750.005).
+    # Quantities with trailing decimal zeros from database NUMERIC(18, 6) (e.g. 750.000000)
+    # have zero fractional paise and normalize cleanly to paise scale.
+    if (gross_money.amount * Decimal("100")) % Decimal("1") != Decimal("0"):
         raise ValueError(
             f"Gross commission must have at most two decimal places (no fractional paise): {gross_money.amount}"
         )

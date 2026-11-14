@@ -4,20 +4,25 @@ from app.services.allocation import calculate_and_create_order_allocation
 from app.services.checkout import execute_checkout
 from app.services.earning_engine import process_order_earnings
 from app.services.financial_settings import (
+    CANONICAL_SETTINGS,
+    CanonicalSettingDefinition,
     FinancialSettingError,
     FinancialSettingsService,
     FinancialSettingValidationError,
     MultipleMatchingSettingsError,
     SettingAlreadyExistsError,
     SettingConcurrencyError,
+    SettingKey,
     SettingNotFoundError,
     create_setting,
     deactivate_setting,
     get_setting,
     get_setting_history,
     get_setting_or_none,
+    has_setting,
     reactivate_setting,
     resolve_setting,
+    seed_financial_settings,
     update_setting,
 )
 from app.services.otp_service import (
@@ -65,7 +70,12 @@ __all__ = [
     "resolve_setting",
     "get_setting",
     "get_setting_or_none",
+    "has_setting",
     "get_setting_history",
+    "seed_financial_settings",
+    "SettingKey",
+    "CanonicalSettingDefinition",
+    "CANONICAL_SETTINGS",
     "FinancialSettingError",
     "SettingNotFoundError",
     "SettingAlreadyExistsError",

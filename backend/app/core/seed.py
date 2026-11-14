@@ -12,6 +12,7 @@ from app.models.enums import UserRole
 from app.models.product import Product
 from app.models.queue import QueueControl
 from app.models.user import User
+from app.services.financial_settings import seed_financial_settings
 
 logger = logging.getLogger("shopeasy.seed")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -189,15 +190,25 @@ def seed_baseline_data(db: Session, include_product: bool = False) -> Dict[str, 
     Provisions:
       1. Initial pre-provisioned administrator account (idempotent).
       2. Singleton QueueControl controller record (idempotent).
-      3. (Optional) Power Bank product only if explicitly requested.
+      3. Canonical baseline financial settings for Plan A and Plan B (idempotent).
+      4. (Optional) Power Bank product only if explicitly requested.
     """
     logger.info("Beginning baseline data seeding transaction...")
     admin_result = seed_admin_user(db)
     qc_result = seed_queue_control(db)
 
+    # Use the admin ID as creator if available
+    admin_id = admin_result.get("id")
+    if admin_id is None:
+        existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        admin_id = existing_admin.id if existing_admin else None
+
+    fin_result = seed_financial_settings(db, created_by_id=admin_id)
+
     results = {
         "admin": admin_result,
         "queue_control": qc_result,
+        "financial_settings": fin_result,
     }
 
     if include_product:

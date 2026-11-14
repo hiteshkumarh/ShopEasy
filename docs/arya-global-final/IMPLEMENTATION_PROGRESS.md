@@ -9,9 +9,9 @@ Branch: `feature/arya-dual-plan-referral-platform` · Last updated: 2026-11-13
 | Stage 1 — Traceability matrix | A+B | `docs/03_REQUIREMENTS_TRACEABILITY.md` | COMPLETE | Test IDs reserved | — |
 | Stage 1 — Roadmap, architecture, test strategy, risks | A+B | `docs/04_IMPLEMENTATION_ROADMAP.md` | COMPLETE | n/a | — |
 | Stage 1 — Business-rule conflict register | A+B | `docs/05_BUSINESS_RULE_DECISIONS.md` | COMPLETE | n/a | 14 client questions outstanding |
-| WP-0 Safe config defaults, lazy engine | A+B | `app/core/config.py`, `app/core/database.py` | NOT_STARTED | — | — |
-| WP-1 Test harness + MySQL CI | A+B | `backend/tests/`, CI | NOT_STARTED | — | Docker daemon / DB needed |
-| WP-2 Money utils & financial settings | A+B | — | NOT_STARTED | — | — |
+| WP-0 Safe config defaults, lazy engine | A+B | `app/core/config.py`, `app/core/database.py` | COMPLETE | 22 unit tests passing | — |
+| WP-1 Test harness + MySQL CI | A+B | `backend/tests/`, CI | COMPLETE | 30 MySQL config + 7 MySQL integration tests in CI | — |
+| WP-2 Money utils & financial settings | A+B | `app/core/money.py`, `app/models/financial_settings.py`, `app/services/financial_settings.py`, `app/core/seed.py` | IN_PROGRESS | 140 unit tests passed locally (35 Money + 10 Models + 24 Service + 8 Integration + 63 Framework); 10 MySQL tests awaiting CI verification (all cleanly skipped locally) | CI MySQL verification required for COMPLETE |
 | WP-3 Additive migration (programme, status, referrals, audit, notifications) | A+B | — | NOT_STARTED | — | OP-11 before running on real data |
 | WP-4 Programme registration & referral rules | A+B | — | NOT_STARTED | — | BR-X1 (binding timing) |
 | WP-5 Payment abstraction | A+B | — | NOT_STARTED | — | — |

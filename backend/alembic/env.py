@@ -10,7 +10,12 @@ from alembic import context
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Import Base, models, and connection helpers so metadata and TLS options are populated
-from app.core.database import Base, DATABASE_URL, get_database_url, get_ssl_connect_args
+from app.core.database import (
+    Base,
+    get_alembic_database_url,
+    get_ssl_connect_args,
+    validate_alembic_database_url,
+)
 import app.models  # noqa: F401 - ensures all 16 models are imported
 
 # this is the Alembic Config object, which provides
@@ -21,12 +26,6 @@ except (AttributeError, NameError):
     config = None
 
 if config is not None:
-    # ConfigParser uses '%' for interpolation. SQLAlchemy URLs can contain
-    # percent-encoded credentials (for example, %40 for '@'), so escape percent
-    # signs only while storing the value in Alembic's ConfigParser. The online
-    # configuration below receives the original URL directly.
-    config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
-
     # Interpret the config file for Python logging.
     if config.config_file_name is not None:
         fileConfig(config.config_file_name)
@@ -186,9 +185,9 @@ def run_migrations_offline() -> None:
     Calls to context.execute() here emit the given string to the
     script output.
     """
-    url = config.get_main_option("sqlalchemy.url") if config else None
+    target_url = get_alembic_database_url(config)
     context.configure(
-        url=url,
+        url=target_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -207,7 +206,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
     """
     configuration = config.get_section(config.config_ini_section, {}) if config else {}
-    target_url = get_database_url()
+    target_url = get_alembic_database_url(config)
     configuration["sqlalchemy.url"] = target_url
 
     ssl_args = get_ssl_connect_args(target_url)

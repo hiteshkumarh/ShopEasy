@@ -22,10 +22,11 @@ Design Safeguards:
      records an immutable FinancialSettingHistory row in the same transaction.
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_DOWN
 import logging
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
@@ -80,6 +81,134 @@ class FinancialSettingValidationError(FinancialSettingError, ValueError):
 class SettingConcurrencyError(FinancialSettingError):
     """Raised when concurrent version collisions exceed the bounded retry limit."""
     pass
+
+
+class SettingKey:
+    """Canonical financial setting keys across programmes."""
+
+    # Plan A commission & cashback
+    COMMISSION_GROSS = "COMMISSION_GROSS"
+    OP_COST_RATE = "OP_COST_RATE"
+    TDS_RATE = "TDS_RATE"
+    CASHBACK_PER_UNIT = "CASHBACK_PER_UNIT"
+    CASHBACK_CYCLE_TARGET = "CASHBACK_CYCLE_TARGET"
+
+    # Plan A PA-24 Unit Allocation expense & reserve components
+    ALLOC_PRODUCT_IMPORT = "ALLOC_PRODUCT_IMPORT"
+    ALLOC_GST_RESERVE = "ALLOC_GST_RESERVE"
+    ALLOC_PACKING_COURIER = "ALLOC_PACKING_COURIER"
+    ALLOC_GIFT_FUND = "ALLOC_GIFT_FUND"
+    ALLOC_OFFICE_STAFF = "ALLOC_OFFICE_STAFF"
+
+    # Plan B commissions & deductions
+    DIRECT_COMMISSION_GROSS = "DIRECT_COMMISSION_GROSS"
+    GENERATION_COMMISSION_GROSS = "GENERATION_COMMISSION_GROSS"
+
+
+@dataclass(frozen=True)
+class CanonicalSettingDefinition:
+    """Immutable specification for a baseline canonical financial setting."""
+
+    programme: Programme
+    setting_key: str
+    setting_value: Decimal
+    currency: str = "INR"
+    description: str = ""
+
+
+CANONICAL_SETTINGS: Tuple[CanonicalSettingDefinition, ...] = (
+    # -----------------------------------------------------------------------
+    # Plan A Canonical Settings (PRD §3, §6, §8, §15, §26)
+    # -----------------------------------------------------------------------
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.COMMISSION_GROSS,
+        setting_value=Decimal("750.000000"),
+        description="Plan A gross referral commission pool per eligible Billing ID",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.OP_COST_RATE,
+        setting_value=Decimal("0.046667"),
+        description="Plan A operational cost deduction rate (4.6667%)",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.TDS_RATE,
+        setting_value=Decimal("0.020000"),
+        description="Plan A Tax Deducted at Source rate (2.0000%)",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.CASHBACK_PER_UNIT,
+        setting_value=Decimal("250.000000"),
+        description="Plan A customer cashback contribution amount per eligible Billing ID",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.CASHBACK_CYCLE_TARGET,
+        setting_value=Decimal("4000.000000"),
+        description="Plan A cashback cycle completion threshold (16 contributions = Rs. 4,000)",
+    ),
+    # Plan A PA-24 Unit Allocation components (PRD A §3)
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.ALLOC_PRODUCT_IMPORT,
+        setting_value=Decimal("1500.000000"),
+        description="Plan A unit cost allocation: Product import cost",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.ALLOC_GST_RESERVE,
+        setting_value=Decimal("400.000000"),
+        description="Plan A unit cost allocation: GST reserve",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.ALLOC_PACKING_COURIER,
+        setting_value=Decimal("150.000000"),
+        description="Plan A unit cost allocation: Packing and courier expense",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.ALLOC_GIFT_FUND,
+        setting_value=Decimal("150.000000"),
+        description="Plan A unit cost allocation: Gift and achievement fund",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_A,
+        setting_key=SettingKey.ALLOC_OFFICE_STAFF,
+        setting_value=Decimal("100.000000"),
+        description="Plan A unit cost allocation: Office and staff expenses",
+    ),
+    # -----------------------------------------------------------------------
+    # Plan B Canonical Settings (PRD B §5, §26; BR-B2 defaults)
+    # -----------------------------------------------------------------------
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_B,
+        setting_key=SettingKey.DIRECT_COMMISSION_GROSS,
+        setting_value=Decimal("500.000000"),
+        description="Plan B direct distributor referral reward on referee first qualifying purchase",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_B,
+        setting_key=SettingKey.GENERATION_COMMISSION_GROSS,
+        setting_value=Decimal("50.000000"),
+        description="Plan B generation commission per eligible Billing ID to direct referring distributor",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_B,
+        setting_key=SettingKey.OP_COST_RATE,
+        setting_value=Decimal("0.000000"),
+        description="Plan B operational cost deduction rate (0.0000% engineering default pending BR-B2)",
+    ),
+    CanonicalSettingDefinition(
+        programme=Programme.PLAN_B,
+        setting_key=SettingKey.TDS_RATE,
+        setting_value=Decimal("0.000000"),
+        description="Plan B Tax Deducted at Source rate (0.0000% engineering default pending BR-B2)",
+    ),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -816,6 +945,105 @@ def get_setting_history(
     return list(db.execute(stmt).scalars().all())
 
 
+def has_setting(
+    db: Session,
+    programme: Union[Programme, str],
+    setting_key: str,
+) -> bool:
+    """Check whether ANY version (active or inactive, current or historical) exists for programme and key."""
+    prog = _validate_programme(programme)
+    key = _validate_setting_key(setting_key)
+    stmt = (
+        select(FinancialSetting.id)
+        .where(
+            FinancialSetting.programme == prog,
+            FinancialSetting.setting_key == key,
+        )
+        .limit(1)
+    )
+    return db.execute(stmt).first() is not None
+
+
+def seed_financial_settings(
+    db: Session,
+    created_by_id: Optional[int] = None,
+    effective_from: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Seed canonical baseline financial settings idempotently within an atomic savepoint.
+
+    Guarantees:
+      - Historical-Version Safety: Checks whether ANY version (active or inactive)
+        exists for each canonical (programme, setting_key) before inserting.
+      - Immutability of Existing State: If any version exists, baseline seeding skips
+        that setting completely. It never overwrites, reactivates, closes, or increments it.
+      - Zero Duplicate History: Repeated seed executions make zero modifications and create
+        zero history entries.
+      - Transactional Atomicity: Uses a savepoint (begin_nested()) so that if an error occurs
+        during seeding, all partial seed writes and history rows are rolled back to the savepoint
+        without rolling back unrelated prior work in the caller's session.
+      - Transaction Ownership: Does NOT commit the caller's transaction; commit ownership
+        belongs entirely to the caller.
+    """
+    eff_from = _normalize_datetime(effective_from) or datetime(2026, 1, 1, 0, 0, 0)
+    created_keys: List[str] = []
+    skipped_keys: List[str] = []
+
+    with db.begin_nested():
+        for canonical in CANONICAL_SETTINGS:
+            prog = canonical.programme
+            key = canonical.setting_key
+
+            if has_setting(db, prog, key):
+                skipped_keys.append(f"{prog.value}:{key}")
+                logger.info(
+                    f"Financial setting '{key}' ({prog.value}) already exists. Skipping baseline seeding."
+                )
+                continue
+
+            setting = FinancialSetting(
+                programme=prog,
+                setting_key=key,
+                setting_value=canonical.setting_value,
+                currency=canonical.currency,
+                description=canonical.description,
+                version=1,
+                effective_from=eff_from,
+                effective_to=None,
+                is_active=True,
+                created_by_id=created_by_id,
+            )
+            db.add(setting)
+            db.flush()
+
+            history = FinancialSettingHistory(
+                setting_id=setting.id,
+                programme=prog,
+                setting_key=key,
+                old_value=None,
+                new_value=canonical.setting_value,
+                version=1,
+                action=SettingAction.CREATED,
+                reason="Initial baseline seed",
+                changed_by_id=created_by_id,
+            )
+            db.add(history)
+            db.flush()
+
+            created_keys.append(f"{prog.value}:{key}")
+            logger.info(
+                f"Seeded canonical financial setting '{key}' ({prog.value}) with value {canonical.setting_value}."
+            )
+
+    action = "created" if created_keys else "skipped"
+    return {
+        "action": action,
+        "created_count": len(created_keys),
+        "skipped_count": len(skipped_keys),
+        "created_keys": created_keys,
+        "skipped_keys": skipped_keys,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Service Class
 # ---------------------------------------------------------------------------
@@ -936,3 +1164,17 @@ class FinancialSettingsService:
         self, programme: Union[Programme, str], setting_key: str
     ) -> List[FinancialSettingHistory]:
         return get_setting_history(self.db, programme, setting_key)
+
+    def has_setting(
+        self, programme: Union[Programme, str], setting_key: str
+    ) -> bool:
+        return has_setting(self.db, programme, setting_key)
+
+    def seed_canonical(
+        self,
+        created_by_id: Optional[int] = None,
+        effective_from: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        return seed_financial_settings(
+            self.db, created_by_id=created_by_id, effective_from=effective_from
+        )
