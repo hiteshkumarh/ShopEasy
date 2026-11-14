@@ -86,6 +86,7 @@ class Order(Base):
         UniqueConstraint("order_number", name="uq_orders_order_number"),
         UniqueConstraint("user_id", "idempotency_key", name="uq_orders_user_idempotency"),
         Index("idx_orders_user_status", "user_id", "order_status"),
+        Index("idx_orders_fulfilment_sweep", "order_status", "payment_status", "is_fulfilled"),
     )
 
     user: Mapped["User"] = relationship("User", back_populates="orders")
