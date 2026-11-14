@@ -8,12 +8,18 @@ from app.models.enums import (
     OTPPurpose,
     OrderStatus,
     PaymentStatus,
+    Programme,
     QueueStatus,
+    SettingAction,
     UserRole,
     WalletReferenceType,
     WalletTransactionType,
     WalletType,
     WithdrawalStatus,
+)
+from app.models.financial_settings import (
+    FinancialSetting,
+    FinancialSettingHistory,
 )
 from app.models.order import Order, OrderAllocation, OrderItem
 from app.models.product import Product
@@ -34,6 +40,8 @@ __all__ = [
     "WalletTransactionType",
     "WalletReferenceType",
     "WithdrawalStatus",
+    "Programme",
+    "SettingAction",
     # Models
     "User",
     "OTP",
@@ -51,4 +59,6 @@ __all__ = [
     "Wallet",
     "WalletTransaction",
     "Withdrawal",
+    "FinancialSetting",
+    "FinancialSettingHistory",
 ]

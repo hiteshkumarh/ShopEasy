@@ -168,7 +168,8 @@ def test_alembic_cart_items_timestamp_migration_linear_and_valid() -> None:
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
     assert len(heads) == 1
-    assert heads[0] == "4bed57dc0ac3"
+    all_revs = [r.revision for r in script.walk_revisions()]
+    assert "4bed57dc0ac3" in all_revs
 
     rev = script.get_revision("4bed57dc0ac3")
     assert rev.down_revision == "c895961fa0f1"

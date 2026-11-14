@@ -75,6 +75,21 @@ class WithdrawalStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class Programme(str, enum.Enum):
+    """Programme classification for dual-programme referral platform."""
+    PLAN_A = "PLAN_A"
+    PLAN_B = "PLAN_B"
+    LEGACY = "LEGACY"
+
+
+class SettingAction(str, enum.Enum):
+    """Audit action types for financial settings history."""
+    CREATED = "CREATED"
+    UPDATED = "UPDATED"
+    DEACTIVATED = "DEACTIVATED"
+    REACTIVATED = "REACTIVATED"
+
+
 from sqlalchemy import Enum as _SAEnum
 
 

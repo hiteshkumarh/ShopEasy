@@ -82,3 +82,74 @@ def test_mysql_foreign_key_enforcement(mysql_db_session: Session) -> None:
     with pytest.raises(IntegrityError):
         mysql_db_session.commit()
     mysql_db_session.rollback()
+
+
+@pytest.mark.mysql
+def test_mysql_financial_settings_version_uniqueness_enforcement(mysql_db_session: Session) -> None:
+    """Verify MySQL 8 strictly enforces UNIQUE(programme, setting_key, version)."""
+    from datetime import datetime
+    from app.models.financial_settings import FinancialSetting
+    from app.models.enums import Programme
+
+    t_now = datetime(2026, 1, 1, 0, 0, 0)
+    s1 = FinancialSetting(
+        programme=Programme.PLAN_A,
+        setting_key="TEST_MYSQL_RATE",
+        setting_value=Decimal("0.050000"),
+        version=1,
+        effective_from=t_now,
+    )
+    mysql_db_session.add(s1)
+    mysql_db_session.commit()
+
+    s2 = FinancialSetting(
+        programme=Programme.PLAN_A,
+        setting_key="TEST_MYSQL_RATE",
+        setting_value=Decimal("0.100000"),
+        version=1,
+        effective_from=t_now,
+    )
+    mysql_db_session.add(s2)
+    with pytest.raises(IntegrityError):
+        mysql_db_session.commit()
+    mysql_db_session.rollback()
+
+
+@pytest.mark.mysql
+def test_mysql_financial_settings_concurrent_unique_constraint(mysql_engine: Engine) -> None:
+    """Verify MySQL 8 rejects concurrent duplicate version 1 inserts across two distinct connections."""
+    from datetime import datetime
+    from sqlalchemy.orm import sessionmaker
+    from app.models.financial_settings import FinancialSetting
+    from app.models.enums import Programme
+
+    SessionLocal = sessionmaker(bind=mysql_engine, autocommit=False, autoflush=False)
+    sess1 = SessionLocal()
+    sess2 = SessionLocal()
+    t_now = datetime(2026, 1, 1, 0, 0, 0)
+
+    try:
+        s1 = FinancialSetting(
+            programme=Programme.PLAN_B,
+            setting_key="CONCURRENT_KEY",
+            setting_value=Decimal("100.000000"),
+            version=1,
+            effective_from=t_now,
+        )
+        s2 = FinancialSetting(
+            programme=Programme.PLAN_B,
+            setting_key="CONCURRENT_KEY",
+            setting_value=Decimal("200.000000"),
+            version=1,
+            effective_from=t_now,
+        )
+        sess1.add(s1)
+        sess2.add(s2)
+
+        sess1.commit()
+        with pytest.raises(IntegrityError):
+            sess2.commit()
+        sess2.rollback()
+    finally:
+        sess1.close()
+        sess2.close()
