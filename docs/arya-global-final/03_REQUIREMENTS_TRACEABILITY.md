@@ -11,7 +11,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | CM-01 | §26.1 p.51 | One site, one admin system, both programmes, separate records | A+B | P0 | NONE | programmes, all | T-CM-01 | Every financial record carries programme; cross-programme queries isolated | R-01 |
 | CM-02 | B §19.3 p.44 | Programme identifier on every relevant record; engines validate programme | A+B | P0 | NONE | db, commissions | T-CM-02 | Engine rejects Billing ID whose programme ≠ engine | — |
 | CM-03 | A §15.1, B §20 | Decimal-safe money, no floats | A+B | P0 | PART | core/money | T-CM-03 | Static check: no `float` in money paths; rounding unit tests | ED-01 |
-| CM-04 | A §3 p.3 | Deduction rates editable, full-precision, round once to paise | A(+B?) | P0 | NONE | financial_settings | T-CM-04 | Rate change affects only future rows; old rows unchanged | ED-02, BR-B2 |
+| CM-04 | A §3 p.3 | Deduction rates editable, full-precision, round once to paise | A+B | P0 | NONE | financial_settings | T-CM-04 | Rate change affects only future rows; old rows unchanged; Plan B adopts same rates (4.6667 % op cost, 2.0 % TDS per BR-B2) | ED-02 |
 | CM-05 | A §14, B §20.2 | Permanent audit trail for admin and financial status changes | A+B | P0 | NONE | audit | T-CM-05 | Each admin mutation writes one audit row; no delete API | — |
 | CM-06 | A §14 | Never silently delete/overwrite financial history | A+B | P0 | PART | ledgers | T-CM-06 | No UPDATE/DELETE path on ledger tables (service + tests) | ED-06 |
 | CM-07 | A §16, B §20.1 | Idempotency keys / unique refs on all financial ops | A+B | P0 | PART | all engines | T-CM-07 | Replay of any event creates zero new rows | ED-03 |
@@ -107,7 +107,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | PB-08 | B §9.2 | Admin cannot add/deduct wallet money | B | P0 | NONE | admin | T-PB-08 | No endpoint; attempt → 404/405 | — |
 | PB-09 | B §10.1–10.2 | First withdrawal ≥ ₹750; afterwards no minimum | B | P0 | NONE | withdrawals | T-PB-09 | 500/700/749 rejected, 750/1200 accepted; second at ₹50 accepted | — |
 | PB-10 | B §10.3 | Full available balance only | B | P0 | NONE | withdrawals | T-PB-10 | Partial amount rejected | — |
-| PB-11 | B §10.4–10.5 | Auto-processing for eligible active unfrozen; receipt with txn id/time/updated balance | B | P0 | NONE | withdrawals, payouts | T-PB-11 | Request→reserved→(sandbox) paid; receipt fields | BR-B2 |
+| PB-11 | B §10.4–10.5 | Auto-processing for eligible active unfrozen; receipt with txn id/time/updated balance | B | P0 | NONE | withdrawals, payouts | T-PB-11 | Request→reserved→(sandbox) paid; receipt fields; rates confirmed per BR-B2 | — |
 | PB-12 | B §11.2 | Blocked distributor: request only; admin review; approve/reject; money stays on reject; admin notified | B | P0 | NONE | withdrawals | T-PB-12 | State-machine tests | — |
 | PB-13 | B §11.3 | Reactivation; account status history | B | P1 | NONE | users | T-PB-13 | History row per change | — |
 | PB-14 | B §12 | Freeze/unfreeze with reason; visible to distributor; commissions still accrue; no withdrawals; unfreeze notification; history | B | P0 | NONE | wallets | T-PB-14 | Frozen → withdraw 409; commission credited | — |
@@ -118,7 +118,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | PB-19 | B §14.7–14.8 | Payout summary; Billing ID commission inspection | B | P1 | NONE | admin | T-PB-19 | — | — |
 | PB-20 | B §15 | Excel reports (purchase, commission, individual) with filters | B | P1 | NONE | reports | T-PB-20 | Totals reconcile with ledger | — |
 | PB-21 | B §16.1 | Do NOT send listed notifications | B | P1 | NONE | notifications | T-PB-21 | Negative assertions | R-10 |
-| PB-22 | B §5.x, §3 | Plan B deductions | B | P0 | BLOCKED | commissions | T-PB-22 | Per BR-B2 | **BR-B2** |
+| PB-22 | B §5.x, §3 | Plan B deductions | B | P0 | NONE | commissions | T-PB-22 | Per BR-B2: Op Cost 4.6667 %, TDS 2.0 %; ₹500 gross → 23.34 / 10.00 / 466.66; ₹50 gross → 2.34/2.33 / 1.00 / 46.66/46.67; 5-unit sample totals ₹750 → 35 / 15 / 700 | — |
 
 ## Admin common (AD)
 

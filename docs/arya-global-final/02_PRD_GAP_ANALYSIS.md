@@ -76,8 +76,8 @@ No existing feature is FIT: the repository has no automated tests.
 
 | Capability | PRD ref | Status | Gap |
 |---|---|---|---|
-| ₹500 once per referred customer after first qualifying purchase | B §5.2, §26.3 | NONE | Confirmed per BR-B1 Option A: payable on first qualifying purchase that establishes relationship (even if on later order; non-retroactive) |
-| ₹50 per eligible Billing ID to direct distributor | B §5.3 | NONE | |
+| ₹500 once per referred customer after first qualifying purchase | B §5.2, §26.3 | NONE | Confirmed per BR-B1 Option A: payable on first qualifying purchase that establishes relationship (even if on later order; non-retroactive); deductions confirmed per BR-B2 (₹500 gross, ₹23.34 op cost, ₹10.00 TDS, ₹466.66 net) |
+| ₹50 per eligible Billing ID to direct distributor | B §5.3 | NONE | Payable to direct distributor only (no upline); deductions confirmed per BR-B2 (₹50 gross, ₹2.34/₹2.33 op cost, ₹1.00 TDS, ₹46.66/₹46.67 net) |
 | Commission record fields | B §6.3 | NONE | |
 | Distributor wallet (earned/direct/generation/withdrawn/available) | B §9 | NONE | |
 | No admin manual credit/debit | B §9.2 | NONE | Enforce by absence of API + tests |
