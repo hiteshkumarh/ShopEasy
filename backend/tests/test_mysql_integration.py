@@ -153,3 +153,55 @@ def test_mysql_financial_settings_concurrent_unique_constraint(mysql_engine: Eng
     finally:
         sess1.close()
         sess2.close()
+
+
+@pytest.mark.mysql
+def test_mysql_financial_settings_service_lifecycle_and_history(mysql_db_session: Session) -> None:
+    """Verify FinancialSettingsService creates settings and audit history on MySQL 8."""
+    from app.services.financial_settings import (
+        create_setting,
+        update_setting,
+        resolve_setting,
+        get_setting_history,
+    )
+    from app.models.enums import Programme, SettingAction
+    from datetime import datetime
+
+    t_v1 = datetime(2026, 1, 1, 0, 0, 0)
+    t_v2 = datetime(2026, 2, 1, 0, 0, 0)
+
+    s1 = create_setting(
+        db=mysql_db_session,
+        programme=Programme.PLAN_A,
+        setting_key="MYSQL_SERVICE_TEST",
+        setting_value=Decimal("750.000000"),
+        effective_from=t_v1,
+    )
+    assert s1.version == 1
+
+    s2 = update_setting(
+        db=mysql_db_session,
+        programme=Programme.PLAN_A,
+        setting_key="MYSQL_SERVICE_TEST",
+        new_value=Decimal("800.000000"),
+        effective_from=t_v2,
+    )
+    assert s2.version == 2
+
+    # Historical resolution
+    past_resolved = resolve_setting(
+        mysql_db_session, Programme.PLAN_A, "MYSQL_SERVICE_TEST", datetime(2026, 1, 15, 0, 0, 0)
+    )
+    assert past_resolved.version == 1
+    assert past_resolved.setting_value == Decimal("750.000000")
+
+    curr_resolved = resolve_setting(
+        mysql_db_session, Programme.PLAN_A, "MYSQL_SERVICE_TEST", datetime(2026, 2, 15, 0, 0, 0)
+    )
+    assert curr_resolved.version == 2
+    assert curr_resolved.setting_value == Decimal("800.000000")
+
+    history = get_setting_history(mysql_db_session, Programme.PLAN_A, "MYSQL_SERVICE_TEST")
+    assert len(history) == 2
+    assert history[0].action == SettingAction.UPDATED
+    assert history[1].action == SettingAction.CREATED
