@@ -32,6 +32,7 @@ No existing feature is FIT: the repository has no automated tests.
 | Plan B code validated at checkout, show distributor name, confirm | B §4.3, §8.1 | PART | Checkout validation exists; distributor name preview (no other PII) and customer confirmation to implement |
 | Allowed directions A→A, B→A only | B §4.2 | NONE | Direction check in referral service |
 | Inactive Plan A referrer rejected | A §4.1(9–10) | PART | "Active" today = account active, not "has purchased" |
+| Inactive Plan B distributor referrer rejected | B §4.3, BR-X2 | NONE | Confirmed per BR-X2 Option A: distributor must successfully complete a product purchase before their referral code is eligible |
 | Self-referral incl. other account/phone | A §4.1(8) | PART | Same-account blocked; cross-account detection needs a rule (same phone impossible; other heuristics undefined) |
 | No referral change by customer/admin | A §4.2, B §4.4 | PART | No API exists to change; add DB/service immutability + tests |
 | Separate login per programme, programme dashboards | B §2.2(4–5), §3.3 | NONE | Programme-aware login & routing |

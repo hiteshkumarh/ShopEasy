@@ -186,7 +186,7 @@ flowchart TD
 | WP-5 | Payment abstraction, payment events, simulated provider guard | WP-3 | — | |
 | WP-6 | Billing ID allocator + fulfilment orchestrator + recovery worker | WP-5 | — | Concurrency tests |
 | WP-7 | Plan A commission engine | WP-6, WP-2 | — | ₹700 × N tests |
-| WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | BR-B2, BR-X2 | ₹500/₹50 tests |
+| WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | BR-B2 | ₹500/₹50 tests |
 | WP-9 | Wallet ledger + withdrawal state machines + sandbox payouts | WP-7, WP-8 | BR-A6, BR-B2 (enablement) | |
 | WP-10 | Plan A cashback: queues/cycles/contributions/policy interfaces, bulbs API | WP-6 | **BR-A1..A5** for production | Sample-policy tests only |
 | WP-11 | Admin APIs + reports (xlsx/pdf) + notifications | WP-9, WP-10 | — | |
@@ -230,7 +230,7 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 ## 9. Approval gates (work stops here until the client confirms)
 
 1. BR-A1..A5, BR-A7 → before cashback contributions are credited to anyone.
-2. BR-X2, BR-B2 → before Plan B commission rules are finalized for production.
+2. BR-B2 → before Plan B commission rules are finalized for production (BR-B1 and BR-X2 resolved).
 3. BR-A6, BR-B2 → before any withdrawal (even sandbox) is enabled in a shared environment.
 4. OP-11 → before running migrations against any database containing real data.
 5. OP-03 + explicit authorisation → before any production deployment.

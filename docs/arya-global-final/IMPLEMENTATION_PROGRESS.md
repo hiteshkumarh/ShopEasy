@@ -17,7 +17,7 @@ Branch: `feature/arya-dual-plan-referral-platform` · Last updated: 2026-11-14
 | WP-5 Payment abstraction | A+B | — | NOT_STARTED | — | — |
 | WP-6 Billing IDs + fulfilment + recovery | A+B | — | NOT_STARTED | — | — |
 | WP-7 Plan A commission | A | — | NOT_STARTED | — | — |
-| WP-8 Plan B commission & distributor controls | B | — | NOT_STARTED | — | BR-B2, BR-X2 (BR-B1 resolved: Option A) |
+| WP-8 | Plan B commission & distributor controls | B | — | NOT_STARTED | — | BR-B2 (BR-B1 resolved: Option A; BR-X2 resolved: Option A) |
 | WP-9 Wallets & withdrawals | A+B | — | NOT_STARTED | — | BR-A6, BR-B2 |
 | WP-10 Plan A cashback engine | A | — | BLOCKED (production) | — | BR-A1–A5, BR-A7 |
 | WP-11 Admin, reports, notifications | A+B | — | NOT_STARTED | — | — |
