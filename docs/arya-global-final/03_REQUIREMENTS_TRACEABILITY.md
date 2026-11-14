@@ -52,7 +52,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | OR-01 | A §3, B §7.2 | Power Bank price ₹3,999 fixed; name/desc/image/price immutable once configured | A+B | P0 | DEFECT | products | T-OR-01 | Update endpoints reject fixed fields | — |
 | OR-02 | B §7.1 | Only admin adds products | A+B | P0 | FIT* | products | T-OR-02 | Customer → 403 | — |
 | OR-03 | B §7.3 | Show In Stock / Out of Stock only; disable & reject order when out | A+B | P0 | PART | inventory | T-OR-03 | Public API never returns count; checkout rejects | — |
-| OR-04 | B §22.2 | Stock replenishment procedure | A+B | P1 | BLOCKED | inventory | T-OR-04 | Per confirmed rule | OP-01 |
+| OR-04 | B §22.2 | Stock replenishment procedure | A+B | P1 | NONE | inventory | T-OR-04 | Per confirmed OP-01: append-only audited positive stock receipts; direct edit forbidden | — |
 | OR-05 | A §5.1, B §8.3 | One unique Billing ID per purchased unit; qty N → N IDs | A+B | P0 | NONE | billing | T-OR-05 | qty 1/2/3/5 → 1/2/3/5 rows | OP-06 |
 | OR-06 | A §5.3 | Uniqueness under concurrency; DB constraint | A+B | P0 | NONE | billing | T-OR-06 | 20 parallel purchases → no duplicates, contiguous counter | — |
 | OR-07 | A §8.2, §26.4 | Failed/pending payment → no Billing ID, no commission, no cashback | A+B | P0 | NONE | payments | T-OR-07 | Zero rows after failure | — |
@@ -62,7 +62,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | OR-11 | A §17 | No cancellation/refund workflow | A+B | P0 | FIT* | orders | T-OR-11 | No endpoint | R-06 |
 | OR-12 | A §12.2 | Purchase history with Billing IDs, payment status | A+B | P0 | NONE | orders, frontend | T-OR-12 | Dashboard lists IDs | — |
 | OR-13 | A §5.1(10), B §14.3 | Admin search by Billing ID / Order ID | A+B | P0 | NONE | admin | T-OR-13 | Exact match lookup | — |
-| OR-14 | B §16.2(1), §22.3 | Delivery status; distributor notified on delivery | B | P2 | BLOCKED | orders, notifications | T-OR-14 | Per confirmed rule | OP-02 |
+| OR-14 | B §16.2(1), §22.3 | Delivery status; distributor notified on delivery | B | P2 | NONE | orders, notifications | T-OR-14 | Per confirmed OP-02: automated courier updates; verified delivery triggers notification | — |
 
 ## Plan A (PA)
 
@@ -74,24 +74,24 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | PA-04 | A §6.2(9–10), §21.2 | Unique ref; duplicate payment notifications → no duplicate commission | A | P0 | PART | commissions | T-PA-04 | Replay event ×3 → 3 rows total (not 9) | ED-03 |
 | PA-05 | A §4.2 | No multi-generation commission under Plan A | A | P0 | FIT* | commissions | T-PA-05 | Grand-referrer receives nothing | — |
 | PA-06 | A §7 | Separate commission wallet, balance, history | A | P0 | PART | wallets | T-PA-06 | Commission & cashback balances independent | — |
-| PA-07 | A §7(4–10) | Commission withdrawal request, unique ref, no duplicates, independent of cashback | A | P0 | BLOCKED | withdrawals | T-PA-07 | Per BR-A6 | **BR-A6** |
-| PA-08 | A §8.1–8.2 | ₹250 per eligible contribution, auto, no manual step | A | P0 | BLOCKED | cashback | T-PA-08 | Contribution row per eligible Billing ID | **BR-A1–A4** |
+| PA-07 | A §7(4–10) | Commission withdrawal request, unique ref, no duplicates, independent of cashback | A | P0 | NONE | withdrawals | T-PA-07 | Per confirmed BR-A6: minimum ₹700, no admin approval; standard net deductions apply | — |
+| PA-08 | A §8.1–8.2 | ₹250 per eligible contribution, auto, no manual step | A | P0 | PART | cashback | T-PA-08 | Contribution row per eligible Billing ID. Rules confirmed per BR-A1–A3, BR-A4 (reserve), and BR-A5; not blocked by BR-A7 | — |
 | PA-09 | A §8.3 | Cycle tracks count/16, balance, remaining, status | A | P0 | PART | cashback/cycles | T-PA-09 | 3 contributions → 3/16, ₹750, 13 left, ₹3,250 left, ACTIVE | — |
 | PA-10 | A §8.3 | 16 × ₹250 = ₹4,000 → COMPLETED | A | P0 | PART | cashback/cycles | T-PA-10 | 16th sets COMPLETED; 17th goes to next recipient | — |
 | PA-11 | A §9 | ≥2 independent queues; no cross-queue effects | A | P0 | DEFECT | cashback/queues | T-PA-11 | F1 & J1 scenario isolation | — |
-| PA-12 | A §9.3 | Correct queue assignment for new Billing IDs | A | P0 | BLOCKED | cashback/queues | T-PA-12 | Per BR-A2 | **BR-A2** |
+| PA-12 | A §9.3 | Correct queue assignment for new Billing IDs | A | P0 | NONE | cashback/queues | T-PA-12 | Per confirmed BR-A2: separate queue per root customer without referrer | — |
 | PA-13 | A §9.4 | FIFO, persistent DB queue, WAITING/ACTIVE/COMPLETED, locking | A | P0 | DEFECT | cashback/queues | T-PA-13 | Concurrency test: 50 parallel buys, positions strictly FIFO | — |
 | PA-14 | A §10.1–10.2 | 48 bulbs; 3 per contribution; 0→0, 3→9, 8→24, 16→48 | A | P0 | NONE | cashback API + UI | T-PA-14 | API returns bulbs_on computed server-side from count | — |
 | PA-15 | A §10.3 | Green ON / grey OFF grid, equal size, subtle animation, responsive | A | P1 | NONE | frontend | T-UI-PA-15 | Visual test desktop/mobile | — |
 | PA-16 | A §10.4 | Show current active recipient; move to next on completion; keep history | A | P0 | NONE | cashback API + UI | T-PA-16 | After 16th, dashboard shows next Billing ID | — |
 | PA-17 | A §10.5 | Backend is source of truth; bulbs only visual | A | P0 | NONE | api | T-PA-17 | No endpoint accepts bulb counts | — |
-| PA-18 | A §11 | Cashback withdrawal: only after completion, full ₹4,000, admin approve/reject + reason, balance retained on reject, one active request/cycle, history | A | P0 | NONE | withdrawals/cashback | T-PA-18 | State-machine tests | — |
+| PA-18 | A §11 | Cashback withdrawal: only after completion, full ₹4,000, admin approve/reject + reason, balance retained on reject, one active request/cycle, history | A | P0 | NONE | withdrawals/cashback | T-PA-18 | Per confirmed BR-A6: full ₹4,000 only, admin approval required; state-machine tests | — |
 | PA-19 | A §11(12–13), §13.2 | Admin notified on cycle completion, withdrawal request, important failures | A | P1 | NONE | notifications | T-PA-19 | One notification per event | — |
 | PA-20 | A §12 | Customer dashboard (profile, purchases, referrals, wallet, cashback) | A | P0 | PART | frontend | T-UI-PA-20 | All fields present, backend-sourced | — |
 | PA-21 | A §12.5 | No downloadable statements for Plan A customers | A | P1 | FIT* | frontend | T-PA-21 | No export endpoint for customer role | R-07 |
 | PA-22 | A §2.3, §10 | Hide internal queue mechanics from customers | A | P1 | NONE | api/frontend | T-PA-22 | Customer API omits queue IDs/positions | — |
 | PA-23 | §25.3 | Product-level commission history + account-level balance, no duplication | A | P0 | PART | commissions | T-PA-23 | Sum(ledger) == balance | — |
-| PA-24 | A §3 | Allocation table per unit (1500/400/150/250/750/150/100 → 699) configurable; GST not deducted from 750 | A | P1 | DEFECT | financial_settings | T-PA-24 | Allocation snapshot per Billing ID sums correctly | BR-A7 |
+| PA-24 | A §3 | Allocation table per unit (1500/400/150/250/750/150/100 → 699) configurable; GST not deducted from 750 | A | P1 | DEFECT | financial_settings | T-PA-24 | Allocation snapshot per Billing ID sums correctly; unallocated ₹750 commission pool treatment blocked by BR-A7 | BR-A7 |
 
 ## Plan B (PB)
 
@@ -126,6 +126,7 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 |---|---|---|---|---|---|---|---|---|---|
 | AD-01 | A §13 | One admin account, full access | A+B | P0 | FIT* | admin | T-AD-01 | Seeded from env | OP-10 |
 | AD-02 | A §13.1(1–18) | Customer search (name, phone, Billing ID), histories, queues, contributions, cycles, bulbs, withdrawals | A | P1 | PART | admin | T-AD-02 | — | — |
+| AD-02A | Confirmed decision (BR-A4) | Dedicated Admin Dashboard section: Unallocated Cashback Reserve | A | P1 | NONE | admin | T-AD-02A | Dedicated section separate from company income/commission/cashback; displays total balance, total count, per-entry Billing ID, ₹250 amount, timestamp, queue ref, reason/status, transaction ref & audit history; view & date/Billing ID/status filters only; no spend/transfer/convert actions | — |
 | AD-03 | A §13.1(19–20), §14 | Individual customer report; separate commission & cashback reports, PDF + Excel, filters | A | P1 | NONE | reports | T-AD-03 | Totals reconcile | R-09 |
 | AD-04 | A §13.3 | No referral edits; approval only for cashback withdrawal; no duplicate financial actions by repeated clicks | A+B | P0 | PART | admin | T-AD-04 | Double-approve → one payout | — |
 | AD-05 | A §2.2 | Admin pages list (21 pages) | A+B | P1 | PART | frontend | T-UI-AD-05 | — | — |
@@ -141,6 +142,6 @@ Test IDs are placeholders that will map 1:1 to pytest node IDs in `backend/tests
 | DP-01 | A §20.1 | Render web service on `$PORT`, env vars, TLS to TiDB, CORS | A+B | P1 | PART | ops | T-DP-01 | Health checks green in staging | OP-03 |
 | DP-02 | A §20.3 | Controlled Alembic migrations; verify tables | A+B | P0 | PART | alembic | T-DP-02 | Upgrade/downgrade on TiDB-compatible DB in CI | — |
 | DP-03 | A §20.4 | `.env.example` placeholders; no secrets in Git | A+B | P0 | FIT | repo | T-SEC-SECRETS | Secret scan clean | — |
-| DP-04 | §26.5.6 | Final hosting topology | A+B | P1 | BLOCKED | ops | — | Client decision | **OP-03** |
+| DP-04 | §26.5.6 | Final hosting topology | A+B | P1 | NONE | ops | — | Per confirmed OP-03: single Render Web Service (backend + static frontend) | — |
 
 `FIT*` = behaviour present by design/omission but no test exists yet; becomes FIT only once its test passes.

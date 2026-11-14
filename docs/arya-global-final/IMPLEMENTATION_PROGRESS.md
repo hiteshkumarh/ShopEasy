@@ -16,14 +16,18 @@ Branch: `feature/arya-dual-plan-referral-platform` · Last updated: 2026-11-14
 | WP-4 Programme registration & referral rules | A+B | — | NOT_STARTED | — | — (referral timing confirmed at checkout; BR-X1 confirmed Option B: later-order binding allowed) |
 | WP-5 Payment abstraction | A+B | — | NOT_STARTED | — | — |
 | WP-6 Billing IDs + fulfilment + recovery | A+B | — | NOT_STARTED | — | — |
-| WP-7 Plan A commission | A | — | NOT_STARTED | — | — |
-| WP-8 | Plan B commission & distributor controls | B | — | NOT_STARTED | — | — (BR-B1, BR-X2, BR-B2 resolved) |
-| WP-9 | Wallets & withdrawals | A+B | — | NOT_STARTED | — | BR-A6 (Plan A payouts) |
-| WP-10 Plan A cashback engine | A | — | BLOCKED (production) | — | BR-A1–A5, BR-A7 |
-| WP-11 Admin, reports, notifications | A+B | — | NOT_STARTED | — | — |
+| WP-7 Plan A commission | A | — | NOT_STARTED | — | BR-A7 (for unallocated ₹750 pool handling only) |
+| WP-8 | Plan B commission & distributor controls | B | — | NOT_STARTED | — | — (BR-B1, BR-X2, BR-B2, BR-B3 resolved) |
+| WP-9 | Wallets & withdrawals | A+B | — | NOT_STARTED | — | — (BR-A6, BR-B2 resolved; BR-T1 accountant verification operational gate before live payouts) |
+| WP-10 Plan A cashback engine | A | — | NOT_STARTED | — | — (BR-A1–A3, BR-A4 reserve, BR-A5 resolved; not blocked by BR-A7; production enablement requires own implementation, rule compliance, integration, concurrency & security checks) |
+| WP-11 Admin, reports, notifications | A+B | — | NOT_STARTED | — | OP-01, OP-02, BR-A4 reserve section resolved |
 | WP-12 Frontend | A+B | — | NOT_STARTED | — | — |
 | WP-13 Hardening & reconciliation | A+B | — | NOT_STARTED | — | — |
-| WP-14 Deployment package | A+B | — | NOT_STARTED | — | OP-03, explicit approval |
+| WP-14 Deployment package | A+B | — | NOT_STARTED | — | OP-03 resolved (single Render service); explicit deployment authorization |
+| Post-Demo Gate — Client Review & Approval | A+B | — | NOT_STARTED | — | Formal client demonstration, review and sign-off (R-29 / OP-13) |
+| Post-Approval 1 — Razorpay Gateway Integration | A+B | — | POST_APPROVAL | — | Blocked until client sign-off; integration-ready architecture |
+| Post-Approval 2 — Live SMS/OTP Provider Integration | A+B | — | POST_APPROVAL | — | Blocked until client sign-off; dev-only OTP used during demo |
+| Post-Approval 3 — Production Security & Reconciliation Launch | A+B | — | POST_APPROVAL | — | Blocked until post-approval integrations and accountant audit (BR-T1) |
 
 ## Stage 0–1 report
 
@@ -53,4 +57,40 @@ Branch: `feature/arya-dual-plan-referral-platform` · Last updated: 2026-11-14
   - Linear Alembic migration `79b742f969d6` (parent `2270de96fe73`) with safe reverse foreign-key downgrade order.
 - **Changed files:** `backend/app/models/__init__.py`, `backend/app/models/enums.py`, `backend/app/models/user.py`, `backend/app/models/referral.py`, `backend/app/models/audit.py`, `backend/app/models/notification.py`, `backend/alembic/versions/79b742f969d6_wp3_migration_a_dual_programme_core.py`, `backend/tests/test_wp3_models.py`, `backend/tests/test_wp3_migration.py`, `backend/tests/test_financial_settings.py`.
 - **Tests executed & passed:** Complete regression suite green in CI Run #12 (commit `65c3597`, Run ID `43575777998`): 160 unit tests passed, 11 MySQL integration tests passed (0 skipped, 0 failed, 171 total). SQLite and isolated MySQL 8 migration lifecycle tests verified upgrade → downgrade → re-upgrade. Alembic upgrade and `alembic check` passed with zero schema drift.
-- **Operational warning:** OP-11 remains active — migration `79b742f969d6` must not be executed against real production data until client sign-off on legacy data treatment is provided.
+- **Operational warning:** OP-11 resolved — client confirmed clean database for new system; old test data is archived separately and will not be imported into live DB. Legacy test data must not be deleted or overwritten.
+
+## Confirmed Project Decision: Client-Demo-First Strategy (R-29 / OP-13)
+
+- **Immediate Goal:** Complete the entire Arya Global Digital / ShopEasy project for client demonstration and review.
+- **Development & Demonstration Phase:**
+  - Utilize the existing simulated payment provider (`SimulatedPaymentProvider`).
+  - Do not integrate Razorpay or enable real payment collection.
+  - Do not integrate a live SMS/OTP delivery provider yet (development OTP remains in effect).
+  - Clearly identify simulated or development-only functionality in user interfaces and API responses.
+  - Do not treat simulated payment success as an actual financial transaction.
+- **Post-Client-Approval Integration Phase:**
+  - After the client reviews the completed project and formally approves it in writing:
+    1. Integrate Razorpay payment gateway.
+    2. Implement real OTP delivery and verification using an approved SMS provider.
+    3. Configure production credentials, secrets, webhook verification, and security controls.
+    4. Perform end-to-end payment, authentication, failure, retry, reconciliation, and security testing.
+- **Enforcement & Invariants:**
+  - Real payments and live OTP services must remain disabled until post-approval integrations are completed, tested, and explicitly approved for production.
+  - The software architecture must remain integration-ready so Razorpay and a live OTP provider can be added without unnecessarily redesigning checkout, authentication, or order processing.
+
+## WP-6: Fulfilment Recovery & Scheduling Architecture (OP-03 Deployment Strategy)
+
+- **Worker Implementation:** `FulfilmentRecoveryWorker` (`backend/app/services/fulfilment/recovery.py`) sweeps confirmed, payment-completed orders where `is_fulfilled == False`.
+  - Operates in bounded batches (`FULFILMENT_RECOVERY_BATCH_SIZE`, default 50).
+  - Short-lived read session discovers candidate IDs and closes before order processing begins.
+  - Each candidate is processed in its own dedicated transaction via `FulfilmentOrchestrator.fulfil_order(order_id)`.
+  - Failures are isolated per order; a failure does not abort the remaining candidates.
+  - CLI entry point `python -m app.services.fulfilment.recovery` exits 0 on full success and 1 if any order failed or a sweep error occurred.
+- **In-Process Scheduler Guard:**
+  - `FulfilmentRecoveryScheduler` (`backend/app/services/fulfilment/scheduler.py`) provides an asyncio background loop.
+  - Guard `_is_running` is strictly process-local in memory.
+  - `FULFILMENT_RECOVERY_ENABLED=False` must remain the default on multi-worker web deployments (e.g. Uvicorn `--workers > 1`) to prevent multiple uncoordinated scheduler loops.
+- **Production Deployment Standard (OP-03):**
+  - Keep `FULFILMENT_RECOVERY_ENABLED=False` on the single Render Web Service.
+  - Schedule recovery sweeps via an external Render Cron Job running `python -m app.services.fulfilment.recovery` at regular intervals (e.g. `*/5 * * * *`).
+  - If multiple cron or worker processes ever execute concurrently, database row-level locking (`with_for_update()`) and schema unique constraints (`uq_billing_ids_item_unit`, `uq_billing_engine_claims_billing_id`) strictly prevent duplicate sequence numbers or claim allocations.

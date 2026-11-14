@@ -6,6 +6,8 @@
 
 Legacy tables and rows are **never dropped or rewritten**. New tables are added beside them; legacy rows are tagged `LEGACY` and read-only (OP-11).
 
+**Client-Demonstration-First Delivery & Post-Approval Integration:** The immediate delivery goal is the complete end-to-end implementation of Arya Global Digital / ShopEasy for client demonstration and review. During development and demonstration, the system utilizes simulated payment processing (`SimulatedPaymentProvider`) and development SMS/OTP authentication. Live Razorpay payment gateway integration, live SMS/OTP provider integration, production credentials/secrets configuration, and live webhook verification are explicitly scheduled as **post-client-approval activities** following formal client demonstration and sign-off. The architecture is maintained integration-ready so that live gateways and OTP services can be plugged in without refactoring checkout, authentication, or order flows. Real payment collection and live OTP delivery remain strictly disabled until these post-approval integrations are verified and formally authorized for production (R-29 / OP-13).
+
 ## 2. Target architecture
 
 ```mermaid
@@ -165,9 +167,8 @@ flowchart TD
   S5 --> S8[Stage 8 Wallets & withdrawal state machines]
   S7 --> S8
   S4 --> S6[Stage 6 Plan A cashback engine]
-  S6 -. "BR-A1..A5 (blocking)" .-> S6P[Cashback production enablement]
-  S8 --> S9[Stage 9 Admin, reports, notifications, audit]
-  S6 --> S9
+  S6 -. "Implementation, approved rules, integration, concurrency, security & financial checks" .-> S6P[Cashback production enablement]
+  S6 --> S9[Stage 9 Admin, reports, notifications, audit]
   S9 --> S10[Stage 10 Customer & distributor UI]
   S10 --> S11[Stage 11 Integration · concurrency · security tests]
   S11 --> S12[Stage 12 Deployment readiness]
@@ -185,14 +186,18 @@ flowchart TD
 | WP-4 | Registration with programme selection, programme-aware login, referral codes, direction rules | WP-3 | — | API + tests |
 | WP-5 | Payment abstraction, payment events, simulated provider guard | WP-3 | — | |
 | WP-6 | Billing ID allocator + fulfilment orchestrator + recovery worker | WP-5 | — | Concurrency tests |
-| WP-7 | Plan A commission engine | WP-6, WP-2 | — | ₹700 × N tests |
-| WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | — | ₹500/₹50 tests (BR-B1, BR-X2, BR-B2 resolved) |
-| WP-9 | Wallet ledger + withdrawal state machines + sandbox payouts | WP-7, WP-8 | BR-A6 (Plan A withdrawal enablement) | |
-| WP-10 | Plan A cashback: queues/cycles/contributions/policy interfaces, bulbs API | WP-6 | **BR-A1..A5** for production | Sample-policy tests only |
-| WP-11 | Admin APIs + reports (xlsx/pdf) + notifications | WP-9, WP-10 | — | |
+| WP-7 | Plan A commission engine | WP-6, WP-2 | BR-A7 (for unallocated ₹750 pool) | ₹700 × N tests; unallocated pool pending BR-A7 |
+| WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | — | ₹500/₹50 tests (BR-B1, BR-X2, BR-B2, BR-B3 resolved) |
+| WP-9 | Wallet ledger + withdrawal state machines + sandbox payouts | WP-7, WP-8 | — | BR-A6 resolved (separate commission min ₹700 & cashback full ₹4,000); BR-B2 resolved |
+| WP-10 | Plan A cashback: queues/cycles/contributions/policy interfaces, bulbs API | WP-6 | — | BR-A1–A3, BR-A4 (reserve), BR-A5 resolved (not blocked by BR-A7); production enablement requires own implementation, business-rule compliance, integration, concurrency, and security/financial checks |
+| WP-11 | Admin APIs + reports (xlsx/pdf) + notifications | WP-9, WP-10 | — | Includes dedicated Unallocated Cashback Reserve section (BR-A4) |
 | WP-12 | Frontend: Arya rebrand, programme registration, Plan A/B dashboards, 48-bulb grid, admin console | WP-11 | — | UI tests (Playwright) |
 | WP-13 | Security & concurrency hardening, reconciliation job | all | — | SECURITY_REVIEW, FINANCIAL_RECONCILIATION |
-| WP-14 | Deployment package (render.yaml, runbooks, backups) | WP-13 | OP-03, approval | DEPLOYMENT_GUIDE |
+| WP-14 | Deployment package (render.yaml, runbooks, backups) | WP-13 | OP-03 resolved | DEPLOYMENT_GUIDE (Demo build) |
+| Post-Demo Gate | Client demonstration, review and formal acceptance of completed system | WP-14 | Client sign-off | Client Approval & Integration Authorization |
+| Post-Approval 1 | Razorpay payment gateway integration, webhook signature verification | Post-Demo Gate | — | Real payment gateway provider implementation |
+| Post-Approval 2 | Live SMS/OTP provider integration, production credentials & secrets configuration | Post-Demo Gate | — | Real OTP delivery + rate-limiting & provider tests |
+| Post-Approval 3 | Production end-to-end payment/auth verification, security review, reconciliation | Post-Approval 1, 2 | BR-T1 (accountant) | Production Launch Readiness |
 
 ## 7. Test strategy
 
@@ -215,10 +220,10 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 
 | ID | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
-| RK-01 | Cashback allocation rules (BR-A1..A5) remain unconfirmed | High | High | Policy interfaces; production flag off; `PENDING_POLICY` obligations ledger; escalate questions now |
+| RK-01 | Treatment of unallocated ₹750 commission pool (BR-A7) unconfirmed | Medium | Medium | BR-A7 blocks only unallocated commission pool handling (not cashback engine); escalate exact accounting mechanics |
 | RK-02 | Referral repeat-order attribution rule (BR-X1) confirmed (Option B); Plan B ₹500 timing (BR-B1) confirmed (Option A) | Low | Low | Single-referrer DB constraint; non-retroactive; ₹500 paid on qualifying later order |
 | RK-03 | TiDB silently ignores CHECK/FK | High | High | Service-level invariants + reconciliation job + TiDB test gate |
-| RK-04 | Legacy production data inconsistent with new model | Medium | High | Additive migrations; LEGACY tag; snapshot + restore rehearsal before migration; client decision OP-11 |
+| RK-04 | Legacy data in old system is non-operational test data | Low | Low | OP-11 resolved: clean database for new system; old test data archived untouched |
 | RK-05 | Global locks become throughput bottleneck | Medium | Medium | Per-queue locks, short transactions, lock ordering; load test |
 | RK-06 | Simulated payment accidentally active in production | Low | Critical | Startup guard + `is_simulated` on every payment row + UI banner |
 | RK-07 | Tax treatment changes (GST/TDS) | Medium | Medium | Versioned settings; rate stored per row |
@@ -229,8 +234,9 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 
 ## 9. Approval gates (work stops here until the client confirms)
 
-1. BR-A1..A5, BR-A7 → before cashback contributions are credited to anyone.
-2. [Resolved] BR-B1, BR-X2, BR-B2 confirmed for Plan B commission rules.
-3. BR-A6 → before Plan A commission withdrawals are enabled in a shared environment (Plan B withdrawal rules confirmed per §10 & BR-B2).
-4. OP-11 → before running migrations against any database containing real data.
-5. OP-03 + explicit authorisation → before any production deployment.
+1. BR-A7 → before production enablement of unallocated commission pool handling (accounting treatment of unallocated ₹750 commission pool when purchaser has no referrer). Does not block cashback engine.
+2. [Resolved] BR-B1, BR-X2, BR-B2, BR-B3 confirmed for Plan B commission rules.
+3. [Resolved] BR-A6 (separate commission min ₹700 & cashback full ₹4,000) and BR-B2 confirmed for withdrawals. Operational gate: formal accountant verification (BR-T1) required before production payouts are enabled.
+4. [Resolved] OP-11 confirmed: clean database for new system; old test data archived untouched.
+5. OP-03 resolved (single Render Web Service); formal authorization before production deployment.
+6. [Resolved: R-29 / OP-13] Client demonstration before live payment and OTP integration: Full system demonstration and formal written approval by the client is required before initiating live Razorpay payment gateway integration, live SMS/OTP provider integration, production credentials configuration, and production launch. Real payments and live OTP delivery remain disabled throughout development and client demonstration.
