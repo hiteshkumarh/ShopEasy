@@ -3,7 +3,7 @@
 ShopEasy is an e-commerce platform built with **FastAPI**, **MySQL**, and **Vanilla HTML, CSS, and JavaScript**.
 
 It includes product management, customer accounts, shopping cart, order processing, direct referral rewards, sequential commission distribution, separate customer wallets, simulated payments, and an admin dashboard.
-
+I am working on this project
 > **Project status:** Development / testing project. Payments and withdrawals are simulated. This project is not currently a production-ready financial platform and still i am developing
 > .
 
