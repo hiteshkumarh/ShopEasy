@@ -6,7 +6,7 @@ It includes product management, customer accounts, shopping cart, order processi
 
 > **Project status:** Development / testing project. Payments and withdrawals are simulated. This project is not currently a production-ready financial platform.
 
----
+----
 
 ## Technology Stack
 
