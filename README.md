@@ -7,7 +7,7 @@ I am working on this project
 > **Project status:** Development / testing project. Payments and withdrawals are simulated. This project is not currently a production-ready financial platform and still i am developing
 > .
 
----
+----
 
 ## Technology Stack
 
