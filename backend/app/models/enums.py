@@ -70,9 +70,14 @@ class WalletReferenceType(str, enum.Enum):
 
 
 class WithdrawalStatus(str, enum.Enum):
-    """Status of simulated balance payout."""
+    """Status of balance payout state machine."""
+    REQUESTED = "requested"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    PAYOUT_PENDING = "payout_pending"
     COMPLETED = "completed"
     FAILED = "failed"
+    REVERSED = "reversed"
 
 
 class Programme(str, enum.Enum):

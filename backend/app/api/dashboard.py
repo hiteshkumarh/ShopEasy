@@ -2,7 +2,7 @@ from decimal import Decimal
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_customer
@@ -10,9 +10,11 @@ from app.core.database import get_db
 from app.models.enums import (
     CycleStatus,
     OrderStatus,
+    Programme,
     QueueStatus,
     WalletType,
 )
+from app.models.cashback import PlanACashbackCycle, PlanACashbackEntry
 from app.models.order import Order
 from app.models.queue import BeneficiaryQueue, CommissionCycle
 from app.models.user import User
@@ -51,6 +53,12 @@ def get_earnings_dashboard(
       - 16-circle visual component progress and active/waiting/completed beneficiary states.
       - Withdrawal eligibility flags for both earning categories.
     """
+    if current_user.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Plan A customer privileges required. Plan B distributors must use the distributor portal.",
+        )
+
     # 1. Fetch isolated wallet balances
     dr_wallet = get_or_create_wallet(
         db, user_id=current_user.id, wallet_type=WalletType.DIRECT_REFERRAL
@@ -62,42 +70,92 @@ def get_earnings_dashboard(
     total_earnings = dr_wallet.balance + sc_wallet.balance
     total_withdrawn = dr_wallet.total_withdrawn + sc_wallet.total_withdrawn
 
-    # 2. Fetch beneficiary queue and cycle state
-    queue_entry = (
-        db.query(BeneficiaryQueue)
-        .filter(BeneficiaryQueue.user_id == current_user.id)
+    # 2. Fetch Plan A cashback cycle and entry (WP-10), with fallback to legacy models (WP-7)
+    pa_cycle = (
+        db.query(PlanACashbackCycle)
+        .filter(
+            PlanACashbackCycle.recipient_user_id == current_user.id,
+            PlanACashbackCycle.status == "ACTIVE",
+        )
         .first()
     )
-    cycle = (
-        db.query(CommissionCycle)
-        .filter(CommissionCycle.beneficiary_id == current_user.id)
+    if not pa_cycle:
+        pa_cycle = (
+            db.query(PlanACashbackCycle)
+            .filter(
+                PlanACashbackCycle.recipient_user_id == current_user.id,
+                PlanACashbackCycle.status == "COMPLETED",
+            )
+            .order_by(PlanACashbackCycle.completed_at.desc(), PlanACashbackCycle.id.desc())
+            .first()
+        )
+
+    pa_entry = (
+        db.query(PlanACashbackEntry)
+        .filter(PlanACashbackEntry.user_id == current_user.id)
+        .order_by(PlanACashbackEntry.queue_position.asc())
         .first()
     )
 
-    if not queue_entry:
-        status_label = "not_enrolled"
-        queue_pos = None
+    legacy_queue_entry = None
+    legacy_cycle = None
+
+    if pa_cycle:
+        if pa_cycle.status == "COMPLETED":
+            status_label = "completed"
+            queue_pos = pa_entry.queue_position if pa_entry else 1
+            completed_count = pa_cycle.completed_contributions
+            cycle_earned = pa_cycle.total_earned
+            circle_states = [True] * 16
+        else:
+            status_label = "active"
+            queue_pos = pa_entry.queue_position if pa_entry else 1
+            completed_count = pa_cycle.completed_contributions
+            cycle_earned = pa_cycle.total_earned
+            circle_states = [True] * completed_count + [False] * (16 - completed_count)
+    elif pa_entry:
+        status_label = pa_entry.status.lower() if pa_entry.status else QueueStatus.WAITING.value
+        queue_pos = pa_entry.queue_position
         completed_count = 0
         cycle_earned = Decimal("0.00")
         circle_states = [False] * 16
-    elif queue_entry.status == QueueStatus.ACTIVE:
-        status_label = "active"
-        queue_pos = queue_entry.queue_position
-        completed_count = cycle.completed_commissions if cycle else 0
-        cycle_earned = cycle.total_earned if cycle else Decimal("0.00")
-        circle_states = [True] * completed_count + [False] * (16 - completed_count)
-    elif queue_entry.status == QueueStatus.WAITING:
-        status_label = "waiting"
-        queue_pos = queue_entry.queue_position
-        completed_count = 0
-        cycle_earned = Decimal("0.00")
-        circle_states = [False] * 16
-    else:  # QueueStatus.COMPLETED
-        status_label = "completed"
-        queue_pos = queue_entry.queue_position
-        completed_count = 16
-        cycle_earned = Decimal("4000.00")
-        circle_states = [True] * 16
+    else:
+        # Legacy fallback to BeneficiaryQueue and CommissionCycle (WP-7)
+        legacy_queue_entry = (
+            db.query(BeneficiaryQueue)
+            .filter(BeneficiaryQueue.user_id == current_user.id)
+            .first()
+        )
+        legacy_cycle = (
+            db.query(CommissionCycle)
+            .filter(CommissionCycle.beneficiary_id == current_user.id)
+            .first()
+        )
+
+        if not legacy_queue_entry:
+            status_label = "not_enrolled"
+            queue_pos = None
+            completed_count = 0
+            cycle_earned = Decimal("0.00")
+            circle_states = [False] * 16
+        elif legacy_queue_entry.status == QueueStatus.ACTIVE:
+            status_label = "active"
+            queue_pos = legacy_queue_entry.queue_position
+            completed_count = legacy_cycle.completed_commissions if legacy_cycle else 0
+            cycle_earned = legacy_cycle.total_earned if legacy_cycle else Decimal("0.00")
+            circle_states = [True] * completed_count + [False] * (16 - completed_count)
+        elif legacy_queue_entry.status == QueueStatus.WAITING:
+            status_label = "waiting"
+            queue_pos = legacy_queue_entry.queue_position
+            completed_count = 0
+            cycle_earned = Decimal("0.00")
+            circle_states = [False] * 16
+        else:  # QueueStatus.COMPLETED
+            status_label = "completed"
+            queue_pos = legacy_queue_entry.queue_position
+            completed_count = 16
+            cycle_earned = Decimal("4000.00")
+            circle_states = [True] * 16
 
     progress = SequentialProgress(
         status=status_label,
@@ -111,10 +169,22 @@ def get_earnings_dashboard(
 
     # 3. Compute withdrawal eligibility
     dr_eligible = dr_wallet.balance >= Decimal("750.00")
+    completed_pa_cycle = (
+        db.query(PlanACashbackCycle)
+        .filter(
+            PlanACashbackCycle.recipient_user_id == current_user.id,
+            PlanACashbackCycle.status == "COMPLETED",
+            PlanACashbackCycle.completed_contributions == 16,
+        )
+        .first()
+    )
+    has_completed_cycle = (completed_pa_cycle is not None) or (
+        legacy_cycle is not None and legacy_cycle.completed_commissions == 16
+    )
     sc_eligible = (
-        cycle is not None
-        and cycle.completed_commissions == 16
-        and sc_wallet.balance == Decimal("4000.00")
+        has_completed_cycle
+        and sc_wallet.balance >= Decimal("4000.00")
+        and not sc_wallet.is_frozen
     )
 
     eligibility = WithdrawalEligibility(
@@ -142,6 +212,12 @@ def get_referral_summary(
     db: Session = Depends(get_db),
 ):
     """Retrieve customer referral code statistics and referred customer history."""
+    if current_user.programme != Programme.PLAN_A:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Plan A customer privileges required. Plan B distributors must use the distributor portal.",
+        )
+
     referees = (
         db.query(User)
         .filter(User.referred_by_id == current_user.id)

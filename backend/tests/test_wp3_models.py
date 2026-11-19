@@ -694,9 +694,25 @@ class TestWP3MigrationA:
         script_dir = ScriptDirectory.from_config(cfg)
         heads = script_dir.get_heads()
         assert len(heads) == 1, f"Expected exactly 1 Alembic head, got {heads}"
-        assert heads[0] == "b7f2d4e8c1a9", f"Expected head 'b7f2d4e8c1a9', got '{heads[0]}'"
+        assert heads[0] == "f4a5b6c7d8e9", f"Expected head 'f4a5b6c7d8e9', got '{heads[0]}'"
 
-        # Walk revisions and verify linear link from b7f2d4e8c1a9 to a8f5c3b1e9d2, 79b742f969d6 and 2270de96fe73
+        # Walk revisions and verify linear link from f4a5b6c7d8e9 to e3f4a5b6c7d8, d2e3f4a5b6c7, c1e2d3f4a5b6, b7f2d4e8c1a9, a8f5c3b1e9d2, 79b742f969d6 and 2270de96fe73
+        rev_wp10 = script_dir.get_revision("f4a5b6c7d8e9")
+        assert rev_wp10 is not None
+        assert rev_wp10.down_revision == "e3f4a5b6c7d8"
+
+        rev_wp9 = script_dir.get_revision("e3f4a5b6c7d8")
+        assert rev_wp9 is not None
+        assert rev_wp9.down_revision == "d2e3f4a5b6c7"
+
+        rev_wp8 = script_dir.get_revision("d2e3f4a5b6c7")
+        assert rev_wp8 is not None
+        assert rev_wp8.down_revision == "c1e2d3f4a5b6"
+
+        rev_wp7 = script_dir.get_revision("c1e2d3f4a5b6")
+        assert rev_wp7 is not None
+        assert rev_wp7.down_revision == "b7f2d4e8c1a9"
+
         rev_wp6 = script_dir.get_revision("b7f2d4e8c1a9")
         assert rev_wp6 is not None
         assert rev_wp6.down_revision == "a8f5c3b1e9d2"

@@ -133,8 +133,13 @@ def _validate_sqlite_url(clean_url: str) -> str:
     return clean_url
 
 
+APPROVED_TIDB_HOST = "gateway01.ap-southeast-1.prod.aws.tidbcloud.com"
+APPROVED_REMOTE_DB = "shopeasy_arya"
+PROHIBITED_REMOTE_DBS = ("shopeasy_app", "shopeasy_prod", "production", "prod")
+
+
 def validate_alembic_database_url(url: Optional[str]) -> str:
-    """Validate that an Alembic database URL strictly targets an approved isolated test database.
+    """Validate that an Alembic database URL strictly targets an approved database.
 
     Fail-closed security rules:
       1. Empty, missing, or whitespace-only URL is strictly rejected (no silent fallback).
@@ -142,14 +147,14 @@ def validate_alembic_database_url(url: Optional[str]) -> str:
       3. SQLite URLs are strictly restricted to ':memory:' or approved isolated test files
          matching test naming conventions within designated test directories. Arbitrary paths
          and application database files are strictly rejected.
-      4. All remote database hosts, cloud IPs, and TiDB Cloud hostnames (*.tidbcloud.com)
-         are strictly prohibited with zero override mechanisms.
-      5. MySQL targets must be strictly local loopback ('localhost', '127.0.0.1', '::1')
-         OR the designated GitHub Actions CI service container ('mysql') when
-         GITHUB_ACTIONS is 'true' and database is 'shopeasy_test_ci'.
-      6. For MySQL, database name must strictly begin with 'shopeasy_test_'.
-         Production and development databases ('shopeasy_app', 'shopeasy_arya', 'shopeasy_dev', etc.)
-         are strictly blocked.
+      4. Remote database connections are strictly blocked by default.
+         Migrations targeting TiDB Cloud require explicit, operator-level dual authorization:
+           ALLOW_REMOTE_MIGRATION=true AND CONFIRM_TARGET_DB=shopeasy_arya
+         matching strictly APPROVED_TIDB_HOST and APPROVED_REMOTE_DB.
+         Remote migrations are unconditionally prohibited during automated testing (pytest).
+      5. Target 'shopeasy_app' and any other unapproved databases or hosts are strictly blocked.
+      6. For local MySQL, host must be local loopback ('localhost', '127.0.0.1', '::1')
+         or designated CI service container ('mysql'), and database must begin with 'shopeasy_test_'.
     """
     if not url or not isinstance(url, str) or not url.strip():
         raise RuntimeError(
@@ -176,16 +181,72 @@ def validate_alembic_database_url(url: Optional[str]) -> str:
     host = (parsed.hostname or "").lower()
     db_path = parsed.path.lstrip("/").split("?")[0].strip()
     db_name = db_path.lower()
-
-    # Fail closed: Remote database connections and TiDB Cloud are strictly blocked with zero overrides.
     netloc = (parsed.netloc or "").lower()
+
+    # Rule 1: Always strictly reject prohibited remote databases (e.g. shopeasy_app)
+    if db_name in PROHIBITED_REMOTE_DBS:
+        raise RuntimeError(
+            f"SAFETY VIOLATION: Alembic database name must begin with 'shopeasy_test_'. "
+            f"Database '{db_name}' is on the strictly prohibited database list. "
+            f"Alembic migrations against this target are forbidden."
+        )
+
+    # Rule 2: Check if automated testing is active (pytest)
+    # Remote migrations are unconditionally blocked when running automated tests
+    is_testing = (
+        os.getenv("ENVIRONMENT", "").strip().lower() == "testing"
+        or "PYTEST_CURRENT_TEST" in os.environ
+    )
+
+    # Rule 3: Check for authorized remote TiDB Cloud migration gate
+    is_approved_tidb_host = host == APPROVED_TIDB_HOST
+    is_approved_db = db_name == APPROVED_REMOTE_DB
+
+    allow_remote_env = os.getenv("ALLOW_REMOTE_MIGRATION", "").strip().lower() == "true"
+    confirm_target_env = os.getenv("CONFIRM_TARGET_DB", "").strip()
+
+    if is_approved_tidb_host and is_approved_db:
+        if is_testing:
+            raise RuntimeError(
+                f"SAFETY VIOLATION: Alembic safety guard blocked connection to TiDB Cloud host '{host}'. "
+                f"Remote TiDB Cloud migrations are strictly prohibited during automated test execution."
+            )
+        if not allow_remote_env:
+            raise RuntimeError(
+                "SAFETY VIOLATION: Remote migration authorization required. "
+                "Set ALLOW_REMOTE_MIGRATION=true to proceed."
+            )
+        if confirm_target_env != APPROVED_REMOTE_DB:
+            raise RuntimeError(
+                f"SAFETY VIOLATION: Target database confirmation mismatch. "
+                f"Expected CONFIRM_TARGET_DB={APPROVED_REMOTE_DB!r}, got {confirm_target_env!r}."
+            )
+        # Authorized operator migration for shopeasy_arya
+        return clean_url
+
+    # Rule 4: If any authorization variable was set for an unapproved host or DB, fail closed with clear error
+    if allow_remote_env or confirm_target_env:
+        if not is_approved_tidb_host:
+            raise RuntimeError(
+                f"SAFETY VIOLATION: Alembic safety guard blocked connection to remote host '{host}'. "
+                f"Remote migration authorization rejected for unauthorized host. "
+                f"Only '{APPROVED_TIDB_HOST}' may be authorized."
+            )
+        if not is_approved_db:
+            raise RuntimeError(
+                f"SAFETY VIOLATION: Alembic safety guard blocked connection to TiDB Cloud host '{host}'. "
+                f"Remote migration authorization rejected for unauthorized database '{db_name}'. "
+                f"Only '{APPROVED_REMOTE_DB}' may be authorized."
+            )
+
+    # Rule 5: Fail closed for any unapproved TiDB Cloud host
     if "tidbcloud" in host or "tidbcloud" in netloc:
         raise RuntimeError(
             f"SAFETY VIOLATION: Alembic safety guard blocked connection to TiDB Cloud host '{host}'. "
             f"Migrations against remote TiDB Cloud are strictly prohibited."
         )
 
-    # Host must be strictly local loopback or designated CI service
+    # Rule 6: Host must be strictly local loopback or designated CI service
     is_ci = os.getenv("GITHUB_ACTIONS") == "true"
     is_local_host = host in ("localhost", "127.0.0.1", "::1")
     is_ci_service_host = is_ci and host == "mysql" and db_name == "shopeasy_test_ci"
@@ -197,7 +258,7 @@ def validate_alembic_database_url(url: Optional[str]) -> str:
             f"or the CI test container ('mysql')."
         )
 
-    # Database name must follow test convention
+    # Rule 7: Database name must follow test convention
     if not db_name.startswith("shopeasy_test_"):
         raise RuntimeError(
             f"SAFETY VIOLATION: Alembic database name must begin with 'shopeasy_test_'. "
@@ -212,8 +273,12 @@ def get_alembic_database_url(config: Optional[Any] = None) -> str:
 
     Precedence:
       1. Explicit environment variable: ALEMBIC_DATABASE_URL or DATABASE_URL in os.environ.
-      2. Explicit Alembic config main option 'sqlalchemy.url' (if programmatically configured by test fixtures).
-      3. If neither is explicitly provided, strictly raises RuntimeError to prevent silent fallback to backend/.env.
+      2. Explicit programmatic Alembic config main option 'sqlalchemy.url' (e.g. set by test fixtures).
+         The static placeholder 'mysql+pymysql://placeholder' in alembic.ini is ignored as a placeholder.
+      3. When the placeholder is present or when explicit remote migration authorization is active,
+         resolves through get_database_url() and validates against all safety rules.
+      4. If config is absent and no remote migration is authorized, strictly raises RuntimeError to
+         prevent silent fallback to backend/.env.
     """
     raw_env = os.environ.get("ALEMBIC_DATABASE_URL") or os.environ.get("DATABASE_URL")
     if raw_env and raw_env.strip():
@@ -228,13 +293,32 @@ def get_alembic_database_url(config: Optional[Any] = None) -> str:
         if cfg_url and cfg_url.strip() and not cfg_url.startswith("%"):
             # Unescape double percents if present
             clean_cfg = cfg_url.replace("%%", "%").strip()
-            return validate_alembic_database_url(clean_cfg)
+            is_placeholder = clean_cfg in (
+                "mysql+pymysql://placeholder",
+                "mysql://placeholder",
+                "placeholder",
+            )
+            if not is_placeholder:
+                return validate_alembic_database_url(clean_cfg)
 
-    # Fail closed: reject silent fallback to backend/.env or settings.DATABASE_URL
-    raise RuntimeError(
-        "SAFETY VIOLATION: No explicit DATABASE_URL environment variable provided for Alembic. "
-        "Silent fallback to backend/.env is strictly prohibited to protect remote databases."
+    # If config is None and no authorization is active, fail closed to prevent silent fallback
+    is_testing = (
+        os.getenv("ENVIRONMENT", "").strip().lower() == "testing"
+        or "PYTEST_CURRENT_TEST" in os.environ
     )
+    allow_remote_env = os.getenv("ALLOW_REMOTE_MIGRATION", "").strip().lower() == "true"
+    confirm_target_env = os.getenv("CONFIRM_TARGET_DB", "").strip()
+
+    if config is None and not (allow_remote_env and confirm_target_env == APPROVED_REMOTE_DB and not is_testing):
+        raise RuntimeError(
+            "SAFETY VIOLATION: No explicit DATABASE_URL environment variable provided for Alembic. "
+            "Silent fallback to backend/.env is strictly prohibited to protect remote databases."
+        )
+
+    # When placeholder is present in config or remote migration is authorized:
+    # resolve through the existing get_database_url() configuration path and validate
+    candidate_url = get_database_url()
+    return validate_alembic_database_url(candidate_url)
 
 
 def get_ssl_connect_args(database_url: Optional[str] = None) -> dict:

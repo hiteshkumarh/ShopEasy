@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Earnings &amp; Wallets Dashboard — ShopEasy</title>
-  <meta name="description" content="View your ShopEasy dual wallet balances, 16-circle sequential commission progress, referral earnings, and simulated withdrawals.">
+  <title>Customer Dashboard — Arya Global Digital</title>
+  <meta name="description"
+    content="View your Arya Global Digital wallet balances, commission progress, referral earnings, and withdrawals.">
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
@@ -12,18 +14,21 @@
   <link rel="stylesheet" href="css/profile.css">
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
+
 <body class="auth-protected">
 
   <!-- Site Header -->
   <header class="site-header">
     <div class="container nav-container">
-      <a href="index.html" class="brand-logo" aria-label="ShopEasy Home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <circle cx="9" cy="21" r="1"></circle>
-          <circle cx="20" cy="21" r="1"></circle>
-          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-        </svg>
-        <span>ShopEasy</span>
+      <a href="index.html" class="brand-logo" aria-label="Arya Global Digital Home">
+        <span class="brand-logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polygon points="12 2 2 22 22 22"></polygon>
+            <line x1="12" y1="11" x2="12" y2="17"></line>
+          </svg>
+        </span>
+        <span>Arya Global <strong>Digital</strong></span>
       </a>
 
       <nav class="nav-links" aria-label="Primary Navigation">
@@ -88,7 +93,8 @@
           <div class="dashboard-title-area">
             <h1 class="dashboard-title">Customer Earnings &amp; Wallets</h1>
             <p class="dashboard-subtitle">
-              Welcome back, <strong id="dashboard-customer-name">Customer</strong>! Monitor your commissions, beneficiary queue progress, and request full-balance withdrawals.
+              Welcome back, <strong id="dashboard-customer-name">Customer</strong>! Monitor your commissions,
+              beneficiary queue progress, and request full-balance withdrawals.
             </p>
           </div>
           <div style="display:flex;gap:var(--space-3);align-items:center;">
@@ -104,11 +110,8 @@
             <div>
               <div class="metric-card-top">
                 <span class="metric-label">Total Available Balance</span>
-                <div class="metric-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
+                <div class="metric-icon" aria-label="Indian Rupee (₹)">
+                  <span style="font-size:16px;font-weight:700;color:var(--color-primary);line-height:1;">₹</span>
                 </div>
               </div>
               <div class="metric-value" id="metric-total-earnings">₹0.00</div>
@@ -165,10 +168,8 @@
             <div>
               <div class="metric-card-top">
                 <span class="metric-label">Lifetime Total Withdrawn</span>
-                <div class="metric-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
+                <div class="metric-icon" aria-label="Indian Rupee (₹)">
+                  <span style="font-size:16px;font-weight:700;color:var(--color-primary);line-height:1;">₹</span>
                 </div>
               </div>
               <div class="metric-value" id="metric-total-withdrawn">₹0.00</div>
@@ -180,33 +181,33 @@
           </article>
         </div>
 
-        <!-- Sequential Commission 16-Circle Progress Widget -->
-        <article class="progress-card">
+        <!-- Plan A Cashback 48-Bulb Visual Progress Track -->
+        <article class="progress-card" id="plan-a-cashback-section">
           <div class="progress-header">
             <div class="progress-title-block">
-              <h2>Sequential Commission Progress (16-Circle Cycle)</h2>
-              <p>Earn ₹250.00 per eligible Power Bank purchase when you are the active beneficiary.</p>
+              <h2>Cashback Cycle Progress</h2>
+              <p class="cashback-clean-summary" id="cashback-progress-summary">Progress: 0/48 Bulbs</p>
             </div>
             <div id="queue-status-badge" class="queue-badge not_enrolled">
               Loading Status...
             </div>
           </div>
 
-          <!-- Beneficiary Status Message Callout -->
+          <!-- Active Billing ID & Beneficiary Callout -->
           <div id="beneficiary-message-box" class="beneficiary-status-message notice">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <div>
-              <strong>You are not the current beneficiary.</strong> Fetching queue position...
+            <div id="beneficiary-message-text">
+              <strong>Loading Plan A cycle details...</strong>
             </div>
           </div>
 
-          <!-- 16 Progress Circles Grid -->
-          <div class="circles-grid" id="circles-container">
-            <!-- Rendered dynamically by dashboard.js -->
+          <!-- 48-Bulb Visual Grid -->
+          <div class="bulbs-grid" id="bulbs-container" aria-label="48-Bulb Cashback Grid">
+            <!-- Rendered dynamically by dashboard.js from server bulb_states -->
           </div>
 
           <!-- Progress Bar & Target -->
@@ -214,43 +215,127 @@
             <div class="progress-bar-fill" id="progress-bar-fill" style="width:0%;"></div>
           </div>
           <div class="progress-bar-stats">
-            <span id="progress-bar-stats-text">0 / 16 Commissions Completed (₹0.00 / ₹4,000.00)</span>
-            <span>Cycle Target: ₹4,000.00 (Graduation)</span>
+            <span id="progress-bar-stats-text">Progress: 0/48 Bulbs</span>
+            <span id="progress-target-text">Target: ₹4,000.00</span>
           </div>
 
-          <!-- Power Bank Rule Callout -->
-          <div class="rule-callout">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;">
+          <!-- Milestone Badges Strip -->
+          <div class="milestones-strip">
+            <div class="milestone-card" id="milestone-card-9">
+              <div class="milestone-badge-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                  </polygon>
+                </svg>
+              </div>
+              <div class="milestone-details">
+                <span class="milestone-title">Milestone 1 (Bulb 9)</span>
+                <span class="milestone-reward">₹750.00</span>
+                <span class="milestone-condition">9/48 Bulbs</span>
+              </div>
+            </div>
+
+            <div class="milestone-card" id="milestone-card-24">
+              <div class="milestone-badge-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                  </polygon>
+                </svg>
+              </div>
+              <div class="milestone-details">
+                <span class="milestone-title">Milestone 2 </span>
+                <span class="milestone-reward">₹2,000.00</span>
+                <span class="milestone-condition">24/48 Bulbs </span>
+              </div>
+            </div>
+
+            <div class="milestone-card" id="milestone-card-48">
+              <div class="milestone-badge-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H7"></path>
+                  <path d="M14 14.66V17c0 .55.45 1 1 1h2"></path>
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                </svg>
+              </div>
+              <div class="milestone-details">
+                <span class="milestone-title">Cycle Complete </span>
+                <span class="milestone-reward">₹4,000.00 Target</span>
+                <span class="milestone-condition">48/48 Bulbs </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Plan A Cycle Withdrawal Banner -->
+          <div class="plan-a-withdrawal-banner" id="plan-a-withdrawal-banner">
+            <div>
+              <strong id="withdrawal-banner-title">Cashback Cycle Status</strong>
+              <p style="font-size:var(--text-xs);color:var(--color-muted);margin-top:2px;" id="withdrawal-banner-desc">
+                Complete all 48 contributions to unlock your ₹4,000.00 cycle payout.
+              </p>
+            </div>
+            <div>
+              <button type="button" id="plan-a-withdraw-action-btn" class="btn btn-primary btn-sm" disabled>
+                Request ₹4,000.00 Withdrawal
+              </button>
+            </div>
+          </div>
+
+          <!-- Programme Protection Note -->
+          <div class="rule-callout" style="margin-top:var(--space-6);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              style="flex-shrink:0;margin-top:2px;">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
             <div>
-              <strong>Sequential Commission Architecture Invariant:</strong>
-              Commissions are fixed at exactly ₹250.00 per eligible Power Bank purchase. Only eligible Power Bank orders generate sequential commissions and advance the queue. Once you accumulate 16 commissions (₹4,000.00), you graduate, and the next waiting customer in the queue becomes the active beneficiary.
+              <strong>Plan A Cashback Invariant:</strong>
+              Bulbs are driven by verified server contributions. Upon completing all 48 bulbs, your full accumulated
+              cashback becomes withdrawable.
             </div>
+          </div>
+
+          <!-- Completed Cycles History Accordion/Table -->
+          <div class="table-container"
+            style="margin-top:var(--space-8);box-shadow:none;border-color:var(--color-border);">
+            <div class="table-header-row">
+              <h3>Completed Plan A Cashback Cycles</h3>
+              <span style="font-size:var(--text-xs);color:var(--color-muted);">Cycle History &amp; Earnings</span>
+            </div>
+            <table class="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Cycle #</th>
+                  <th>Contributions</th>
+                  <th>Total Earned</th>
+                  <th>Status</th>
+                  <th>Started At</th>
+                  <th>Completed At</th>
+                </tr>
+              </thead>
+              <tbody id="completed-cycles-table-body">
+                <tr>
+                  <td colspan="6" class="empty-state-box">Loading completed cycles history...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </article>
 
         <!-- Dual Wallets Section -->
         <section class="wallets-section">
           <div class="wallet-tabs" role="tablist">
-            <button
-              type="button"
-              class="wallet-tab-btn active"
-              data-tab="direct_referral"
-              role="tab"
-              aria-selected="true"
-            >
+            <button type="button" class="wallet-tab-btn active" data-tab="direct_referral" role="tab"
+              aria-selected="true">
               Direct Referral Wallet
             </button>
-            <button
-              type="button"
-              class="wallet-tab-btn"
-              data-tab="sequential_commission"
-              role="tab"
-              aria-selected="false"
-            >
+            <button type="button" class="wallet-tab-btn" data-tab="sequential_commission" role="tab"
+              aria-selected="false">
               Sequential Commission Wallet
             </button>
           </div>
@@ -262,18 +347,13 @@
                 <span class="wallet-type-label">Available Balance</span>
                 <div class="wallet-balance-amount" id="dr-wallet-balance">₹0.00</div>
                 <div class="wallet-eligibility-note" id="dr-eligibility-note">
-                  <span class="badge badge-subtle">Threshold: ₹750.00</span>
+                  <span class="badge badge-subtle">Minimum Withdrawal: ₹700</span>
                   <span style="color:var(--color-muted);">Calculating eligibility...</span>
                 </div>
               </div>
 
               <div class="wallet-actions">
-                <button
-                  type="button"
-                  id="dr-withdraw-btn"
-                  class="btn btn-primary btn-withdraw"
-                  disabled
-                >
+                <button type="button" id="dr-withdraw-btn" class="btn btn-primary btn-withdraw" disabled>
                   Withdraw All Direct Referral Funds
                 </button>
                 <span style="font-size:11px;color:var(--color-muted);">Simulated instant liquidation to ₹0.00</span>
@@ -333,26 +413,70 @@
           <!-- Sequential Commission Wallet View -->
           <div id="wallet-view-sequential_commission" class="wallet-view" role="tabpanel">
             <div class="wallet-hero-card">
-              <div class="wallet-balance-box">
-                <span class="wallet-type-label">Available Balance</span>
-                <div class="wallet-balance-amount" id="sc-wallet-balance">₹0.00</div>
-                <div class="wallet-eligibility-note" id="sc-eligibility-note">
-                  <span class="badge badge-subtle">Requirement: 16/16 Cycle Completion</span>
-                  <span style="color:var(--color-muted);">Calculating eligibility...</span>
+              <div class="wallet-balances-group">
+                <!-- Available Balance Box -->
+                <div class="wallet-balance-box">
+                  <span class="wallet-type-label">Available Balance (Withdrawable)</span>
+                  <div class="wallet-balance-amount" id="sc-wallet-balance">₹0.00</div>
+                  <div class="wallet-eligibility-note" id="sc-eligibility-note">
+                    <span class="badge badge-subtle">Requirement: 48/48 Cycle Completion</span>
+                    <span style="color:var(--color-muted);">Calculating eligibility...</span>
+                  </div>
+                </div>
+
+                <!-- Subtle Vertical Divider -->
+                <div class="wallet-balance-divider"></div>
+
+                <!-- Active Cycle Earnings Box (Pending Completion) -->
+                <div class="wallet-balance-box">
+                  <span class="wallet-type-label">Active Cycle Earnings (Pending Completion)</span>
+                  <div class="wallet-balance-amount" id="sc-active-cycle-earnings" style="color:var(--color-primary-600, #4f46e5);">₹0.00</div>
+                  <div class="wallet-eligibility-note" id="sc-active-cycle-note">
+                    <span class="badge badge-info" id="sc-cycle-badge">Cycle Progress</span>
+                    <span id="sc-cycle-pending-text" style="color:var(--color-muted);">Calculating earnings...</span>
+                  </div>
                 </div>
               </div>
 
               <div class="wallet-actions">
-                <button
-                  type="button"
-                  id="sc-withdraw-btn"
-                  class="btn btn-primary btn-withdraw"
-                  disabled
-                >
+                <button type="button" id="sc-withdraw-btn" class="btn btn-primary btn-withdraw" disabled>
                   Withdraw All Sequential Commission Funds
                 </button>
-                <span style="font-size:11px;color:var(--color-muted);">Requires completed 16/16 cycle</span>
+                <span style="font-size:11px;color:var(--color-muted);">Requires completed 16/16 cycle (48/48
+                  bulbs)</span>
               </div>
+            </div>
+
+            <!-- Active Cycle / Plan A Cashback Contribution History Table -->
+            <div class="table-container" id="sc-contributions-container">
+              <div class="table-header-row">
+                <div>
+                  <h3 style="margin:0;">Active Cycle Contribution Ledger (₹250 per Eligible Billing ID)</h3>
+                  <span style="font-size:var(--text-xs);color:var(--color-muted);" id="sc-contributions-subtitle">
+                    Real-time ₹250 contributions allocated from purchased Power Bank Billing IDs
+                  </span>
+                </div>
+                <div id="sc-contributions-summary-badge" class="badge badge-info" style="font-size:12px;padding:4px 10px;">
+                  0 / 16 Contributions (₹0.00)
+                </div>
+              </div>
+              <table class="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Date &amp; Time</th>
+                    <th>Contributing Billing ID</th>
+                    <th>Cycle Reference</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="sc-contributions-body">
+                  <tr>
+                    <td colspan="6" class="empty-state-box">Loading active cycle contributions...</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <!-- SC Auditable Transactions Table -->
@@ -406,11 +530,39 @@
           </div>
         </section>
 
+        <!-- Purchase History & Billing IDs Section (OR-12) -->
+        <article class="referral-manager-card" id="purchase-history-section" style="margin-bottom:var(--space-8);">
+          <div class="table-header-row" style="margin-bottom:var(--space-4);">
+            <div>
+              <h2 style="font-size:var(--text-xl);font-weight:700;margin-bottom:var(--space-1);">Purchase History &amp;
+                Billing IDs</h2>
+              <p style="font-size:var(--text-sm);color:var(--color-muted);margin:0;">
+                Authoritative record of your placed orders, payment statuses, and backend-issued product unit Billing
+                IDs.
+              </p>
+            </div>
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <button type="button" class="btn btn-outline btn-xs" id="refresh-purchases-btn">
+                Refresh
+              </button>
+              <a href="products.html" class="btn btn-primary btn-xs">Shop Products</a>
+            </div>
+          </div>
+
+          <div id="purchase-history-container">
+            <div class="empty-state-box" id="purchase-history-loading"
+              style="padding:var(--space-8);text-align:center;color:var(--color-muted);">
+              Loading purchase history...
+            </div>
+          </div>
+        </article>
+
         <!-- Referral Management Section -->
         <article class="referral-manager-card" id="referrals-section">
           <div class="table-header-row">
             <div>
-              <h2 style="font-size:var(--text-xl);font-weight:700;margin-bottom:var(--space-1);">Referral Program Management</h2>
+              <h2 style="font-size:var(--text-xl);font-weight:700;margin-bottom:var(--space-1);">Referral Program
+                Management</h2>
               <p style="font-size:var(--text-sm);color:var(--color-muted);">
                 Share your personal code with friends. Earn ₹750.00 reward on your referee's first successful purchase.
               </p>
@@ -421,7 +573,8 @@
           <!-- Share Box -->
           <div class="referral-share-box">
             <div>
-              <div style="font-size:var(--text-xs);font-weight:600;text-transform:uppercase;color:var(--color-muted);margin-bottom:var(--space-2);">
+              <div
+                style="font-size:var(--text-xs);font-weight:600;text-transform:uppercase;color:var(--color-muted);margin-bottom:var(--space-2);">
                 Your Permanent Referral Code
               </div>
               <div class="referral-code-display" id="referral-code-value">
@@ -430,18 +583,10 @@
             </div>
 
             <div class="referral-action-buttons">
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                onclick="copyReferralCode()"
-              >
+              <button type="button" class="btn btn-outline btn-sm" onclick="copyReferralCode()">
                 Copy Code
               </button>
-              <button
-                type="button"
-                class="btn btn-primary btn-sm"
-                onclick="copyShareLink()"
-              >
+              <button type="button" class="btn btn-primary btn-sm" onclick="copyShareLink()">
                 Copy Share Link
               </button>
             </div>
@@ -461,7 +606,8 @@
             </div>
             <div class="metric-card highlight">
               <span class="metric-label">Total Referral Rewards</span>
-              <div class="metric-value" id="referral-total-earned" style="font-size:var(--text-2xl);color:var(--color-success);">₹0.00</div>
+              <div class="metric-value" id="referral-total-earned"
+                style="font-size:var(--text-2xl);color:var(--color-success);">₹0.00</div>
               <div class="metric-footer">Credited to Direct Wallet</div>
             </div>
           </div>
@@ -505,7 +651,8 @@
 
       <div class="modal-body">
         <p>You are about to initiate a simulated full-balance withdrawal for:</p>
-        <div style="font-size:var(--text-3xl);font-weight:700;color:var(--color-text);margin:var(--space-3) 0;" id="modal-withdraw-amount">
+        <div style="font-size:var(--text-3xl);font-weight:700;color:var(--color-text);margin:var(--space-3) 0;"
+          id="modal-withdraw-amount">
           ₹0.00
         </div>
         <p style="color:var(--color-muted);font-size:var(--text-xs);">
@@ -513,7 +660,9 @@
         </p>
 
         <div class="modal-warning-box">
-          <strong>Full Liquidation Rule:</strong> In accordance with ShopEasy business rules, partial withdrawals are not permitted. Your entire available wallet balance will be liquidated to ₹0.00 and recorded in the audit ledger.
+          <strong>Full Liquidation Rule:</strong> In accordance with Arya Global Digital business rules, partial
+          withdrawals are not permitted. Your entire available wallet balance will be liquidated to ₹0.00 and recorded
+          in the audit ledger.
         </div>
       </div>
 
@@ -533,7 +682,7 @@
     <div class="container">
       <div class="footer-bottom">
         <p class="footer-disclaimer">
-          &copy; 2026 ShopEasy Inc. Customer Earnings, Queue &amp; Wallets Management.
+          &copy; 2026 Arya Global Digital. Customer Earnings, Queue &amp; Wallets Management.
         </p>
         <div style="display:flex;gap:var(--space-4);">
           <a href="profile.html" style="color:var(--color-primary);">Customer Profile</a>
@@ -552,4 +701,5 @@
   <script src="js/navigation.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
+
 </html>

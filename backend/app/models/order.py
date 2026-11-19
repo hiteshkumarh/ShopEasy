@@ -116,6 +116,13 @@ class Order(Base):
         uselist=False,
     )
 
+    @property
+    def latest_attempt_reference(self) -> Optional[str]:
+        """Return attempt reference of the latest payment attempt."""
+        if self.payment_attempts:
+            return self.payment_attempts[-1].attempt_reference
+        return None
+
 
 class OrderItem(Base):
     """Line items within a customer order."""
@@ -150,6 +157,13 @@ class OrderItem(Base):
     billing_ids: Mapped[List["BillingId"]] = relationship(
         "BillingId", back_populates="order_item", cascade="all, delete-orphan"
     )
+
+    @property
+    def product_image(self) -> Optional[str]:
+        """Return product image URL if product relationship is loaded."""
+        if self.product and self.product.image_url:
+            return self.product.image_url
+        return None
 
 
 class OrderAllocation(Base):

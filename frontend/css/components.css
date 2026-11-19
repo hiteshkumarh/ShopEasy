@@ -1,6 +1,6 @@
 /* ==========================================================================
-   ShopEasy --- Component Styles
-   Header, Navigation, Buttons, Cards, Forms, Toasts, and Footer
+   Arya Global Digital --- Component Styles
+   Header, Navigation, Buttons, Cards, Forms, Badges, Toasts, and Footer
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -10,10 +10,11 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: rgba(255, 255, 255, 0.88);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid var(--color-border-subtle);
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -21,23 +22,47 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 52px;
+  height: 60px;
 }
 
 .brand-logo {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   letter-spacing: -0.025em;
-  color: var(--color-text);
+  color: var(--color-brand-primary);
+  text-decoration: none;
 }
 
-.brand-logo svg {
-  width: 20px;
-  height: 20px;
-  color: var(--color-primary);
+.brand-logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent));
+  color: #FFFFFF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
+}
+
+.brand-logo-mark svg {
+  width: 18px;
+  height: 18px;
+  stroke: #FFFFFF;
+}
+
+.brand-logo span {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.brand-logo span strong {
+  color: var(--color-brand-accent);
+  font-weight: 700;
 }
 
 .nav-links {

@@ -28,9 +28,9 @@ No existing feature is FIT: the repository has no automated tests.
 | Register without referral code | A §4.1(1), B §4.3 | FIT-untested | Customers and distributors in both programmes register without entering referral codes |
 | Permanent unique referral code | A §4.1(2,6), B §4.1 | PART | Exists; needs per-programme prefix (e.g. `PA…`/`PB…`), copy button, tests |
 | "Invalid Referral" (Plan A) / "Wrong Referral ID" (Plan B) messages | A §4.1(5), B §4.3 | DEFECT | Generic messages today; must display exact programme-specific error messages |
-| Referral entry at checkout (both Plan A and Plan B) | A §4.1, B §4.3 | PART | Confirmed business rule: entered during checkout for both programmes; bound only after successful order; BR-X1 Option B confirmed (later-order entry allowed if unreferred; non-retroactive); BR-B1 Option A confirmed (₹500 direct commission payable on qualifying later order) |
+| Referral entry at checkout (both Plan A and Plan B) | A §4.1, B §4.3 | PART | Confirmed business rule: entered during checkout for both programmes; bound only after successful order. Confirmed per BR-X1: Plan A repeat purchases using a valid referral code award ₹700 net commission per Power Bank to the new code's owner (even if previously referred by someone else); repeat Billing IDs bypass cashback queues/cycles and their ₹250 allocation is not credited. Confirmed per BR-B1 (Option A) for Plan B: ₹500 direct commission payable on qualifying later order that establishes relationship |
 | Plan B code validated at checkout, show distributor name, confirm | B §4.3, §8.1 | PART | Checkout validation exists; distributor name preview (no other PII) and customer confirmation to implement |
-| Allowed directions A→A, B→A only | B §4.2 | NONE | Direction check in referral service |
+| Referral direction rules; A→B forbidden (BR-X3) | B §4.2, BR-X3 | NONE | Confirmed decision BR-X3: Plan A participants CANNOT refer Plan B participants (A→B forbidden; Plan A referral code rejected for Plan B registration/purchase; no Plan A commission or cashback calculated). Existing rules preserved: A→A allowed; B→A allowed (starts independent Plan A queue per BR-A2); Plan B referral rules (BR-B1 direct ₹500, BR-B2 generation ₹50, BR-X2) remain preserved and unchanged. Direction check in referral service |
 | Inactive Plan A referrer rejected | A §4.1(9–10) | PART | "Active" today = account active, not "has purchased" |
 | Inactive Plan B distributor referrer rejected | B §4.3, BR-X2 | NONE | Confirmed per BR-X2 Option A: distributor must successfully complete a product purchase before their referral code is eligible |
 | Self-referral incl. other account/phone | A §4.1(8) | PART | Same-account blocked; cross-account detection needs a rule (same phone impossible; other heuristics undefined) |
@@ -59,12 +59,12 @@ No existing feature is FIT: the repository has no automated tests.
 
 | Capability | PRD ref | Status | Gap |
 |---|---|---|---|
-| ₹750 gross / ₹35 / ₹15 / ₹700 net per Billing ID | A §6 | DEFECT | Old: ₹750 once per referee, no deductions |
+| ₹750 gross / ₹35 / ₹15 / ₹700 net per Billing ID | A §6 | DEFECT | Old: ₹750 once per referee, no deductions. Confirmed rules implementable: 1 Billing ID per power bank, ₹750 gross, ₹35 op cost, ₹15 TDS, ₹700 net to immediate eligible Plan A referrer; unallocated ₹750 pool accounting (unreferred orders) pending BR-A7 |
 | Commission auto-credited, no approval, unique ref, no duplicates | A §6.2 | PART | Auto & idempotent but per-referee |
 | Separate commission wallet & history | A §7 | PART | Wallet exists (as "direct_referral") |
-| Commission withdrawal request, unique ref, no duplicates, independent of cashback | A §7 | DEFECT/BLOCKED (BR-A6) | Instant payout; rule unclear |
-| ₹250 contribution per eligible Billing ID | A §8 | DEFECT/BLOCKED | Per-order; allocation BR-A1..A5 |
-| Multiple independent FIFO queues, Billing-ID recipients, WAITING/ACTIVE/COMPLETED | A §9 | DEFECT/BLOCKED | Single global per-customer queue |
+| Commission withdrawal request, unique ref, no duplicates, independent of cashback | A §7 | PART | Old code has instant payout; per confirmed BR-A6: separate commission withdrawal category (min ₹700, no admin approval, standard net deductions) |
+| ₹250 contribution per eligible Billing ID | A §8 | DEFECT/BLOCKED | Per-order in old code; all Plan A cashback rules confirmed: BR-A1 (every eligible Billing ID contributes separately; no 1-per-customer limit); BR-A2 (1 Billing ID per power bank, separate root queues, sequential cycle); BR-A3 (contributes to active recipient first, then joins queue as WAITING); BR-A4 Option A (initial contribution without active recipient retained permanently as company-owned unallocated cashback reserve); BR-A5 Option A (recipient own-purchase exclusion: active recipient's own subsequent purchase ₹250 permanently allocated to company-owned unallocated reserve, never transferred or credited to another customer, traceable in financial records); BR-A7 concerns unallocated ₹750 commission pool only and does NOT block cashback engine. Per confirmed BR-X1: repeat-purchase Billing IDs are completely excluded from cashback cycles and their ₹250 allocation is not credited |
+| Multiple independent FIFO queues, Billing-ID recipients, WAITING/ACTIVE/COMPLETED | A §9 | DEFECT/BLOCKED | Old code has single global per-customer queue; BR-A2 confirmed (independent root queues strictly isolated; unreferred Plan A starts new queue; Plan A customer using Plan B referral starts independent Plan A queue; downlines stay in root queue). Per confirmed BR-X1: repeat-purchase Billing IDs bypass cashback queues and cycles entirely (do not join queues or become recipients) |
 | 16 × ₹250 = ₹4,000 cycle | A §8.1 | PART | Constant exists; per-customer lifetime only |
 | 48-bulb indicator (3 per contribution), sequential display | A §10 | NONE | |
 | Cashback withdrawal: full ₹4,000, admin approve/reject with reason, one active request per cycle, history | A §11 | NONE | |
@@ -98,7 +98,8 @@ No existing feature is FIT: the repository has no automated tests.
 |---|---|---|
 | Dashboard / customers / orders / products | A §13, B §14 | PART |
 | Search by name / phone / Billing ID / order ID | A §13.1, B §14.3 | PART (name/phone partial) |
-| Commission, cashback, queues, withdrawals views | A §13.1 | NONE |
+| Commission, cashback, queues, withdrawals views | A §13.1 | NONE | |
+| Dedicated Unallocated Cashback Reserve section | BR-A4 Option A | NONE | Dedicated admin view for company-owned unallocated cashback reserve (permanently retained initial queue ₹250 contributions under confirmed BR-A4 Option A). Shows total unallocated cashback, queue-wise breakdown, original Billing ID, customer reference, date reserved, and status `UNALLOCATED — COMPANY OWNED`. Not a customer wallet balance; supported by traceable financial records |
 | PDF & Excel exports | A §14 | NONE |
 | Financial configuration UI | A §3 | NONE |
 | Audit log viewer | A §14 | NONE |

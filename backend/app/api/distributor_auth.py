@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.enums import AccountStatus, OTPPurpose, Programme, UserRole, WalletType
 from app.models.user import User
@@ -40,6 +41,7 @@ router = APIRouter(prefix="/distributor", tags=["Plan B Distributor Authenticati
     response_model=CustomerRegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new Plan B distributor account",
+    dependencies=[Depends(rate_limit("distributor_register", max_requests=5, window_seconds=60))],
 )
 def register_distributor(
     payload: CustomerRegisterRequest,
@@ -139,7 +141,18 @@ def register_distributor(
     logger.info(
         f"Plan B distributor registered (ID: {new_distributor.id}, Phone: {_mask_phone(clean_phone)}, Referral: {referral_code})."
     )
-    return CustomerRegisterResponse.model_validate(new_distributor)
+    access_token = create_access_token(
+        user_id=new_distributor.id,
+        role=new_distributor.role.value if hasattr(new_distributor.role, "value") else str(new_distributor.role),
+        phone=new_distributor.phone,
+        extra_claims={
+            "programme": new_distributor.programme.value if hasattr(new_distributor.programme, "value") else str(new_distributor.programme),
+            "account_status": new_distributor.account_status.value if hasattr(new_distributor.account_status, "value") else str(new_distributor.account_status),
+        },
+    )
+    res = CustomerRegisterResponse.model_validate(new_distributor)
+    res.access_token = access_token
+    return res
 
 
 @router.post(
@@ -147,12 +160,14 @@ def register_distributor(
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Log in Plan B distributor using phone and password",
+    dependencies=[Depends(rate_limit("distributor_login", max_requests=10, window_seconds=60))],
 )
 @router.post(
     "/login/password",
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Log in Plan B distributor using phone and password",
+    dependencies=[Depends(rate_limit("distributor_login", max_requests=10, window_seconds=60))],
 )
 def login_distributor_via_password(
     payload: CustomerPasswordLoginRequest,

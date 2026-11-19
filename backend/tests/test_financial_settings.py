@@ -399,9 +399,25 @@ class TestFinancialSettingsAlembicMigration:
 
         # 1. Exactly one single head
         assert len(heads) == 1
-        assert heads[0] == "b7f2d4e8c1a9"
+        assert heads[0] == "f4a5b6c7d8e9"
 
-        # 2. Linear down_revision chain including WP-6 head, WP-5 head, WP-3 head and existing chain
+        # 2. Linear down_revision chain including WP-10 head, WP-9 head, WP-8 head, WP-7 head, WP-6 head, WP-5 head, WP-3 head and existing chain
+        wp10_rev = script.get_revision("f4a5b6c7d8e9")
+        assert wp10_rev is not None
+        assert wp10_rev.down_revision == "e3f4a5b6c7d8"
+
+        wp9_rev = script.get_revision("e3f4a5b6c7d8")
+        assert wp9_rev is not None
+        assert wp9_rev.down_revision == "d2e3f4a5b6c7"
+
+        wp8_rev = script.get_revision("d2e3f4a5b6c7")
+        assert wp8_rev is not None
+        assert wp8_rev.down_revision == "c1e2d3f4a5b6"
+
+        wp7_rev = script.get_revision("c1e2d3f4a5b6")
+        assert wp7_rev is not None
+        assert wp7_rev.down_revision == "b7f2d4e8c1a9"
+
         wp6_rev = script.get_revision("b7f2d4e8c1a9")
         assert wp6_rev is not None
         assert wp6_rev.down_revision == "a8f5c3b1e9d2"
@@ -436,6 +452,10 @@ class TestFinancialSettingsAlembicMigration:
 
         # Verify complete linear chain without branches or altered revision IDs
         expected_chain = [
+            "f4a5b6c7d8e9",
+            "e3f4a5b6c7d8",
+            "d2e3f4a5b6c7",
+            "c1e2d3f4a5b6",
             "b7f2d4e8c1a9",
             "a8f5c3b1e9d2",
             "79b742f969d6",

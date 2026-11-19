@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.core.security import (
     create_access_token,
     create_mfa_token,
@@ -23,6 +24,7 @@ from app.schemas.auth import (
     MFARequiredResponse,
     TokenResponse,
 )
+from app.services.audit_service import AuditService
 from app.services.otp_service import (
     _mask_phone,
     create_otp,
@@ -39,6 +41,7 @@ router = APIRouter(prefix="/admin", tags=["Admin Authentication"])
     "/otp/request",
     status_code=status.HTTP_200_OK,
     summary="Request a login OTP for an administrator",
+    dependencies=[Depends(rate_limit("admin_otp_request", max_requests=5, window_seconds=60))],
 )
 def request_admin_login_otp(
     payload: AdminOTPRequest,
@@ -167,6 +170,20 @@ def login_admin_via_otp(
         phone=admin.phone,
     )
 
+    AuditService.record_action(
+        db=db,
+        action="ADMIN_LOGIN_SUCCESS",
+        entity_type="User",
+        entity_id=admin.id,
+        actor_id=admin.id,
+        actor_role=admin.role.value,
+        metadata={
+            "auth_method": "otp",
+            "phone_masked": _mask_phone(clean_phone),
+        },
+    )
+    db.commit()
+
     logger.info(f"Administrator logged in via OTP (ID: {admin.id}, Phone: {_mask_phone(clean_phone)}).")
     return TokenResponse(
         access_token=access_token,
@@ -180,12 +197,14 @@ def login_admin_via_otp(
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Log in administrator using phone and password directly",
+    dependencies=[Depends(rate_limit("admin_login", max_requests=5, window_seconds=60))],
 )
 @router.post(
     "/login/password",
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Log in administrator using phone and password directly",
+    dependencies=[Depends(rate_limit("admin_login", max_requests=5, window_seconds=60))],
 )
 def login_admin_via_password(
     payload: AdminPasswordLoginRequest,
@@ -229,6 +248,20 @@ def login_admin_via_password(
         role=admin.role.value,
         phone=admin.phone,
     )
+
+    AuditService.record_action(
+        db=db,
+        action="ADMIN_LOGIN_SUCCESS",
+        entity_type="User",
+        entity_id=admin.id,
+        actor_id=admin.id,
+        actor_role=admin.role.value,
+        metadata={
+            "auth_method": "password",
+            "phone_masked": _mask_phone(clean_phone),
+        },
+    )
+    db.commit()
 
     logger.info(f"Administrator logged in directly via password (ID: {admin.id}, Phone: {_mask_phone(clean_phone)}).")
     return TokenResponse(

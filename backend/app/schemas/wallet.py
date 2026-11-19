@@ -18,6 +18,7 @@ class WalletBalanceResponse(BaseModel):
     wallet_type: WalletType
     balance: Decimal = Field(..., max_digits=10, decimal_places=2)
     total_withdrawn: Decimal = Field(..., max_digits=10, decimal_places=2)
+    is_frozen: bool = Field(default=False)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,7 +64,88 @@ class WithdrawalResponse(BaseModel):
     status: WithdrawalStatus
     idempotency_key: str
     requested_at: datetime
-    completed_at: datetime
+    completed_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    admin_id: Optional[int] = None
+    receipt_reference: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminWithdrawalReviewRequest(BaseModel):
+    """Admin request payload to reject or process a pending withdrawal."""
+
+    reason: Optional[str] = Field(default=None, max_length=255, description="Mandatory reason for rejection")
+
+
+class AdminWalletFreezeRequest(BaseModel):
+    """Admin request payload to freeze a wallet."""
+
+    reason: str = Field(..., min_length=3, max_length=255, description="Mandatory reason for freezing wallet")
+
+
+class UserWalletSummary(BaseModel):
+    """Summary of a user wallet for administrative lookup and selection."""
+
+    id: int
+    user_id: int
+    wallet_type: str
+    balance: Decimal
+    total_withdrawn: Decimal
+    is_frozen: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserWalletsLookupResponse(BaseModel):
+    """Response containing user identification and associated wallets."""
+
+    user_id: int
+    full_name: str
+    phone: str
+    role: str
+    programme: Optional[str] = None
+    account_status: Optional[str] = None
+    wallets: List[UserWalletSummary]
+
+
+class AdminWalletFreezeByPhoneRequest(BaseModel):
+    """Admin request to freeze a wallet identified by registered mobile number."""
+
+    user_number: str = Field(..., min_length=1, max_length=30, description="Customer or distributor registered mobile number")
+    wallet_id: Optional[int] = Field(None, description="Optional wallet ID if user has multiple wallets")
+    reason: str = Field(..., min_length=3, max_length=500, description="Mandatory reason for action")
+
+
+class AdminWalletUnfreezeByPhoneRequest(BaseModel):
+    """Admin request to unfreeze a wallet identified by registered mobile number."""
+
+    user_number: str = Field(..., min_length=1, max_length=30, description="Customer or distributor registered mobile number")
+    wallet_id: Optional[int] = Field(None, description="Optional wallet ID if user has multiple wallets")
+    reason: Optional[str] = Field("Administrative unfreeze", max_length=500, description="Reason for action")
+
+
+class AdminWalletFreezeByPhoneResponse(BaseModel):
+    """Result of freeze or unfreeze operation executed by user mobile number."""
+
+    status: str
+    message: str
+    wallet_id: int
+    is_frozen: bool
+    user: dict
+
+
+class WalletFreezeHistoryResponse(BaseModel):
+    """Audit record for wallet freeze/unfreeze actions."""
+
+    id: int
+    wallet_id: int
+    admin_id: int
+    action: str
+    reason: str
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

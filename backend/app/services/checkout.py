@@ -227,15 +227,45 @@ def execute_checkout(
 
         # 11. Commit transaction
         db.commit()
+
+        # If checkout requested immediate simulated payment completion (e.g. from frontend checkout)
+        if getattr(checkout_data, "simulate_payment", False):
+            import uuid
+            from app.core.config import settings
+            event_id = f"sim_evt_{uuid.uuid4().hex[:12]}"
+            sim_payload = {
+                "event_id": event_id,
+                "event_type": "payment.completed",
+                "attempt_reference": attempt.attempt_reference,
+                "amount": float(attempt.amount),
+                "currency": attempt.currency,
+                "transaction_id": f"SIM-TXN-{uuid.uuid4().hex[:8].upper()}",
+            }
+            raw_bytes = json.dumps(sim_payload).encode("utf-8")
+            headers = {
+                "X-ShopEasy-Simulated-Auth": settings.SIMULATED_PAYMENT_SECRET,
+                "Content-Type": "application/json",
+            }
+            try:
+                PaymentService.process_verified_event(
+                    db=db,
+                    raw_payload=raw_bytes,
+                    headers=headers,
+                )
+            except Exception as sim_exc:
+                logger.error(f"Immediate simulated payment execution encountered error: {sim_exc}")
+
         db.refresh(order)
         # Touch relationships to ensure loaded in session
         _ = order.order_items
         _ = order.address
         _ = order.payment_attempts
+        _ = order.billing_ids
+        _ = order.order_allocation
 
         logger.info(
             f"Successfully placed order #{order.id} ({order.order_number}) "
-            f"for customer #{customer.id}: amount={order.total_amount}"
+            f"for customer #{customer.id}: amount={order.total_amount}, status={order.order_status}"
         )
         return order
 

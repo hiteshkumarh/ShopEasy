@@ -349,7 +349,7 @@ class TestEndToEndCommissionIntegration:
         assert split.net.amount == Decimal("700.00")
 
     def test_plan_b_integrated_commission_splits_with_money(self, db_session: Session) -> None:
-        """Verify Plan B direct (500 -> 0 / 0 / 500) and generation (50 -> 0 / 0 / 50) splits under BR-B2 defaults."""
+        """Verify Plan B direct and generation splits under confirmed BR-B2 / R-16 defaults (4.6667% op cost, 2% TDS)."""
         seed_financial_settings(db_session)
 
         # Resolve Plan B settings from database as of transaction time
@@ -359,28 +359,31 @@ class TestEndToEndCommissionIntegration:
         s_op = resolve_setting(db_session, Programme.PLAN_B, SettingKey.OP_COST_RATE, t_txn)
         s_tds = resolve_setting(db_session, Programme.PLAN_B, SettingKey.TDS_RATE, t_txn)
 
-        # 1. Direct Commission (Rs. 500.00)
+        assert s_op.setting_value == Decimal("0.046667")
+        assert s_tds.setting_value == Decimal("0.020000")
+
+        # 1. Direct Commission (Rs. 500.00) -> 23.33 Op Cost, 10.00 TDS, 466.67 Net
         direct_split = calculate_commission_split(
             gross=s_direct.as_money(),
             op_cost_rate=s_op.as_rate(),
             tds_rate=s_tds.as_rate(),
         )
         assert direct_split.gross == Money("500.00", "INR")
-        assert direct_split.op_cost == Money("0.00", "INR")
-        assert direct_split.tds == Money("0.00", "INR")
-        assert direct_split.net == Money("500.00", "INR")
+        assert direct_split.op_cost == Money("23.33", "INR")
+        assert direct_split.tds == Money("10.00", "INR")
+        assert direct_split.net == Money("466.67", "INR")
         assert direct_split.gross == direct_split.op_cost + direct_split.tds + direct_split.net
 
-        # 2. Generation Commission (Rs. 50.00)
+        # 2. Generation Commission (Rs. 50.00) -> 2.33 Op Cost, 1.00 TDS, 46.67 Net
         gen_split = calculate_commission_split(
             gross=s_gen.as_money(),
             op_cost_rate=s_op.as_rate(),
             tds_rate=s_tds.as_rate(),
         )
         assert gen_split.gross == Money("50.00", "INR")
-        assert gen_split.op_cost == Money("0.00", "INR")
-        assert gen_split.tds == Money("0.00", "INR")
-        assert gen_split.net == Money("50.00", "INR")
+        assert gen_split.op_cost == Money("2.33", "INR")
+        assert gen_split.tds == Money("1.00", "INR")
+        assert gen_split.net == Money("46.67", "INR")
         assert gen_split.gross == gen_split.op_cost + gen_split.tds + gen_split.net
 
 
@@ -389,7 +392,7 @@ class TestBaselineDataSeedingPipeline:
     """Test full baseline seed pipeline integration."""
 
     def test_seed_baseline_data_integration(self, db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Verify seed_baseline_data() initializes Admin, QueueControl, and Financial Settings together."""
+        """Verify seed_baseline_data() initializes Admin and Financial Settings together (QueueControl excluded)."""
         monkeypatch.setenv("ADMIN_NAME", "Integration Admin")
         monkeypatch.setenv("ADMIN_PHONE", "+919876543210")
         monkeypatch.setenv("ADMIN_PASSWORD", "SuperSecureAdminPassword123!")
@@ -397,8 +400,12 @@ class TestBaselineDataSeedingPipeline:
         summary = seed_baseline_data(db_session, include_product=False)
 
         assert "admin" in summary
-        assert "queue_control" in summary
+        assert "queue_control" not in summary
         assert "financial_settings" in summary
+
+        # Confirm QueueControl singleton was NOT created by baseline seeder
+        from app.models.queue import QueueControl
+        assert db_session.query(QueueControl).count() == 0
 
         fin_summary = summary["financial_settings"]
         assert fin_summary["action"] == "created"
@@ -418,3 +425,10 @@ class TestBaselineDataSeedingPipeline:
             .all()
         )
         assert len(settings_with_admin) == 14
+
+        # Verify idempotence on repeat run
+        repeat_summary = seed_baseline_data(db_session, include_product=False)
+        assert repeat_summary["admin"]["action"] == "skipped"
+        assert repeat_summary["financial_settings"]["action"] == "skipped"
+        assert repeat_summary["financial_settings"]["skipped_count"] == 14
+        assert db_session.query(QueueControl).count() == 0

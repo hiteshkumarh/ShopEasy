@@ -54,11 +54,14 @@ env.bak/
 *.secret
 *.pem
 *.key
+certs/
 
-# Application Logs & Databases
+# Application Logs, Databases & Backups
 *.log
 *.sqlite
 *.sqlite3
+*.sql
+backups/
 
 # Local Test & Scratch Artifacts
 scratch/

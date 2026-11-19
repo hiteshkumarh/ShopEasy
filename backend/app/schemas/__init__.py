@@ -35,8 +35,10 @@ from app.schemas.dashboard import (
     WithdrawalEligibility,
 )
 from app.schemas.order import (
+    BillingIdResponse,
     CheckoutRequest,
     OrderAllocationResponse,
+    OrderItemBillingIdResponse,
     OrderItemResponse,
     OrderListResponse,
     OrderResponse,
@@ -92,8 +94,10 @@ __all__ = [
     "SequentialProgress",
     "WithdrawalEligibility",
     # Order
+    "BillingIdResponse",
     "CheckoutRequest",
     "OrderAllocationResponse",
+    "OrderItemBillingIdResponse",
     "OrderItemResponse",
     "OrderListResponse",
     "OrderResponse",

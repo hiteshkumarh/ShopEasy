@@ -782,16 +782,22 @@ class TestConcurrencyAndVersionManagement:
 
     def test_unrelated_integrity_error_fails_immediately_without_retry(self, db_session: Session) -> None:
         """Unrelated DB constraint failures (e.g. invalid created_by_id foreign key) must not be retried."""
-        if db_session.bind and db_session.bind.dialect.name == "sqlite":
+        is_sqlite = bool(db_session.bind and db_session.bind.dialect.name == "sqlite")
+        if is_sqlite:
             db_session.execute(text("PRAGMA foreign_keys = ON"))
-        with pytest.raises(IntegrityError):
-            create_setting(
-                db=db_session,
-                programme=Programme.PLAN_A,
-                setting_key="INVALID_FK_KEY",
-                setting_value=Decimal("10.00"),
-                created_by_id=99999999,  # Non-existent user ID
-            )
+        try:
+            with pytest.raises(IntegrityError):
+                create_setting(
+                    db=db_session,
+                    programme=Programme.PLAN_A,
+                    setting_key="INVALID_FK_KEY",
+                    setting_value=Decimal("10.00"),
+                    created_by_id=99999999,  # Non-existent user ID
+                )
+        finally:
+            if is_sqlite:
+                db_session.rollback()
+                db_session.execute(text("PRAGMA foreign_keys = OFF"))
 
     def test_concurrent_first_version_creation_across_sessions(self, test_engine: Engine) -> None:
         """Simulate two sessions simultaneously executing create_setting: exactly one succeeds, the other gets SettingAlreadyExistsError."""
@@ -802,65 +808,77 @@ class TestConcurrencyAndVersionManagement:
         results = []
         errors = []
 
-        def worker(session: Session, val: Decimal) -> None:
-            try:
-                res = create_setting(
-                    db=session,
-                    programme=Programme.PLAN_A,
-                    setting_key="CONCURRENT_V1_KEY",
-                    setting_value=val,
-                )
-                results.append(res)
-            except Exception as e:
-                errors.append(e)
-            finally:
-                session.close()
+        try:
+            def worker(session: Session, val: Decimal) -> None:
+                try:
+                    res = create_setting(
+                        db=session,
+                        programme=Programme.PLAN_A,
+                        setting_key="CONCURRENT_V1_KEY",
+                        setting_value=val,
+                    )
+                    results.append(res)
+                except Exception as e:
+                    errors.append(e)
+                finally:
+                    session.close()
 
-        # Run both workers
-        worker(session1, Decimal("100.000000"))
-        worker(session2, Decimal("200.000000"))
+            # Run both workers
+            worker(session1, Decimal("100.000000"))
+            worker(session2, Decimal("200.000000"))
 
-        assert len(results) == 1
-        assert results[0].version == 1
-        assert len(errors) == 1
-        assert isinstance(errors[0], SettingAlreadyExistsError)
+            assert len(results) == 1
+            assert results[0].version == 1
+            assert len(errors) == 1
+            assert isinstance(errors[0], SettingAlreadyExistsError)
+        finally:
+            with test_engine.begin() as conn:
+                from app.core.database import Base
+                for table in reversed(Base.metadata.sorted_tables):
+                    conn.execute(table.delete())
 
     def test_threaded_subsequent_version_updates(self, test_engine: Engine) -> None:
         """Verify sequential/concurrent update_setting executions produce monotonically increasing versions."""
         SessionMaker = sessionmaker(bind=test_engine)
 
-        # Initialize Version 1
-        init_sess = SessionMaker()
-        create_setting(
-            db=init_sess,
-            programme=Programme.PLAN_A,
-            setting_key="MONOTONIC_TEST",
-            setting_value=Decimal("100.000000"),
-            effective_from=datetime(2026, 1, 1, 0, 0, 0),
-        )
-        init_sess.close()
-
-        # Update 4 times with strictly increasing effective_from
-        for i in range(2, 6):
-            sess = SessionMaker()
-            updated = update_setting(
-                db=sess,
+        try:
+            # Initialize Version 1
+            init_sess = SessionMaker()
+            create_setting(
+                db=init_sess,
                 programme=Programme.PLAN_A,
                 setting_key="MONOTONIC_TEST",
-                new_value=Decimal(f"{100 + i}.000000"),
-                effective_from=datetime(2026, 1, i, 0, 0, 0),
+                setting_value=Decimal("100.000000"),
+                effective_from=datetime(2026, 1, 1, 0, 0, 0),
             )
-            assert updated.version == i
-            sess.close()
+            init_sess.close()
 
-        # Final check: Version is 5, and exactly 5 history records exist
-        final_sess = SessionMaker()
-        latest = get_setting(final_sess, Programme.PLAN_A, "MONOTONIC_TEST")
-        assert latest.version == 5
-        assert latest.setting_value == Decimal("105.000000")
+            # Update 4 times with strictly increasing effective_from
+            for i in range(2, 6):
+                sess = SessionMaker()
+                updated = update_setting(
+                    db=sess,
+                    programme=Programme.PLAN_A,
+                    setting_key="MONOTONIC_TEST",
+                    new_value=Decimal(f"{100 + i}.000000"),
+                    effective_from=datetime(2026, 1, i, 0, 0, 0),
+                )
+                assert updated.version == i
+                sess.close()
 
-        history = get_setting_history(final_sess, Programme.PLAN_A, "MONOTONIC_TEST")
-        assert len(history) == 5
-        versions_in_history = [h.version for h in history]
-        assert versions_in_history == [5, 4, 3, 2, 1]
-        final_sess.close()
+            # Final check: Version is 5, and exactly 5 history records exist
+            final_sess = SessionMaker()
+            latest = get_setting(final_sess, Programme.PLAN_A, "MONOTONIC_TEST")
+            assert latest.version == 5
+            assert latest.setting_value == Decimal("105.000000")
+
+            history = get_setting_history(final_sess, Programme.PLAN_A, "MONOTONIC_TEST")
+            assert len(history) == 5
+            versions_in_history = [h.version for h in history]
+            assert versions_in_history == [5, 4, 3, 2, 1]
+            final_sess.close()
+        finally:
+            with test_engine.begin() as conn:
+                from app.core.database import Base
+                for table in reversed(Base.metadata.sorted_tables):
+                    conn.execute(table.delete())

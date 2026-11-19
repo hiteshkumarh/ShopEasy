@@ -2,12 +2,24 @@
 
 from app.models.audit import AuditLog
 from app.models.cart import CartItem
+from app.models.cashback import (
+    PlanACashbackContribution,
+    PlanACashbackCycle,
+    PlanACashbackEntry,
+    PlanACashbackQueue,
+    PlanAUnallocatedCashbackReserve,
+)
 from app.models.billing import (
     BillingCounter,
     BillingEngineClaim,
     BillingId,
 )
-from app.models.commission import ReferralCommission, SequentialCommission
+from app.models.commission import (
+    PlanACommission,
+    PlanBCommission,
+    ReferralCommission,
+    SequentialCommission,
+)
 from app.models.enums import (
     AccountStatus,
     AllocationScenario,
@@ -35,7 +47,7 @@ from app.models.product import Product
 from app.models.queue import BeneficiaryQueue, CommissionCycle, QueueControl
 from app.models.referral import ReferralRelationship
 from app.models.user import AccountStatusHistory, Address, OTP, User
-from app.models.wallet import Wallet, WalletTransaction, Withdrawal
+from app.models.wallet import Wallet, WalletFreezeHistory, WalletTransaction, Withdrawal
 
 __all__ = [
     # Enums
@@ -76,7 +88,15 @@ __all__ = [
     "QueueControl",
     "SequentialCommission",
     "ReferralCommission",
+    "PlanACommission",
+    "PlanBCommission",
+    "PlanACashbackQueue",
+    "PlanACashbackEntry",
+    "PlanACashbackCycle",
+    "PlanACashbackContribution",
+    "PlanAUnallocatedCashbackReserve",
     "Wallet",
+    "WalletFreezeHistory",
     "WalletTransaction",
     "Withdrawal",
     "FinancialSetting",

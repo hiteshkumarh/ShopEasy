@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
-from app.models.enums import AccountStatus, UserRole
+from app.models.enums import AccountStatus, Programme, UserRole
 from app.models.user import User
 
 logger = logging.getLogger("shopeasy.auth")
@@ -133,4 +133,18 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
             detail="Access forbidden: Administrator privileges required.",
         )
     return current_user
+
+
+def require_distributor(current_user: User = Depends(get_current_user)) -> User:
+    """Authorize authenticated Plan B distributor users.
+
+    Rejects non-distributor or non-Plan B accounts with HTTP 403 Forbidden.
+    """
+    if current_user.role != UserRole.CUSTOMER or current_user.programme != Programme.PLAN_B:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: Plan B distributor privileges required.",
+        )
+    return current_user
+
 

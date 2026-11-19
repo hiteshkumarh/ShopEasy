@@ -1,96 +1,91 @@
 /* ==========================================================================
-   ShopEasy --- Base Styles & Design Tokens
-   Apple.com-inspired minimalist design system
+   Arya Global Digital --- Base Styles & Design Tokens
+   Premium Minimalist Responsive Design System
    ========================================================================== */
 
 :root {
-  /* Color Palette */
-  --color-bg: #FFFFFF;
-  --color-surface: #F5F5F7;
-  --color-surface-hover: #EBEBED;
-  --color-surface-card: #FFFFFF;
-  --color-text: #1D1D1F;
-  --color-muted: #6E6E73;
-  --color-primary: #0071E3;
-  --color-primary-hover: #0077ED;
-  --color-primary-active: #0062C4;
-  --color-border: #D2D2D7;
-  --color-border-subtle: #E5E5EA;
-  --color-success: #248A3D;
-  --color-danger: #D70015;
-  --color-warning: #B25000;
+  /* Brand Identity & Color Palette */
+  --color-brand-primary: #1E3A8A;       /* Deep Arya Navy */
+  --color-brand-accent: #2563EB;        /* Radiant Cobalt */
+  --color-brand-subtle: #EFF6FF;        /* Soft Tint Background */
+
+  --color-bg: #FAFAFA;                  /* Crisp Clean Neutral Light Background */
+  --color-surface: #F3F4F6;             /* Subtle Neutral Surface */
+  --color-surface-hover: #E5E7EB;       /* Surface Hover State */
+  --color-surface-card: #FFFFFF;        /* Pure White Elevated Card */
+
+  --color-text: #0F172A;                /* High Contrast Deep Slate Text */
+  --color-text-secondary: #334155;      /* Secondary Dark Slate */
+  --color-muted: #64748B;               /* Refined Neutral Muted Text */
+
+  --color-primary: #1E3A8A;             /* Default Primary Action: Deep Arya Navy */
+  --color-primary-hover: #1D4ED8;       /* Primary Hover State */
+  --color-primary-active: #172554;      /* Primary Active State */
+
+  --color-border: #E2E8F0;              /* Refined Minimalist Border */
+  --color-border-subtle: #F1F5F9;       /* Subtle Card Divider Border */
+  --color-border-focus: #3B82F6;        /* Focus Ring Border */
+
+  /* Functional Status Colors */
+  --color-success: #059669;             /* Refined Forest Green */
+  --color-success-bg: #ECFDF5;          /* Success Light Pill Tint */
+  --color-danger: #DC2626;              /* Precise Crimson Red */
+  --color-danger-bg: #FEF2F2;           /* Danger Light Pill Tint */
+  --color-warning: #D97706;             /* Warm Amber Warning */
+  --color-warning-bg: #FFFBEB;          /* Warning Light Pill Tint */
+  --color-info: #0284C7;                /* Sky Blue Info */
+  --color-info-bg: #F0F9FF;             /* Info Light Pill Tint */
 
   /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Font Sizes */
-  --text-xs: 0.75rem;
-  /* 12px */
-  --text-sm: 0.875rem;
-  /* 14px */
-  --text-base: 1rem;
-  /* 16px */
-  --text-lg: 1.125rem;
-  /* 18px */
-  --text-xl: 1.25rem;
-  /* 20px */
-  --text-2xl: 1.5rem;
-  /* 24px */
-  --text-3xl: 2rem;
-  /* 32px */
-  --text-4xl: 2.75rem;
-  /* 44px */
-  --text-5xl: 3.5rem;
-  /* 56px */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 2rem;       /* 32px */
+  --text-4xl: 2.5rem;     /* 40px */
+  --text-5xl: 3.25rem;    /* 52px */
 
   /* Spacing Scale (multiples of 4/8px) */
-  --space-1: 0.25rem;
-  /* 4px */
-  --space-2: 0.5rem;
-  /* 8px */
-  --space-3: 0.75rem;
-  /* 12px */
-  --space-4: 1rem;
-  /* 16px */
-  --space-5: 1.25rem;
-  /* 20px */
-  --space-6: 1.5rem;
-  /* 24px */
-  --space-8: 2rem;
-  /* 32px */
-  --space-10: 2.5rem;
-  /* 40px */
-  --space-12: 3rem;
-  /* 48px */
-  --space-16: 4rem;
-  /* 64px */
-  --space-20: 5rem;
-  /* 80px */
-  --space-24: 6rem;
-  /* 96px */
+  --space-1: 0.25rem;     /* 4px */
+  --space-2: 0.5rem;      /* 8px */
+  --space-3: 0.75rem;     /* 12px */
+  --space-4: 1rem;        /* 16px */
+  --space-5: 1.25rem;     /* 20px */
+  --space-6: 1.5rem;      /* 24px */
+  --space-8: 2rem;        /* 32px */
+  --space-10: 2.5rem;     /* 40px */
+  --space-12: 3rem;       /* 48px */
+  --space-16: 4rem;       /* 64px */
+  --space-20: 5rem;       /* 80px */
+  --space-24: 6rem;       /* 96px */
 
   /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* Elevation / Shadows */
-  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.09);
-  --shadow-dropdown: 0 10px 40px rgba(0, 0, 0, 0.12);
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 
   /* Layout Containers */
   --container-max: 1260px;
   --container-narrow: 920px;
 
   /* Transitions */
-  --transition-fast: 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-normal: 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Base Reset */

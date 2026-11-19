@@ -8,7 +8,7 @@ Comprehensive unit and integration tests covering:
        - A -> A: ALLOWED
        - B -> A: ALLOWED
        - A -> B: FORBIDDEN
-       - B -> B: FORBIDDEN
+       - B -> B: ALLOWED
   5. Referrer eligibility:
        - Plan A referrer requires a paid purchase / Billing ID (RG-07).
        - Plan B distributor requires a qualifying purchase to activate code (BR-X2, RG-10A).
@@ -18,13 +18,14 @@ Comprehensive unit and integration tests covering:
   7. Programme-aware login separation (RG-12):
        - Plan A credentials cannot log into Plan B portal.
        - Plan B credentials cannot log into Plan A portal.
-  8. Permanent referral binding at checkout:
-       - Relationship saved to referral_relationships and users.referred_by_id.
+  8. Referral binding at checkout:
+       - Initial relationship saved to referral_relationships and users.referred_by_id.
        - Append-only audit log created.
-       - Referrer cannot be changed.
-  9. Later-order referral binding (BR-X1 Option B):
+       - Plan B retains single-referrer immutability on subsequent orders.
+       - Plan A repeat purchases may use a new valid referral code under BR-X1.
+  9. Later-order referral binding:
        - Order 1 without code: unreferred.
-       - Order 2 with code: permanently bound; no retroactive changes to order 1.
+       - Order 2 with code: referral applied; no retroactive changes to order 1.
   10. Exact error messages:
        - Plan A: "Invalid Referral"
        - Plan B: "Wrong Referral ID"
@@ -45,6 +46,7 @@ from app.models.enums import (
     Programme,
     UserRole,
 )
+from app.models.billing import BillingCounter, BillingId
 from app.models.order import Order, OrderItem
 from app.models.payment import PaymentAttempt
 from app.models.product import Product
@@ -57,6 +59,18 @@ from app.services.referral import generate_referral_code, validate_referral_code
 # ---------------------------------------------------------------------------
 # Helpers & Fixtures
 # ---------------------------------------------------------------------------
+
+def seed_counter(db: Session, start_val: int = 200) -> BillingCounter:
+    """Helper to seed the global billing ID counter for fulfilment tests."""
+    counter = db.query(BillingCounter).filter_by(sequence_name="GLOBAL_BILLING_ID").first()
+    if not counter:
+        counter = BillingCounter(sequence_name="GLOBAL_BILLING_ID", current_value=start_val)
+        db.add(counter)
+        db.flush()
+    else:
+        counter.current_value = start_val
+        db.flush()
+    return counter
 
 def create_test_product(db: Session, name: str = "Arya Power Bank PB-3999", price: Decimal = Decimal("3999.00")) -> Product:
     """Helper to create an active test product."""
@@ -298,8 +312,8 @@ class TestReferralCodeGeneration:
 @pytest.mark.unit
 class TestReferralDirectionMatrix:
     """Verify:
-      Allowed: A -> A, B -> A
-      Forbidden: A -> B, B -> B
+      Allowed: A -> A, B -> A, B -> B
+      Forbidden: A -> B
     """
 
     def test_allowed_direction_a_to_a(self, db_session: Session) -> None:
@@ -407,8 +421,8 @@ class TestReferralDirectionMatrix:
         assert exc_info.value.status_code == 400
         assert exc_info.value.detail == "Invalid Referral"
 
-    def test_forbidden_direction_b_to_b(self, db_session: Session) -> None:
-        """Plan B distributor attempting to refer another Plan B distributor (B->B) is FORBIDDEN."""
+    def test_allowed_direction_b_to_b(self, db_session: Session) -> None:
+        """Plan B distributor referring another Plan B participant (B->B) is ALLOWED (BR-X3)."""
         prod = create_test_product(db_session)
 
         distributor_b1 = User(
@@ -424,7 +438,7 @@ class TestReferralDirectionMatrix:
         db_session.flush()
         add_confirmed_paid_order(db_session, distributor_b1, prod)
 
-        # Referee B2 (another distributor)
+        # Referee B2 (another distributor / Plan B participant)
         distributor_b2 = User(
             full_name="Distributor Two",
             phone="9811100008",
@@ -437,10 +451,10 @@ class TestReferralDirectionMatrix:
         db_session.add(distributor_b2)
         db_session.flush()
 
-        with pytest.raises(Exception) as exc_info:
-            validate_referral_code(db_session, distributor_b2, "PBBBBB07")
-        assert exc_info.value.status_code == 400
-        assert exc_info.value.detail == "Wrong Referral ID"
+        # B -> B referral validation must succeed under confirmed BR-X3
+        validated = validate_referral_code(db_session, distributor_b2, "PBBBBB07")
+        assert validated.id == distributor_b1.id
+        assert validated.referral_code == "PBBBBB07"
 
 
 # ---------------------------------------------------------------------------
@@ -802,8 +816,8 @@ class TestPermanentReferralBindingCheckout:
         assert audit.action == "REFERRAL_RELATIONSHIP_CREATED"
         assert audit.actor_id == customer.id
 
-    def test_cannot_change_established_referrer_on_subsequent_order(self, api_client: TestClient, db_session: Session) -> None:
-        """Attempting to use a different referral code after already being bound is rejected."""
+    def test_plan_a_repeat_purchase_with_new_referral_code_allowed(self, api_client: TestClient, db_session: Session) -> None:
+        """Plan A repeat purchase with a new valid referral code succeeds and attributes new code (BR-X1)."""
         prod = create_test_product(db_session)
         qc = QueueControl(id=1, last_allocated_position=0)
         db_session.add(qc)
@@ -818,7 +832,7 @@ class TestPermanentReferralBindingCheckout:
             is_active=True,
         )
         referrer2 = User(
-            full_name="Attempted New Referrer",
+            full_name="New Referrer",
             phone="9850000004",
             programme=Programme.PLAN_A,
             account_status=AccountStatus.ACTIVE,
@@ -827,11 +841,11 @@ class TestPermanentReferralBindingCheckout:
             is_active=True,
         )
         customer = User(
-            full_name="Bound Customer",
+            full_name="Repeat Customer",
             phone="9850000005",
             programme=Programme.PLAN_A,
             account_status=AccountStatus.ACTIVE,
-            referral_code="PABOUND1",
+            referral_code="PAREPT01",
             role=UserRole.CUSTOMER,
             is_active=True,
         )
@@ -841,7 +855,7 @@ class TestPermanentReferralBindingCheckout:
         add_confirmed_paid_order(db_session, referrer1, prod)
         add_confirmed_paid_order(db_session, referrer2, prod)
 
-        # Establish existing relationship with referrer1
+        # 1. Establish existing relationship with referrer1 from Order 1
         existing_rel = ReferralRelationship(
             referee_id=customer.id,
             referrer_id=referrer1.id,
@@ -854,6 +868,9 @@ class TestPermanentReferralBindingCheckout:
         customer.referred_by_id = referrer1.id
         db_session.add(existing_rel)
 
+        # Add prior confirmed order for customer (making next order a repeat purchase)
+        add_confirmed_paid_order(db_session, customer, prod, referral_code="PAORIG01")
+
         addr = create_test_address(db_session, customer)
         cart = CartItem(user_id=customer.id, product_id=prod.id, quantity=1)
         db_session.add(cart)
@@ -861,10 +878,10 @@ class TestPermanentReferralBindingCheckout:
 
         token = create_access_token(customer.id, customer.role.value, customer.phone)
 
-        # Attempt checkout with referrer2's code
+        # 2. Checkout with referrer2's code on repeat purchase (BR-X1)
         checkout_payload = {
             "address_id": addr.id,
-            "idempotency_key": "idemp-switch-001",
+            "idempotency_key": "idemp-repeat-001",
             "referral_code": "PANEWW01",
         }
         res = api_client.post(
@@ -872,8 +889,91 @@ class TestPermanentReferralBindingCheckout:
             json=checkout_payload,
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert res.status_code == 400
-        assert res.json()["detail"] == "Invalid Referral"
+        assert res.status_code == 201
+        order_data = res.json()
+
+        # Verify new order's applied_referral_code and repeat purchase flag
+        order2 = db_session.query(Order).filter(Order.id == order_data["id"]).first()
+        assert order2 is not None
+        assert order2.applied_referral_code == "PANEWW01"
+        assert order2.is_first_successful_order is False
+
+        # 3. Simulate payment completion
+        attempt = db_session.query(PaymentAttempt).filter(PaymentAttempt.order_id == order2.id).first()
+        assert attempt is not None
+        pay_res = api_client.post(
+            "/api/v1/payments/simulated/simulate",
+            json={"attempt_reference": attempt.attempt_reference, "action": "success"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert pay_res.status_code == 200
+
+        # 4. Verify root ReferralRelationship remains unchanged and no duplicates created
+        rels = db_session.query(ReferralRelationship).filter(ReferralRelationship.referee_id == customer.id).all()
+        assert len(rels) == 1
+        assert rels[0].referrer_id == referrer1.id
+        assert rels[0].referral_code_used == "PAORIG01"
+
+        # 5. Verify User.referred_by_id remains unchanged
+        db_session.refresh(customer)
+        assert customer.referred_by_id == referrer1.id
+
+    def test_plan_b_cannot_change_established_referrer_on_subsequent_order(self, api_client: TestClient, db_session: Session) -> None:
+        """Plan B distributor/customer attempting to switch referrers on subsequent order is rejected (BR-B1)."""
+        prod = create_test_product(db_session)
+
+        dist1 = User(
+            full_name="Plan B Distributor 1",
+            phone="9850000011",
+            programme=Programme.PLAN_B,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PBDIST01",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        dist2 = User(
+            full_name="Plan B Distributor 2",
+            phone="9850000012",
+            programme=Programme.PLAN_B,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PBDIST02",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        referee = User(
+            full_name="Plan B Bound Referee",
+            phone="9850000013",
+            programme=Programme.PLAN_B,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PBBOUND1",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        db_session.add_all([dist1, dist2, referee])
+        db_session.flush()
+
+        add_confirmed_paid_order(db_session, dist1, prod)
+        add_confirmed_paid_order(db_session, dist2, prod)
+
+        # Establish relationship with dist1
+        existing_rel = ReferralRelationship(
+            referee_id=referee.id,
+            referrer_id=dist1.id,
+            referee_programme=Programme.PLAN_B,
+            referrer_programme=Programme.PLAN_B,
+            referral_code_used="PBDIST01",
+            binding_channel="checkout",
+            is_active=True,
+        )
+        referee.referred_by_id = dist1.id
+        db_session.add(existing_rel)
+        db_session.commit()
+
+        # For Plan B, attempting to validate a different code when already bound is rejected
+        with pytest.raises(Exception) as exc_info:
+            validate_referral_code(db_session, referee, "PBDIST02")
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.detail == "Wrong Referral ID"
 
 
 # ---------------------------------------------------------------------------
@@ -1084,3 +1184,298 @@ class TestExactReferralErrorMessages:
         assert "phone" not in data
         assert "email" not in data
         assert "id" not in data
+
+
+# ---------------------------------------------------------------------------
+# 11. Plan A Repeat Purchase Referral Attribution & Invariants (BR-X1)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+class TestPlanARepeatPurchaseReferralAttribution:
+    """Regression test suite for Plan A repeat purchases under confirmed BR-X1."""
+
+    def test_repeat_purchase_attributes_new_code_and_preserves_root_relationship(
+        self, api_client: TestClient, db_session: Session
+    ) -> None:
+        """Repeat purchase with new code attributes order to new code owner and preserves root relationship."""
+        prod = create_test_product(db_session)
+        qc = QueueControl(id=1, last_allocated_position=0)
+        db_session.add(qc)
+
+        referrer_orig = User(
+            full_name="Original Referrer User",
+            phone="9871100001",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PAORIG02",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        referrer_new = User(
+            full_name="New Referrer User",
+            phone="9871100002",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PANEW002",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        customer = User(
+            full_name="Repeat Customer User",
+            phone="9871100003",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PACUST05",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        db_session.add_all([referrer_orig, referrer_new, customer])
+        db_session.flush()
+
+        add_confirmed_paid_order(db_session, referrer_orig, prod)
+        add_confirmed_paid_order(db_session, referrer_new, prod)
+
+        # Establish root referral relationship with referrer_orig
+        root_rel = ReferralRelationship(
+            referee_id=customer.id,
+            referrer_id=referrer_orig.id,
+            referee_programme=Programme.PLAN_A,
+            referrer_programme=Programme.PLAN_A,
+            referral_code_used="PAORIG02",
+            binding_channel="checkout",
+            is_active=True,
+        )
+        customer.referred_by_id = referrer_orig.id
+        db_session.add(root_rel)
+
+        # Prior confirmed paid order (first successful purchase)
+        add_confirmed_paid_order(db_session, customer, prod, referral_code="PAORIG02")
+
+        addr = create_test_address(db_session, customer)
+        cart = CartItem(user_id=customer.id, product_id=prod.id, quantity=1)
+        db_session.add(cart)
+        db_session.commit()
+
+        token = create_access_token(customer.id, customer.role.value, customer.phone)
+
+        # Checkout on repeat purchase using new valid referral code (BR-X1)
+        res = api_client.post(
+            "/api/v1/orders/checkout",
+            json={"address_id": addr.id, "idempotency_key": "idemp-rpt-001", "referral_code": "PANEW002"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 201
+        order_data = res.json()
+
+        order2 = db_session.query(Order).filter(Order.id == order_data["id"]).first()
+        assert order2 is not None
+        # 1. New order's applied_referral_code captures new referrer's code
+        assert order2.applied_referral_code == "PANEW002"
+        # 2. Distinguishable as repeat purchase
+        assert order2.is_first_successful_order is False
+
+        # 3. Complete payment
+        attempt = db_session.query(PaymentAttempt).filter(PaymentAttempt.order_id == order2.id).first()
+        assert attempt is not None
+        pay_res = api_client.post(
+            "/api/v1/payments/simulated/simulate",
+            json={"attempt_reference": attempt.attempt_reference, "action": "success"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert pay_res.status_code == 200
+
+        # 4. Root ReferralRelationship remains strictly unchanged
+        rels = db_session.query(ReferralRelationship).filter(ReferralRelationship.referee_id == customer.id).all()
+        assert len(rels) == 1
+        assert rels[0].referrer_id == referrer_orig.id
+        assert rels[0].referral_code_used == "PAORIG02"
+
+        # 5. User.referred_by_id remains strictly unchanged
+        db_session.refresh(customer)
+        assert customer.referred_by_id == referrer_orig.id
+
+    def test_repeat_purchase_without_referral_code_retains_no_code(
+        self, api_client: TestClient, db_session: Session
+    ) -> None:
+        """Plan A repeat purchase without referral code sets applied_referral_code to None."""
+        prod = create_test_product(db_session)
+        qc = QueueControl(id=1, last_allocated_position=0)
+        db_session.add(qc)
+
+        referrer = User(
+            full_name="Referrer One",
+            phone="9871100011",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PAORIG03",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        customer = User(
+            full_name="Repeat Customer Two",
+            phone="9871100012",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PACUST06",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        db_session.add_all([referrer, customer])
+        db_session.flush()
+
+        add_confirmed_paid_order(db_session, referrer, prod)
+
+        root_rel = ReferralRelationship(
+            referee_id=customer.id,
+            referrer_id=referrer.id,
+            referee_programme=Programme.PLAN_A,
+            referrer_programme=Programme.PLAN_A,
+            referral_code_used="PAORIG03",
+            binding_channel="checkout",
+            is_active=True,
+        )
+        customer.referred_by_id = referrer.id
+        db_session.add(root_rel)
+
+        # Prior confirmed paid order
+        add_confirmed_paid_order(db_session, customer, prod, referral_code="PAORIG03")
+
+        addr = create_test_address(db_session, customer)
+        cart = CartItem(user_id=customer.id, product_id=prod.id, quantity=1)
+        db_session.add(cart)
+        db_session.commit()
+
+        token = create_access_token(customer.id, customer.role.value, customer.phone)
+
+        # Checkout on repeat purchase without code
+        res = api_client.post(
+            "/api/v1/orders/checkout",
+            json={"address_id": addr.id, "idempotency_key": "idemp-rpt-002", "referral_code": None},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 201
+
+        order = db_session.query(Order).filter(Order.id == res.json()["id"]).first()
+        assert order is not None
+        assert order.applied_referral_code is None
+        assert order.is_first_successful_order is False
+
+        # Root relationship and referred_by_id remain unchanged
+        db_session.refresh(customer)
+        assert customer.referred_by_id == referrer.id
+        rel = db_session.query(ReferralRelationship).filter(ReferralRelationship.referee_id == customer.id).one()
+        assert rel.referrer_id == referrer.id
+
+    def test_repeat_purchase_multi_unit_generates_unique_billing_ids_distinguishable_from_first_order(
+        self, api_client: TestClient, db_session: Session
+    ) -> None:
+        """Repeat purchase of quantity 3 allocates 3 unique Billing IDs with repeat metadata for downstream cashback exclusion."""
+        prod = create_test_product(db_session)
+        qc = QueueControl(id=1, last_allocated_position=0)
+        db_session.add(qc)
+        seed_counter(db_session, start_val=300)
+
+        referrer_orig = User(
+            full_name="Original Referrer Three",
+            phone="9871100021",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PAORIG04",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        referrer_repeat = User(
+            full_name="Repeat Referrer Three",
+            phone="9871100022",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PANEW004",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        customer = User(
+            full_name="Repeat Customer Three",
+            phone="9871100023",
+            programme=Programme.PLAN_A,
+            account_status=AccountStatus.ACTIVE,
+            referral_code="PACUST07",
+            role=UserRole.CUSTOMER,
+            is_active=True,
+        )
+        db_session.add_all([referrer_orig, referrer_repeat, customer])
+        db_session.flush()
+
+        add_confirmed_paid_order(db_session, referrer_orig, prod)
+        add_confirmed_paid_order(db_session, referrer_repeat, prod)
+
+        # Establish root referral relationship with referrer_orig
+        root_rel = ReferralRelationship(
+            referee_id=customer.id,
+            referrer_id=referrer_orig.id,
+            referee_programme=Programme.PLAN_A,
+            referrer_programme=Programme.PLAN_A,
+            referral_code_used="PAORIG04",
+            binding_channel="checkout",
+            is_active=True,
+        )
+        customer.referred_by_id = referrer_orig.id
+        db_session.add(root_rel)
+
+        # First order: 1 unit, is_first_successful_order=True
+        order1 = add_confirmed_paid_order(db_session, customer, prod, referral_code="PAORIG04")
+
+        # Second order (repeat purchase): quantity 3 with referrer_repeat's code
+        addr = create_test_address(db_session, customer)
+        cart = CartItem(user_id=customer.id, product_id=prod.id, quantity=3)
+        db_session.add(cart)
+        db_session.commit()
+
+        token = create_access_token(customer.id, customer.role.value, customer.phone)
+
+        res = api_client.post(
+            "/api/v1/orders/checkout",
+            json={"address_id": addr.id, "idempotency_key": "idemp-rpt-003", "referral_code": "PANEW004"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 201
+        order2_id = res.json()["id"]
+
+        order2 = db_session.query(Order).filter(Order.id == order2_id).first()
+        assert order2 is not None
+        assert order2.applied_referral_code == "PANEW004"
+        assert order2.is_first_successful_order is False
+
+        # Payment completion triggers synchronous fulfilment (WP-6)
+        attempt = db_session.query(PaymentAttempt).filter(PaymentAttempt.order_id == order2_id).first()
+        assert attempt is not None
+        pay_res = api_client.post(
+            "/api/v1/payments/simulated/simulate",
+            json={"attempt_reference": attempt.attempt_reference, "action": "success"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert pay_res.status_code == 200
+
+        # Verify Billing IDs created for repeat order: exactly 3 Billing IDs
+        bids = (
+            db_session.query(BillingId)
+            .filter(BillingId.order_id == order2_id)
+            .order_by(BillingId.sequence_number.asc())
+            .all()
+        )
+        assert len(bids) == 3
+        seq_nums = [b.sequence_number for b in bids]
+        assert len(set(seq_nums)) == 3
+        # Contiguous sequence
+        assert seq_nums[1] == seq_nums[0] + 1
+        assert seq_nums[2] == seq_nums[1] + 1
+
+        # Each Billing ID links to Order 2 where is_first_successful_order is False
+        # This provides the exact invariant for downstream WP-10 to exclude these from cashback cycles
+        for b in bids:
+            assert b.order.is_first_successful_order is False
+            assert b.order.applied_referral_code == "PANEW004"
+
+        # Root relationship is preserved
+        db_session.refresh(customer)
+        assert customer.referred_by_id == referrer_orig.id
+        assert db_session.query(ReferralRelationship).filter(ReferralRelationship.referee_id == customer.id).count() == 1

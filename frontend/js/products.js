@@ -72,18 +72,10 @@ async function initHomePageProducts() {
   const latestSection = document.querySelector('.latest-section');
   if (!featuredContainer && !latestContainer) return;
 
-  // Determine authentication state (Customer or Admin session)
+  // Determine authentication state (Customer or Admin session with validated JWT structure)
   const isCustomerAuth = Boolean(window.ShopEasyAPI && typeof window.ShopEasyAPI.getCustomerToken === 'function' && window.ShopEasyAPI.getCustomerToken());
   const isAdminAuth = Boolean(window.ShopEasyAPI && typeof window.ShopEasyAPI.getAdminToken === 'function' && window.ShopEasyAPI.getAdminToken());
-  let hasLocalToken = false;
-  try {
-    const cust = localStorage.getItem('shopeasy_customer_token');
-    const adm = localStorage.getItem('shopeasy_admin_token') || sessionStorage.getItem('shopeasy_admin_token');
-    hasLocalToken = Boolean(cust || adm);
-  } catch (e) {
-    hasLocalToken = false;
-  }
-  const isAuthenticated = isCustomerAuth || isAdminAuth || hasLocalToken;
+  const isAuthenticated = isCustomerAuth || isAdminAuth;
 
   // If user is not logged in, remove product cards and show member sign-in call-to-action
   if (!isAuthenticated) {
@@ -542,13 +534,36 @@ async function initProductDetailsPage() {
           </div>
         </div>
 
-        <!-- Quantity & Add to Cart -->
-        <div style="margin-bottom:var(--space-4);">
-          <label style="display:block;font-size:var(--text-sm);font-weight:500;margin-bottom:var(--space-2);">Quantity</label>
-          <div class="quantity-control">
-            <button type="button" class="quantity-btn" onclick="adjustDetailQty(-1)" ${!inStock ? 'disabled' : ''}>&minus;</button>
-            <input type="text" id="detail-qty-input" class="quantity-input" value="1" readonly>
-            <button type="button" class="quantity-btn" onclick="adjustDetailQty(1)" ${!inStock ? 'disabled' : ''}>&plus;</button>
+        <!-- Apple-style Pill Quantity Selector & Real-Time Dynamic Subtotal -->
+        <div class="product-qty-block" style="margin-bottom:var(--space-6);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
+            <label for="detail-qty-input" style="font-size:var(--text-sm);font-weight:600;color:var(--color-text);">Select Quantity</label>
+            <span id="detail-dynamic-subtotal" class="quantity-subtotal-badge" style="font-size:var(--text-sm);font-weight:600;color:var(--color-primary);">Subtotal: 1 &times; ${formattedPrice} = ${formattedPrice}</span>
+          </div>
+          <div class="apple-pill-qty-selector" id="detail-qty-container" data-unit-price="${priceNum}" data-max-stock="${stockCount}">
+            <button
+              type="button"
+              class="apple-pill-btn pill-minus"
+              id="detail-qty-minus"
+              onclick="adjustDetailQty(-1)"
+              disabled
+              aria-label="Decrease quantity"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <div class="apple-pill-display">
+              <input type="text" id="detail-qty-input" class="apple-pill-input" value="1" readonly aria-label="Selected Quantity">
+            </div>
+            <button
+              type="button"
+              class="apple-pill-btn pill-plus"
+              id="detail-qty-plus"
+              onclick="adjustDetailQty(1)"
+              ${!inStock || stockCount <= 1 ? 'disabled' : ''}
+              aria-label="Increase quantity"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
           </div>
         </div>
 
@@ -592,9 +607,29 @@ function switchDetailImage(url, thumbEl) {
 function adjustDetailQty(delta) {
   const input = document.getElementById('detail-qty-input');
   if (!input) return;
+
+  const container = document.getElementById('detail-qty-container') || input.closest('.apple-pill-qty-selector');
+  const maxStock = container ? (parseInt(container.dataset.maxStock, 10) || 99) : 10;
+  const unitPrice = container ? (parseFloat(container.dataset.unitPrice) || 0) : 0;
+
   let val = parseInt(input.value, 10) || 1;
-  val = Math.max(1, Math.min(10, val + delta));
+  val = Math.max(1, Math.min(maxStock, val + delta));
   input.value = val;
+
+  // Enforce button disabled bounds
+  const minusBtn = document.getElementById('detail-qty-minus');
+  const plusBtn = document.getElementById('detail-qty-plus');
+  if (minusBtn) minusBtn.disabled = (val <= 1);
+  if (plusBtn) plusBtn.disabled = (val >= maxStock);
+
+  // Update dynamic real-time subtotal
+  const subtotalEl = document.getElementById('detail-dynamic-subtotal');
+  if (subtotalEl && unitPrice > 0) {
+    const total = val * unitPrice;
+    const formattedUnit = typeof formatINR === 'function' ? formatINR(unitPrice) : ('₹' + unitPrice.toLocaleString('en-IN'));
+    const formattedTotal = typeof formatINR === 'function' ? formatINR(total) : ('₹' + total.toLocaleString('en-IN'));
+    subtotalEl.innerHTML = `Subtotal: ${val} &times; ${formattedUnit} = <strong>${formattedTotal}</strong>`;
+  }
 }
 
 function addDetailItemToCart(productId) {

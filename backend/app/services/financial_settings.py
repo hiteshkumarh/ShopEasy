@@ -199,14 +199,14 @@ CANONICAL_SETTINGS: Tuple[CanonicalSettingDefinition, ...] = (
     CanonicalSettingDefinition(
         programme=Programme.PLAN_B,
         setting_key=SettingKey.OP_COST_RATE,
-        setting_value=Decimal("0.000000"),
-        description="Plan B operational cost deduction rate (0.0000% engineering default pending BR-B2)",
+        setting_value=Decimal("0.046667"),
+        description="Plan B operational cost deduction rate (4.6667%)",
     ),
     CanonicalSettingDefinition(
         programme=Programme.PLAN_B,
         setting_key=SettingKey.TDS_RATE,
-        setting_value=Decimal("0.000000"),
-        description="Plan B Tax Deducted at Source rate (0.0000% engineering default pending BR-B2)",
+        setting_value=Decimal("0.020000"),
+        description="Plan B Tax Deducted at Source rate (2.0000%)",
     ),
 )
 

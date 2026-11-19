@@ -189,13 +189,15 @@ def seed_baseline_data(db: Session, include_product: bool = False) -> Dict[str, 
 
     Provisions:
       1. Initial pre-provisioned administrator account (idempotent).
-      2. Singleton QueueControl controller record (idempotent).
-      3. Canonical baseline financial settings for Plan A and Plan B (idempotent).
-      4. (Optional) Power Bank product only if explicitly requested.
+      2. Canonical baseline financial settings for Plan A and Plan B (idempotent).
+      3. (Optional) Power Bank product only if explicitly requested.
+
+    Note:
+      Legacy QueueControl singleton is excluded from baseline seeding to ensure
+      strict independence of Plan A cashback queues.
     """
     logger.info("Beginning baseline data seeding transaction...")
     admin_result = seed_admin_user(db)
-    qc_result = seed_queue_control(db)
 
     # Use the admin ID as creator if available
     admin_id = admin_result.get("id")
@@ -207,7 +209,6 @@ def seed_baseline_data(db: Session, include_product: bool = False) -> Dict[str, 
 
     results = {
         "admin": admin_result,
-        "queue_control": qc_result,
         "financial_settings": fin_result,
     }
 
@@ -224,7 +225,7 @@ def seed_baseline_data(db: Session, include_product: bool = False) -> Dict[str, 
 
 
 def main():
-    """CLI entrypoint to execute baseline seeding (Admin & QueueControl only)."""
+    """CLI entrypoint to execute baseline seeding (Admin & Financial Settings only)."""
     include_product = "--with-product" in sys.argv
     db = SessionLocal()
     try:

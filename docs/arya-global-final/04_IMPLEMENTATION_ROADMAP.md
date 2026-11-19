@@ -50,7 +50,7 @@ backend/app/
   models/            existing + programme, billing, plan_a, plan_b, ledger, withdrawal, audit, notification, settings
   services/
     programmes/      programme rules registry (PLAN_A, PLAN_B)
-    referrals/       code generation, validation, direction rules, checkout binding (BR-X1 Option B)
+    referrals/       code generation, validation, direction rules (BR-X3: A→B forbidden), checkout binding & repeat-order attribution (BR-X1 RESOLVED)
     payments/        provider interface, simulated provider, event ingestion
     fulfilment/      orchestrator: payment event → billing IDs → engine dispatch
     billing/         Billing ID allocator (locked counter)
@@ -91,19 +91,37 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-  B[New PLAN_A Billing ID] --> R{Purchaser has eligible<br/>Plan A referrer?}
-  R -- yes --> COM[Commission row: gross 750, op 35, TDS 15, net 700<br/>key PA-COMM:billing_id → credit referrer commission wallet]
-  R -- "no / Plan B referrer" --> UN[No Plan A commission<br/>(Plan B engine or UNALLOCATED — BR-A7)]
-  B --> Q{QueueAssignmentPolicy<br/>BR-A2}
-  Q -- "policy not approved" --> HOLD[Contribution held: PENDING_POLICY<br/>no customer credit]
-  Q -- approved --> CP{ContributorPolicy BR-A1/A3/A5}
-  CP --> CTR[₹250 contribution → ACTIVE recipient cycle<br/>key CB-CONTRIB:billing_id]
-  CTR --> DONE{count == 16?}
-  DONE -- yes --> COMP[Cycle COMPLETED ₹4,000 · admin notified · next WAITING → ACTIVE]
-  CP --> ENQ[Billing ID enqueued WAITING at tail]
+  B["New PLAN_A Billing ID"] --> TYP{"First purchase or<br/>Repeat purchase?<br/>(BR-X1)"}
+  TYP -- "Repeat purchase" --> RPT_REF{"Entered valid<br/>referral code?"}
+  RPT_REF -- "yes" --> RPT_COM["Commission row: gross 750, op 35, TDS 15, net 700<br/>key PA-COMM:billing_id → credit new referrer wallet"]
+  RPT_REF -- "no" --> RPT_NO["No commission<br/>(unallocated pool accounting — BR-A7)"]
+  RPT_REF --> RPT_CB["Bypass cashback queues entirely<br/>₹250 allocation NOT credited to anyone"]
+  TYP -- "First purchase" --> R{"Purchaser has eligible<br/>Plan A referrer?"}
+  R -- "yes" --> COM["Commission row: gross 750, op 35, TDS 15, net 700<br/>key PA-COMM:billing_id → credit referrer commission wallet"]
+  R -- "no / Plan B referrer" --> UN["No direct referral commission<br/>(Plan B engine or unallocated pool accounting — BR-A7)"]
+  TYP -- "First purchase" --> QA["Assign to Independent Root Queue<br/>(CONFIRMED — BR-A2)"]
+  QA --> CP{"Cashback Contribution Policy<br/>(CONFIRMED — BR-A1..A5)"}
+  CP --> CTR["₹250 contribution → ACTIVE recipient cycle<br/>key CB-CONTRIB:billing_id"]
+  CTR --> DONE{"count == 16?"}
+  DONE -- "yes" --> COMP["Cycle COMPLETED ₹4,000 · admin notified · next WAITING → ACTIVE"]
+  CP --> ENQ["Billing ID enqueued WAITING at tail (BR-A3)"]
 ```
 
-When the cashback policy is unapproved, contributions are recorded as `PENDING_POLICY` obligations (not credited) so that **no purchase loses its ₹250 entitlement** and they can be allocated once rules are confirmed — this needs client acknowledgement (BR-A1..A4).
+Plan A processing distinguishes first purchases from repeat purchases under confirmed **BR-X1**:
+1. **Repeat purchases (BR-X1 Confirmed):**
+   - Each purchased Power Bank generates one unique Billing ID.
+   - If an existing Plan A customer makes a repeat purchase using a valid referral code, the owner of that newly entered code receives ₹700 net direct commission (₹750 gross, ₹35 op cost, ₹15 TDS) per purchased Power Bank, even if the customer originally purchased using another customer's referral code.
+   - Repeat-purchase Billing IDs are completely excluded from cashback queues and 16-contribution cycles: they do not join a queue, cannot become cashback recipients, and their ₹250 cashback allocation is not credited to anyone.
+   - Previously completed cashback cycles and existing Billing ID records remain unchanged.
+2. **First purchases (BR-A2 Confirmed):**
+   - Queue assignment is confirmed and resolved under **BR-A2**: each new Plan A first-purchase Billing ID is assigned to its isolated independent root queue (unreferred customers start a new queue; referred customers join their root customer's queue; downline referrals stay within that root queue; a Plan A customer using a Plan B referral starts an independent Plan A queue).
+   - Initial queue unallocated contribution is resolved under **BR-A4 (Option A Confirmed)**: when the first eligible Billing ID enters a brand-new cashback queue and there is no eligible recipient ahead of it, its ₹250 contribution is recorded as unallocated, belongs permanently to the company in the unallocated cashback reserve, is never paid to or transferred to any customer, and does not count towards the customer's own cycle. The admin dashboard must display: total unallocated cashback amount, queue-wise breakdown, original Billing ID and customer reference, date reserved, and status `UNALLOCATED — COMPANY OWNED`, supported by traceable financial records.
+   - Recipient own-purchase exclusion is resolved under **BR-A5 (Option A Confirmed — Company-Owned Unallocated Reserve)**: when the active cashback recipient makes another eligible Power Bank purchase, the resulting ₹250 contribution is permanently allocated to the company-owned unallocated cashback reserve. Rules: (1) The purchaser must never contribute to their own cashback cycle; (2) The ₹250 must be recorded in the company-owned unallocated reserve; (3) It must never be transferred or credited to another customer; (4) It remains company-owned permanently; (5) It must not increment the purchaser's own cycle contribution count; (6) A traceable financial ledger record must identify the Billing ID, customer, queue, amount, date and reserve status; (7) The admin dashboard must display the amount in the total unallocated reserve and its queue-wise breakdown.
+   - Multiple Billing IDs contribution is resolved under **BR-A1 (Confirmed)**: every eligible Billing ID contributes to the cashback system; if the same customer purchases multiple Power Banks, each eligible Billing ID contributes separately; contributions are not restricted to one per customer.
+   - Contributor role and queue joining is resolved under **BR-A3 (Confirmed)**: each eligible Billing ID first contributes to the current active recipient; after that contribution, the purchaser joins the queue as WAITING. Existing queue and sequential-cycle rules are preserved.
+   - All Plan A cashback rules (BR-A1, BR-A2, BR-A3, BR-A4 Option A, BR-A5 Option A, BR-A6, BR-X1) are now fully confirmed and resolved. No blocking decisions remain for WP-10.
+
+Separately, the ₹700 direct-referral commission is strictly decoupled from the ₹250 cashback cycle: eligible referred purchases credit ₹700 net to the immediate eligible referrer, while accounting treatment for the unallocated ₹750 gross commission pool on unreferred purchases is tracked separately under **BR-A7**.
 
 ### 3.3 Plan B per Billing ID (purchaser referred by a Plan B distributor)
 
@@ -183,14 +201,14 @@ flowchart TD
 | WP-1 | Test harness: pytest, fixtures, MySQL 8 container (docker-compose) + TiDB-compat notes; GitHub Actions | WP-0 | Docker daemon locally | Green CI skeleton |
 | WP-2 | Money utilities, financial settings (versioned) | WP-1 | — | Rounding tests (750→35/15/700) |
 | WP-3 | Migration A: programme, account status, referral_relationships, audit, notifications (additive) | WP-1 | — | Upgrade/downgrade tests |
-| WP-4 | Registration with programme selection, programme-aware login, referral codes, direction rules | WP-3 | — | API + tests |
+| WP-4 | Registration with programme selection, programme-aware login, referral codes, direction rules | WP-3 | — (BR-X1, BR-X3 resolved) | API + tests; direction enforcement (BR-X3: Plan A cannot refer Plan B, code rejected, no commission/cashback; B→A allowed per BR-A2; existing Plan A and Plan B referral rules preserved); checkout referral entry confirmed; repeat-purchase referral attribution resolved per BR-X1 (new code owner receives ₹700 net per unit; repeat Billing IDs bypass cashback queues and cycles; zero ₹250 credit) |
 | WP-5 | Payment abstraction, payment events, simulated provider guard | WP-3 | — | |
 | WP-6 | Billing ID allocator + fulfilment orchestrator + recovery worker | WP-5 | — | Concurrency tests |
-| WP-7 | Plan A commission engine | WP-6, WP-2 | BR-A7 (for unallocated ₹750 pool) | ₹700 × N tests; unallocated pool pending BR-A7 |
+| WP-7 | Plan A commission engine | WP-6, WP-2 | BR-A7 (for unallocated ₹750 pool accounting only) | Confirmed ₹700 net direct commission to immediate referrer implementable (₹750 gross, ₹35 op cost, ₹15 TDS per eligible Billing ID; immediate referrer only; repeat orders award ₹700 net to new code owner per BR-X1); accounting treatment for unallocated ₹750 pool (unreferred orders) pending BR-A7 |
 | WP-8 | Plan B commission engine, distributor status, freeze | WP-6 | — | ₹500/₹50 tests (BR-B1, BR-X2, BR-B2, BR-B3 resolved) |
 | WP-9 | Wallet ledger + withdrawal state machines + sandbox payouts | WP-7, WP-8 | — | BR-A6 resolved (separate commission min ₹700 & cashback full ₹4,000); BR-B2 resolved |
-| WP-10 | Plan A cashback: queues/cycles/contributions/policy interfaces, bulbs API | WP-6 | — | BR-A1–A3, BR-A4 (reserve), BR-A5 resolved (not blocked by BR-A7); production enablement requires own implementation, business-rule compliance, integration, concurrency, and security/financial checks |
-| WP-11 | Admin APIs + reports (xlsx/pdf) + notifications | WP-9, WP-10 | — | Includes dedicated Unallocated Cashback Reserve section (BR-A4) |
+| WP-10 | Plan A cashback: queues/cycles/contributions/policy interfaces, bulbs API | WP-6 | — (BR-A1, BR-A2, BR-A3, BR-A4 Option A, BR-A5 Option A resolved) | All Plan A cashback rules confirmed: BR-A1 (every eligible Billing ID contributes separately; no 1-per-customer limit); BR-A2 (1 Billing ID per unit, independent root queues, sequential cycle); BR-A3 (contributes to active recipient first, then joins queue as WAITING); BR-A4 Option A (first Billing ID ₹250 contribution in a new queue permanently retained as company-owned unallocated cashback reserve, traceable in financial records); BR-A5 Option A (recipient own-purchase exclusion: active recipient's own subsequent purchase ₹250 permanently allocated to company-owned unallocated reserve, never transferred or credited to another customer, traceable in financial records); BR-A7 concerns unallocated ₹750 commission pool accounting only and does NOT block the cashback engine |
+| WP-11 | Admin APIs + reports (xlsx/pdf) + notifications | WP-9, WP-10 | — | Includes dedicated Unallocated Cashback Reserve section per confirmed BR-A4 Option A: total unallocated amount, queue-wise breakdown, original Billing ID, customer ref, date reserved, and status `UNALLOCATED — COMPANY OWNED` supported by traceable financial records |
 | WP-12 | Frontend: Arya rebrand, programme registration, Plan A/B dashboards, 48-bulb grid, admin console | WP-11 | — | UI tests (Playwright) |
 | WP-13 | Security & concurrency hardening, reconciliation job | all | — | SECURITY_REVIEW, FINANCIAL_RECONCILIATION |
 | WP-14 | Deployment package (render.yaml, runbooks, backups) | WP-13 | OP-03 resolved | DEPLOYMENT_GUIDE (Demo build) |
@@ -220,8 +238,8 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 
 | ID | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
-| RK-01 | Treatment of unallocated ₹750 commission pool (BR-A7) unconfirmed | Medium | Medium | BR-A7 blocks only unallocated commission pool handling (not cashback engine); escalate exact accounting mechanics |
-| RK-02 | Referral repeat-order attribution rule (BR-X1) confirmed (Option B); Plan B ₹500 timing (BR-B1) confirmed (Option A) | Low | Low | Single-referrer DB constraint; non-retroactive; ₹500 paid on qualifying later order |
+| RK-01 | Treatment of unallocated ₹750 commission pool (BR-A7) unconfirmed | Medium | Medium | BR-A7 blocks only unallocated commission pool accounting (does not block cashback engine or confirmed ₹700 direct-referral commission); escalate exact accounting mechanics |
+| RK-02 | Referral repeat-order attribution rule & queue routing (BR-X1 RESOLVED); Plan B ₹500 timing (BR-B1 RESOLVED) | Low | Low | BR-X1 confirmed: repeat orders credit newly entered referral code ₹700 net per Power Bank; repeat Billing IDs bypass cashback queues and cycles with zero ₹250 credit; single-referrer constraint updated for repeat-purchase transaction attribution |
 | RK-03 | TiDB silently ignores CHECK/FK | High | High | Service-level invariants + reconciliation job + TiDB test gate |
 | RK-04 | Legacy data in old system is non-operational test data | Low | Low | OP-11 resolved: clean database for new system; old test data archived untouched |
 | RK-05 | Global locks become throughput bottleneck | Medium | Medium | Per-queue locks, short transactions, lock ordering; load test |
@@ -234,8 +252,8 @@ Reports: `pytest --junitxml` + `pytest-html` consolidated report under `reports/
 
 ## 9. Approval gates (work stops here until the client confirms)
 
-1. BR-A7 → before production enablement of unallocated commission pool handling (accounting treatment of unallocated ₹750 commission pool when purchaser has no referrer). Does not block cashback engine.
-2. [Resolved] BR-B1, BR-X2, BR-B2, BR-B3 confirmed for Plan B commission rules.
+1. BR-A7 → before production enablement of unallocated commission pool handling (accounting treatment of unallocated ₹750 commission pool when purchaser has no referrer). Does not block cashback engine or confirmed ₹700 direct-referral commission calculation.
+2. [Resolved] BR-B1, BR-X2, BR-B2, BR-B3 confirmed for Plan B commission rules; BR-X1 confirmed for Plan A repeat purchases (new code owner receives ₹700 net per unit; repeat Billing IDs excluded from cashback queues/cycles; ₹250 not credited); BR-X3 confirmed: Plan A participants cannot refer Plan B participants (A→B forbidden, no commission/cashback; B→A allowed per BR-A2; existing Plan A and Plan B referral rules preserved).
 3. [Resolved] BR-A6 (separate commission min ₹700 & cashback full ₹4,000) and BR-B2 confirmed for withdrawals. Operational gate: formal accountant verification (BR-T1) required before production payouts are enabled.
 4. [Resolved] OP-11 confirmed: clean database for new system; old test data archived untouched.
 5. OP-03 resolved (single Render Web Service); formal authorization before production deployment.

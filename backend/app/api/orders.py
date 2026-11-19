@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.dependencies import require_customer
 from app.core.database import get_db
-from app.models.order import Order
+from app.models.order import Order, OrderItem
 from app.models.user import User
 from app.schemas.order import (
     CheckoutRequest,
@@ -48,15 +48,25 @@ def list_orders(
     orders = (
         db.query(Order)
         .options(
-            joinedload(Order.order_items),
+            joinedload(Order.order_items).joinedload(OrderItem.billing_ids),
+            joinedload(Order.order_items).joinedload(OrderItem.product),
+            joinedload(Order.billing_ids),
             joinedload(Order.order_allocation),
             joinedload(Order.address),
+            joinedload(Order.payment_attempts),
         )
         .filter(Order.user_id == current_user.id)
         .order_by(Order.created_at.desc())
         .all()
     )
-    return OrderListResponse(items=orders, total=len(orders))
+    # Deduplicate order instances in case joinedload on multiple collections produces duplicate rows
+    seen_ids = set()
+    deduped_orders: List[Order] = []
+    for o in orders:
+        if o.id not in seen_ids:
+            seen_ids.add(o.id)
+            deduped_orders.append(o)
+    return OrderListResponse(items=deduped_orders, total=len(deduped_orders))
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
@@ -69,9 +79,12 @@ def get_order_by_id(
     order = (
         db.query(Order)
         .options(
-            joinedload(Order.order_items),
+            joinedload(Order.order_items).joinedload(OrderItem.billing_ids),
+            joinedload(Order.order_items).joinedload(OrderItem.product),
+            joinedload(Order.billing_ids),
             joinedload(Order.order_allocation),
             joinedload(Order.address),
+            joinedload(Order.payment_attempts),
         )
         .filter(
             Order.id == order_id,

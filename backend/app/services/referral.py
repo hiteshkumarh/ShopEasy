@@ -84,9 +84,9 @@ def validate_referral_code(
       3. Self-referral prohibition against customer's own referral code or ID.
       4. Referrer existence in the database.
       5. Referrer role is CUSTOMER (rejects administrator referral codes).
-      6. Direction rules (RG-08):
-         - Allowed: A->A, B->A
-         - Forbidden: A->B, B->B (Plan B distributors cannot be referred)
+      6. Direction rules (BR-X3, RG-08):
+         - Allowed: A->A, B->A, B->B
+         - Forbidden: A->B (Plan A participants cannot refer Plan B participants)
       7. Referrer account status (RG-14):
          - Deactivated/inactive accounts cannot refer.
          - Blocked Plan B distributors may log in/view but cannot refer or earn.
@@ -95,9 +95,11 @@ def validate_referral_code(
          - Plan B: Newly registered distributor code is inactive; requires a successful
            qualifying purchase before becoming eligible (BR-X2, RG-10A).
       9. Referee binding rules (BR-X1, RG-06, RG-09):
-         - If referee is already permanently bound to a referrer, cannot change to another.
-         - If referee placed previous orders without a referral code (unreferred), they MAY
-           enter a referral code on a later order (BR-X1 Option B).
+         - Plan A repeat purchases (BR-X1): An existing Plan A customer may enter a different valid
+           referral code on repeat orders. The order captures the new referral code for
+           direct commission attribution, while the customer's root ReferralRelationship
+           and referred_by_id remain unchanged.
+         - Plan B (BR-B1): Referral relationship is permanent once established.
 
     Args:
         db: Active SQLAlchemy database session.
@@ -166,9 +168,13 @@ def validate_referral_code(
             detail=err_msg,
         )
 
-    # 4. Direction rules (RG-08): Allowed: A->A, B->A. Forbidden: A->B, B->B.
-    if customer.programme == Programme.PLAN_B:
-        # Plan B distributors cannot be referred by anyone
+    # 4. Direction rules (BR-X3, RG-08): Allowed: A->A, B->A, B->B. Forbidden: A->B.
+    is_customer_plan_b = (
+        customer.programme == Programme.PLAN_B
+        or target_programme == Programme.PLAN_B
+    )
+    if referrer.programme == Programme.PLAN_A and is_customer_plan_b:
+        # Plan A participants cannot refer Plan B participants (BR-X3)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=err_msg,
@@ -236,10 +242,15 @@ def validate_referral_code(
     )
     if already_bound_referrer_id is not None:
         if already_bound_referrer_id != referrer.id:
-            # Relationship is permanent once established; cannot change referrer
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=err_msg,
-            )
+            # Under confirmed BR-X1: For Plan A, a customer may enter a different valid
+            # referral code on a repeat purchase. The new code owner receives ₹700 net direct
+            # commission per Power Bank, while the customer's root ReferralRelationship
+            # and User.referred_by_id remain unchanged.
+            # For other programmes (Plan B): Referral relationship is permanent once established (BR-B1).
+            if customer.programme != Programme.PLAN_A:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=err_msg,
+                )
 
     return referrer

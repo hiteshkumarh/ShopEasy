@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.models.audit import AuditLog
 from app.models.cart import CartItem
-from app.models.enums import OrderStatus, PaymentStatus
+from app.models.enums import OrderStatus, PaymentStatus, Programme
 from app.models.order import Order
 from app.models.payment import PaymentAttempt, PaymentEvent
 from app.models.product import Product
@@ -289,6 +289,23 @@ class PaymentService:
                     )
                     if product:
                         product.stock += item.quantity
+
+                # Emit PA_ADMIN_TRANSACTION_FAILURE for Plan A orders (R-10)
+                order_user = db.query(User).filter(User.id == order.user_id).first()
+                if order_user and order_user.programme == Programme.PLAN_A:
+                    from app.services.notification_service import (
+                        NotificationEvent,
+                        NotificationService,
+                    )
+                    NotificationService.emit_admin_notification(
+                        db=db,
+                        programme=Programme.PLAN_A,
+                        event_type=NotificationEvent.PA_ADMIN_TRANSACTION_FAILURE,
+                        title="Transaction Failure Alert",
+                        message=f"Payment failure on Plan A order #{order.id} ({order.order_number}): {attempt.failure_reason}.",
+                        reference_type="order",
+                        reference_id=order.id,
+                    )
 
                 # Cart is preserved (not deleted) for customer retry
                 db.commit()

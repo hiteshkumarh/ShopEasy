@@ -604,7 +604,7 @@ class TestFulfilmentRecoveryScheduler:
         with TestClient(app) as client:
             resp = client.get("/api/health")
             assert resp.status_code == 200
-            assert resp.json() == {"message": "ShopEasy backend is running"}
+            assert resp.json().get("message") == "ShopEasy backend is running"
 
 
 # ---------------------------------------------------------------------------

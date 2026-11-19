@@ -3,12 +3,15 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     Integer,
     Numeric,
+    String,
     UniqueConstraint,
     func,
 )
@@ -17,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.billing import BillingId
     from app.models.order import Order
     from app.models.queue import CommissionCycle
     from app.models.user import User
@@ -135,3 +139,140 @@ class ReferralCommission(Base):
         back_populates="referral_commission",
         foreign_keys="[ReferralCommission.source_order_id]",
     )
+
+
+class PlanACommission(Base):
+    """Direct referral commission record per Plan A Billing ID (WP-7)."""
+
+    __tablename__ = "plan_a_commissions"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
+    )
+    billing_id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        ForeignKey("billing_ids.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        unique=True,
+        nullable=False,
+    )
+    order_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("orders.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    purchaser_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    referrer_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    applied_referral_code: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
+    )
+    gross_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=Decimal("750.00"), nullable=False
+    )
+    operational_cost_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=Decimal("0.00"), nullable=False
+    )
+    tds_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=Decimal("0.00"), nullable=False
+    )
+    net_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), default=Decimal("0.00"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False
+    )  # "EARNED", "UNALLOCATED_NO_REFERRER", "INELIGIBLE_REFERRER"
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False
+    )
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("billing_id", name="uq_plan_a_comm_billing_id"),
+        UniqueConstraint("idempotency_key", name="uq_plan_a_comm_idempotency"),
+        Index("idx_plan_a_comm_referrer_status", "referrer_id", "status"),
+        Index("idx_plan_a_comm_order_id", "order_id"),
+    )
+
+    billing_id_rel: Mapped["BillingId"] = relationship("BillingId")
+    order: Mapped["Order"] = relationship("Order")
+    purchaser: Mapped["User"] = relationship("User", foreign_keys="[PlanACommission.purchaser_id]")
+    referrer: Mapped[Optional["User"]] = relationship("User", foreign_keys="[PlanACommission.referrer_id]")
+
+
+class PlanBCommission(Base):
+    """Direct referral and generation commissions earned by Plan B distributors (WP-8)."""
+
+    __tablename__ = "plan_b_commissions"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
+    )
+    commission_type: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )  # "DIRECT" or "GENERATION"
+    distributor_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    referee_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    order_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("orders.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    billing_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        ForeignKey("billing_ids.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    gross_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False
+    )
+    operational_cost_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False
+    )
+    tds_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False
+    )
+    net_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        String(32), default="EARNED", nullable=False
+    )  # "EARNED", "INELIGIBLE_DISTRIBUTOR"
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False
+    )
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_plan_b_comm_idempotency"),
+        Index("idx_plan_b_comm_distributor_status", "distributor_id", "status"),
+        Index("idx_plan_b_comm_order_id", "order_id"),
+        Index("idx_plan_b_comm_billing_id", "billing_id"),
+    )
+
+    distributor: Mapped["User"] = relationship("User", foreign_keys="[PlanBCommission.distributor_id]")
+    referee: Mapped["User"] = relationship("User", foreign_keys="[PlanBCommission.referee_id]")
+    order: Mapped["Order"] = relationship("Order")
+    billing_id_rel: Mapped[Optional["BillingId"]] = relationship("BillingId")

@@ -206,7 +206,263 @@
   color: var(--color-primary-active);
 }
 
-/* Circles Container & Items */
+/* 48-Bulb Plan A Cashback Grid */
+.bulbs-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-subtle);
+}
+
+@media (max-width: 992px) {
+  .bulbs-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 540px) {
+  .bulbs-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: var(--space-2);
+  }
+}
+
+.bulb-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.cashback-clean-summary {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: 4px;
+}
+
+.bulb-indicator {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-border);
+  background-color: #FFFFFF;
+  color: var(--color-muted);
+  transition: all var(--transition-normal);
+  position: relative;
+  cursor: pointer;
+}
+
+@media (max-width: 540px) {
+  .bulb-indicator {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.bulb-icon-svg {
+  width: 20px;
+  height: 20px;
+  transition: all var(--transition-fast);
+}
+
+@media (max-width: 540px) {
+  .bulb-icon-svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+.bulb-indicator.bulb-on {
+  background: radial-gradient(circle, #FFFBEB 0%, #FEF3C7 55%, #FDE68A 100%);
+  border-color: #F59E0B;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.55), inset 0 0 6px rgba(245, 158, 11, 0.25);
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+}
+
+.bulb-indicator.bulb-on:hover {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.75), inset 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+.bulb-indicator.bulb-off {
+  background-color: #F8FAFC;
+  border-color: #E2E8F0;
+  opacity: 0.65;
+}
+
+.bulb-indicator.bulb-off:hover {
+  opacity: 0.9;
+  border-color: #CBD5E1;
+}
+
+.bulb-indicator.bulb-pulse {
+  animation: bulbGlowAmber 1.6s infinite alternate ease-in-out;
+}
+
+@keyframes bulbGlowAmber {
+  0% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.3); transform: scale(1); }
+  100% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.85); transform: scale(1.06); }
+}
+
+.bulb-slot.milestone .bulb-indicator {
+  border-width: 2px;
+}
+
+.bulb-slot.milestone-9 .bulb-indicator.bulb-on {
+  border-color: #F59E0B;
+}
+
+.bulb-slot.milestone-24 .bulb-indicator.bulb-on {
+  border-color: #D97706;
+  background: radial-gradient(circle, #FFFBEB 0%, #FDE68A 55%, #FCD34D 100%);
+  box-shadow: 0 0 14px rgba(217, 119, 6, 0.6);
+}
+
+.bulb-slot.milestone-48 .bulb-indicator.bulb-on {
+  border-color: #B45309;
+  background: radial-gradient(circle, #FEF3C7 0%, #FBBF24 55%, #F59E0B 100%);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.8), inset 0 0 8px rgba(180, 83, 9, 0.3);
+}
+
+.bulb-label {
+  font-size: 10px;
+  color: var(--color-muted);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.bulb-slot.milestone .bulb-tag {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.bulb-slot.milestone.completed .bulb-tag {
+  background-color: #ECFDF5;
+  border-color: #A7F3D0;
+  color: #065F46;
+}
+
+/* Plan A Milestone Cards Grid */
+.milestones-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .milestones-strip {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+.milestone-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  transition: all var(--transition-fast);
+}
+
+.milestone-card.reached {
+  border-color: #A7F3D0;
+  background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%);
+}
+
+.milestone-badge-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface);
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.milestone-card.reached .milestone-badge-icon {
+  background-color: #059669;
+  color: #FFFFFF;
+}
+
+.milestone-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.milestone-title {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.milestone-reward {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.milestone-card.reached .milestone-reward {
+  color: #059669;
+}
+
+.milestone-condition {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+/* Plan A Active Withdrawal Callout */
+.plan-a-withdrawal-banner {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.plan-a-withdrawal-banner.eligible {
+  background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%);
+  border-color: #10B981;
+}
+
+.plan-a-withdrawal-banner.withdrawn {
+  background: linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 100%);
+  border-color: #3B82F6;
+}
+
+/* Legacy Circles Container & Items (Preserved for compatibility) */
 .circles-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -389,6 +645,38 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-6);
+}
+
+.wallet-balances-group {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.wallet-balance-divider {
+  width: 1px;
+  background-color: var(--color-border-subtle);
+  align-self: stretch;
+  min-height: 60px;
+}
+
+@media (max-width: 768px) {
+  .wallet-balance-divider {
+    display: none;
+  }
+}
+
+.billing-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary-600, #4f46e5);
+  background-color: var(--color-primary-50, #eef2ff);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--color-primary-100, #c7d2fe);
 }
 
 .wallet-balance-box {

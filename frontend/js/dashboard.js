@@ -1,9 +1,12 @@
 /**
- * ShopEasy --- Customer Earnings & Wallets Dashboard Logic
+ * Arya Global Digital --- Plan A Customer Dashboard & 48-Bulb Cashback Tracker
  *
  * Handles:
  *  - Customer authentication guard via requireCustomerAuth().
- *  - Real-time fetching of earnings, beneficiary queue status, 16-circle progress.
+ *  - Plan A programme check (blocks/redirects Plan B users).
+ *  - Real-time fetching of Plan A 48-bulb cashback progress and cycle history.
+ *  - Visual 48-bulb track strictly driven by server bulb_states.
+ *  - Milestone indicators: Bulb 9 (₹750), Bulb 24 (₹2,000), Bulb 48 (₹4,000).
  *  - Dual isolated wallets (Direct Referral & Sequential Commission).
  *  - Full-balance simulated withdrawals with client idempotency key generation.
  *  - Auditable transaction ledgers and withdrawal histories.
@@ -15,18 +18,42 @@
 
   let currentCustomer = null;
   let earningsData = null;
+  let cashbackProgress = null;
+  let cashbackCycles = [];
   let referralData = null;
   let activeWalletTab = 'direct_referral';
   let pendingWithdrawalType = null;
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    await initDashboard();
-  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initDashboard();
+    });
+  } else {
+    initDashboard();
+  }
 
   async function initDashboard() {
     try {
       currentCustomer = await window.requireCustomerAuth();
       if (!currentCustomer) return;
+
+      // Plan A programme isolation guard: Plan B users must not access Plan A cashback engine
+      if (currentCustomer.programme && currentCustomer.programme !== 'PLAN_A') {
+        const mainEl = document.querySelector('main .container');
+        if (mainEl) {
+          mainEl.innerHTML = `
+            <div style="background:#FFF;padding:var(--space-8);border-radius:var(--radius-xl);border:1px solid var(--color-border);margin:var(--space-8) 0;text-align:center;">
+              <h2 style="font-size:var(--text-xl);font-weight:700;color:var(--color-text);margin-bottom:var(--space-2);">Plan B Distributor Account</h2>
+              <p style="color:var(--color-muted);max-width:540px;margin:0 auto var(--space-4);">
+                Your account is enrolled in <strong>Plan B (Direct Sales &amp; Distributor Network)</strong>. The 48-bulb cashback tracker is exclusive to Plan A Retail Customers.
+              </p>
+              <a href="distributor-dashboard.html" class="btn btn-primary btn-sm">Go to Distributor Dashboard</a>
+              <a href="profile.html" class="btn btn-secondary btn-sm" style="margin-left: 8px;">View Profile</a>
+            </div>
+          `;
+        }
+        return;
+      }
 
       setupEventListeners();
       await loadAllDashboardData();
@@ -50,6 +77,15 @@
       });
     });
 
+    // Plan A withdraw action button in cashback card
+    const planAWithdrawBtn = document.getElementById('plan-a-withdraw-action-btn');
+    if (planAWithdrawBtn) {
+      planAWithdrawBtn.addEventListener('click', () => {
+        const bal = parseFloat(cashbackProgress?.current_wallet_balance || earningsData?.sequential_commission_balance || 0);
+        openWithdrawModal('sequential_commission', bal);
+      });
+    }
+
     // Modal close button and overlay click
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const modalCancelBtn = document.getElementById('modal-cancel-btn');
@@ -69,6 +105,14 @@
     if (modalConfirmBtn) {
       modalConfirmBtn.addEventListener('click', executeWithdrawal);
     }
+
+    // Refresh purchase history button
+    const refreshPurchasesBtn = document.getElementById('refresh-purchases-btn');
+    if (refreshPurchasesBtn) {
+      refreshPurchasesBtn.addEventListener('click', () => {
+        loadPurchaseHistory();
+      });
+    }
   }
 
   async function loadAllDashboardData() {
@@ -76,13 +120,34 @@
       // 1. Fetch Composite Earnings
       earningsData = await window.ShopEasyDashboard.getEarnings();
       renderEarningsSummary(earningsData);
-      renderSequentialProgress(earningsData.sequential_progress);
 
-      // 2. Fetch Referrals Summary
+      // 2. Fetch Plan A Cashback Progress & Cycles (WP-10 / WP-12)
+      try {
+        if (window.ShopEasyCashback) {
+          cashbackProgress = await window.ShopEasyCashback.getProgress();
+          renderPlanACashbackProgress(cashbackProgress);
+
+          cashbackCycles = await window.ShopEasyCashback.getCycles();
+          renderCompletedCycles(cashbackCycles);
+        } else {
+          // Fallback to earningsData sequential_progress if cashback client unavailable
+          renderPlanACashbackProgress(earningsData.sequential_progress);
+        }
+      } catch (cbErr) {
+        console.warn('Could not load Plan A cashback progress:', cbErr);
+        if (earningsData && earningsData.sequential_progress) {
+          renderPlanACashbackProgress(earningsData.sequential_progress);
+        }
+      }
+
+      // 3. Fetch Referrals Summary
       referralData = await window.ShopEasyDashboard.getReferrals();
       renderReferralManagement(referralData);
 
-      // 3. Load Wallets and Ledgers
+      // 4. Load Purchase History & Unit Billing IDs (OR-12)
+      await loadPurchaseHistory();
+
+      // 5. Load Wallets and Ledgers
       await loadWalletViews();
     } catch (err) {
       console.error('Error fetching dashboard metrics:', err);
@@ -114,7 +179,15 @@
     if (drWithdrawnEl) drWithdrawnEl.textContent = formatCurrency(data.direct_referral_withdrawn);
 
     const scWithdrawnEl = document.getElementById('metric-sc-withdrawn');
-    if (scWithdrawnEl) scWithdrawnEl.textContent = formatCurrency(data.sequential_commission_withdrawn);
+    if (scWithdrawnEl) {
+      const activeEarned = parseFloat(cashbackProgress?.active_cycle_earnings ?? cashbackProgress?.cashback_amount_earned ?? data.sequential_progress?.total_earned ?? '0.00');
+      const scBal = parseFloat(data.sequential_commission_balance || '0.00');
+      if (scBal === 0 && activeEarned > 0) {
+        scWithdrawnEl.innerHTML = `${formatCurrency(data.sequential_commission_withdrawn)} <span style="display:block;font-size:11px;color:var(--color-primary-600);margin-top:2px;">(Pending: ${formatCurrency(activeEarned)})</span>`;
+      } else {
+        scWithdrawnEl.textContent = formatCurrency(data.sequential_commission_withdrawn);
+      }
+    }
 
     // Update customer greeting
     const userNameEl = document.getElementById('dashboard-customer-name');
@@ -124,124 +197,234 @@
   }
 
   // -------------------------------------------------------------------------
-  // Section 2: Sequential Commission 16-Circle Progress Widget
+  // Section 2: Plan A 48-Bulb Visual Cashback Track
   // -------------------------------------------------------------------------
-  function renderSequentialProgress(progress) {
+  function renderPlanACashbackProgress(progress) {
     const statusBadgeEl = document.getElementById('queue-status-badge');
-    const statusMessageEl = document.getElementById('beneficiary-message-box');
-    const circlesContainer = document.getElementById('circles-container');
+    const statusMessageTextEl = document.getElementById('beneficiary-message-text');
+    const statusMessageBox = document.getElementById('beneficiary-message-box');
+    const bulbsContainer = document.getElementById('bulbs-container');
     const progressBarFill = document.getElementById('progress-bar-fill');
     const progressStatsEl = document.getElementById('progress-bar-stats-text');
 
+    const milestoneCard9 = document.getElementById('milestone-card-9');
+    const milestoneCard24 = document.getElementById('milestone-card-24');
+    const milestoneCard48 = document.getElementById('milestone-card-48');
+
+    const bannerBox = document.getElementById('plan-a-withdrawal-banner');
+    const bannerTitle = document.getElementById('withdrawal-banner-title');
+    const bannerDesc = document.getElementById('withdrawal-banner-desc');
+    const withdrawActionBtn = document.getElementById('plan-a-withdraw-action-btn');
+
     if (!progress) return;
 
-    const status = progress.status || 'not_enrolled';
-    const completed = progress.completed_commissions || 0;
-    const earned = parseFloat(progress.total_earned || '0.00');
+    const cycleStatus = (progress.cycle_status || progress.status || 'NO_CYCLE').toUpperCase();
+    const completedCount = progress.completed_contributions !== undefined
+      ? progress.completed_contributions
+      : (progress.completed_commissions || 0);
+    const earned = parseFloat(progress.cashback_amount_earned || progress.total_earned || '0.00');
+    const billingId = progress.current_billing_id || null;
+    const isCompleted = Boolean(progress.is_completed || cycleStatus === 'COMPLETED');
+    const isWithdrawable = Boolean(progress.is_withdrawable);
+    const withdrawalStatus = progress.withdrawal_status || null;
+
+    // Server-provided bulb states as the source of truth (safe fallback if missing/invalid)
+    let bulbStates = progress.bulb_states;
+    if (!Array.isArray(bulbStates) || bulbStates.length !== 48) {
+      const countOn = Math.min(48, Math.max(0, completedCount * 3));
+      bulbStates = Array.from({ length: 48 }, (_, i) => i < countOn);
+    }
 
     // 1. Status Badge
     if (statusBadgeEl) {
-      statusBadgeEl.className = `queue-badge ${status}`;
-      if (status === 'not_enrolled') {
-        statusBadgeEl.textContent = 'Not Enrolled';
-      } else if (status === 'waiting') {
-        statusBadgeEl.textContent = progress.queue_position
-          ? `In Queue (Position #${progress.queue_position})`
-          : 'In Queue (Waiting)';
-      } else if (status === 'active') {
-        statusBadgeEl.textContent = 'Active Beneficiary';
-      } else if (status === 'completed') {
-        statusBadgeEl.textContent = 'Cycle Completed (16/16)';
+      statusBadgeEl.className = 'queue-badge';
+      if (cycleStatus === 'ACTIVE') {
+        statusBadgeEl.classList.add('active');
+        statusBadgeEl.textContent = billingId ? `Active Cycle (${billingId})` : 'Active Cycle';
+      } else if (cycleStatus === 'COMPLETED') {
+        statusBadgeEl.classList.add('completed');
+        statusBadgeEl.textContent = 'Cycle Completed (48 Bulbs)';
+      } else if (cycleStatus === 'WAITING') {
+        statusBadgeEl.classList.add('waiting');
+        statusBadgeEl.textContent = billingId ? `Waiting in Queue (${billingId})` : 'Waiting in Queue';
+      } else {
+        statusBadgeEl.classList.add('not_enrolled');
+        statusBadgeEl.textContent = 'No Active Cycle';
       }
     }
 
-    // 2. Beneficiary Message
-    if (statusMessageEl) {
-      if (status === 'not_enrolled') {
-        statusMessageEl.className = 'beneficiary-status-message notice';
-        statusMessageEl.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <div>
-            <strong>You are not the current beneficiary.</strong> You are not yet enrolled in the sequential beneficiary queue. Complete an eligible Power Bank purchase to enter the global FIFO queue.
-          </div>
+    // 2. Beneficiary Message Text
+    if (statusMessageBox && statusMessageTextEl) {
+      statusMessageBox.className = 'beneficiary-status-message';
+      if (cycleStatus === 'ACTIVE') {
+        statusMessageBox.classList.add('active-notice');
+        statusMessageTextEl.innerHTML = `
+          <strong>You are the current active cycle beneficiary!</strong>
+          Billing ID: <code>${escapeHtml(billingId || 'Active')}</code>. Every eligible Power Bank purchase illuminates 3 bulbs and credits ₹250.00 to your cashback balance.
         `;
-      } else if (status === 'waiting') {
-        statusMessageEl.className = 'beneficiary-status-message notice';
-        const posText = progress.queue_position ? `at position #${progress.queue_position}` : 'in the queue';
-        statusMessageEl.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <div>
-            <strong>You are not the current beneficiary.</strong> You are currently waiting ${posText}. Once all earlier beneficiaries in the queue complete their 16 commissions, your cycle will automatically become active!
-          </div>
+      } else if (cycleStatus === 'COMPLETED') {
+        statusMessageBox.classList.add('completed-notice');
+        statusMessageTextEl.innerHTML = `
+          <strong>Cycle Target Completed (₹4,000.00)!</strong>
+          All 48 bulbs have been illuminated. Your accumulated cashback is fully earned.
         `;
-      } else if (status === 'active') {
-        statusMessageEl.className = 'beneficiary-status-message active-notice';
-        statusMessageEl.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-          <div>
-            <strong>You are the current active beneficiary!</strong> Every eligible Power Bank purchase made by any customer across the platform credits ₹250 directly to your Sequential Commission Wallet.
-          </div>
+      } else if (cycleStatus === 'WAITING') {
+        statusMessageBox.classList.add('notice');
+        statusMessageTextEl.innerHTML = `
+          <strong>Your order is enrolled in the queue!</strong>
+          Billing ID: <code>${escapeHtml(billingId || 'Enrolled')}</code>. As earlier cycles complete, your cycle will automatically become active.
         `;
-      } else if (status === 'completed') {
-        statusMessageEl.className = 'beneficiary-status-message completed-notice';
-        statusMessageEl.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-          <div>
-            <strong>Cycle Completed!</strong> Congratulations, you have completed your active beneficiary cycle of all 16 sequential commissions (₹4,000.00 earned). Your funds are available for full liquidation below.
-          </div>
+      } else {
+        statusMessageBox.classList.add('notice');
+        statusMessageTextEl.innerHTML = `
+          <strong>No active cashback cycle.</strong>
+          Purchase an eligible Power Bank to enroll in Plan A and generate a new 48-bulb cashback cycle!
         `;
       }
     }
 
-    // 3. Render 16 Circles
-    if (circlesContainer) {
-      const circleStates = progress.circle_states || [];
-      let circlesHtml = '';
+    // Calculate illuminated bulb count
+    const illuminatedBulbs = bulbStates ? bulbStates.filter(Boolean).length : (completedCount * 3);
 
-      for (let i = 0; i < 16; i++) {
-        const isFilled = Boolean(circleStates[i]);
-        const circleNumber = i + 1;
-        const isCurrentActive = (status === 'active' && i === completed);
+    // Update clean progress summary in section header
+    const cleanSummaryEl = document.getElementById('cashback-progress-summary');
+    if (cleanSummaryEl) {
+      cleanSummaryEl.textContent = `Progress: ${illuminatedBulbs}/48 Bulbs` + ` (${completedCount}/16 Contributions)`;
+    }
 
-        circlesHtml += `
-          <div class="circle-slot" title="Commission #${circleNumber}: ₹250.00 ${isFilled ? '(Received)' : '(Pending)'}">
-            <div class="circle-disc ${isFilled ? 'filled' : ''} ${isCurrentActive ? 'pulse' : ''}">
-              ${isFilled ? `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              ` : `<span>${circleNumber}</span>`}
+    // 3. Render 48 Bulbs from Server bulb_states
+    if (bulbsContainer) {
+      let bulbsHtml = '';
+      for (let i = 0; i < 48; i++) {
+        const bulbNum = i + 1;
+        const isOn = Boolean(bulbStates[i]);
+        const isPulse = (cycleStatus === 'ACTIVE' && i === completedCount * 3 && !isCompleted);
+
+        let milestoneClass = '';
+        let milestoneTag = '';
+        if (bulbNum === 9) {
+          milestoneClass = 'milestone milestone-9';
+          milestoneTag = ''; // Removed ₹750 label per Option A specification
+        } else if (bulbNum === 24) {
+          milestoneClass = 'milestone milestone-24';
+          milestoneTag = '<span class="bulb-tag">₹2,000</span>';
+        } else if (bulbNum === 48) {
+          milestoneClass = 'milestone milestone-48';
+          milestoneTag = '<span class="bulb-tag">₹4,000</span>';
+        }
+
+        const completedTagClass = isOn ? 'completed' : '';
+
+        // Clean lightbulb SVG icon without raw numbers
+        const bulbSvg = `
+          <svg class="bulb-icon-svg ${isOn ? 'lit' : 'unlit'}" viewBox="0 0 24 24" fill="${isOn ? '#F59E0B' : 'none'}" stroke="${isOn ? '#D97706' : '#94A3B8'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18h6"></path>
+            <path d="M10 22h4"></path>
+            <path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"></path>
+          </svg>
+        `;
+
+        bulbsHtml += `
+          <div class="bulb-slot ${milestoneClass} ${completedTagClass}" title="Bulb ${bulbNum}: ${isOn ? 'Illuminated (Earned)' : 'Unlit (Pending)'}">
+            <div class="bulb-indicator ${isOn ? 'bulb-on' : 'bulb-off'} ${isPulse ? 'bulb-pulse' : ''}" aria-label="Bulb ${bulbNum} ${isOn ? 'Illuminated' : 'Unlit'}">
+              ${bulbSvg}
             </div>
-            <span class="circle-label">#${circleNumber}</span>
-            <span class="circle-amount">₹250</span>
+            ${milestoneTag}
           </div>
         `;
       }
-      circlesContainer.innerHTML = circlesHtml;
+      bulbsContainer.innerHTML = bulbsHtml;
     }
 
     // 4. Progress Bar & Stats
-    const percent = Math.min(100, Math.round((completed / 16) * 100));
+    const percent = Math.min(100, Math.round((completedCount / 16) * 100));
     if (progressBarFill) {
       progressBarFill.style.width = `${percent}%`;
     }
     if (progressStatsEl) {
-      progressStatsEl.textContent = `${completed} / 16 Commissions Completed (${formatCurrency(earned)} / ₹4,000.00)`;
+      progressStatsEl.textContent = `Progress: ${illuminatedBulbs}/48 Bulbs (${completedCount}/16 Contributions)`;
     }
+
+    // 5. Milestone Cards State
+    if (milestoneCard9) {
+      if (illuminatedBulbs >= 9) milestoneCard9.classList.add('reached');
+      else milestoneCard9.classList.remove('reached');
+    }
+    if (milestoneCard24) {
+      if (illuminatedBulbs >= 24) milestoneCard24.classList.add('reached');
+      else milestoneCard24.classList.remove('reached');
+    }
+    if (milestoneCard48) {
+      if (illuminatedBulbs >= 48) milestoneCard48.classList.add('reached');
+      else milestoneCard48.classList.remove('reached');
+    }
+
+    // 6. Plan A Cycle Withdrawal Banner State
+    if (bannerBox && bannerTitle && bannerDesc && withdrawActionBtn) {
+      bannerBox.className = 'plan-a-withdrawal-banner';
+
+      if (withdrawalStatus === 'REQUESTED' || withdrawalStatus === 'PENDING') {
+        bannerBox.classList.add('withdrawn');
+        bannerTitle.textContent = 'Withdrawal Under Process';
+        bannerDesc.textContent = 'Your simulated ₹4,000.00 withdrawal request has been received and is being processed.';
+        withdrawActionBtn.disabled = true;
+        withdrawActionBtn.textContent = 'Withdrawal Pending';
+      } else if (withdrawalStatus === 'COMPLETED') {
+        bannerBox.classList.add('withdrawn');
+        bannerTitle.textContent = 'Cashback Fully Liquidated';
+        bannerDesc.textContent = 'Your cycle payout of ₹4,000.00 has been completed and liquidated to your registered account.';
+        withdrawActionBtn.disabled = true;
+        withdrawActionBtn.textContent = 'Payout Completed';
+      } else if (isWithdrawable) {
+        bannerBox.classList.add('eligible');
+        bannerTitle.textContent = 'Congratulations! ₹4,000.00 Ready for Withdrawal';
+        bannerDesc.textContent = 'You have completed all 16 contributions (48 bulbs). Click below to request full liquidation.';
+        withdrawActionBtn.disabled = false;
+        withdrawActionBtn.textContent = 'Request ₹4,000.00 Withdrawal';
+      } else {
+        bannerTitle.textContent = 'Cashback Cycle in Progress';
+        bannerDesc.textContent = 'Complete all 16 contributions to unlock your ₹4,000.00 cycle payout.';
+        withdrawActionBtn.disabled = true;
+        withdrawActionBtn.textContent = 'Unlock at 16 Contributions';
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Section 2B: Completed Cycles History
+  // -------------------------------------------------------------------------
+  function renderCompletedCycles(cycles) {
+    const tableBody = document.getElementById('completed-cycles-table-body');
+    if (!tableBody) return;
+
+    if (!Array.isArray(cycles) || cycles.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-state-box">
+            No completed cycles recorded yet. Complete 16 contributions to graduate your first cycle.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tableBody.innerHTML = cycles.map(c => {
+      const isDone = Boolean(c.is_completed || c.status === 'COMPLETED');
+      const statusBadge = isDone
+        ? '<span class="badge badge-success">COMPLETED</span>'
+        : '<span class="badge badge-primary">ACTIVE</span>';
+
+      return `
+        <tr>
+          <td style="font-weight:700;">Cycle #${c.cycle_number || c.cycle_id}</td>
+          <td>${c.completed_contributions} / 16</td>
+          <td style="font-weight:600;color:var(--color-success);">${formatCurrency(c.total_earned)}</td>
+          <td>${statusBadge}</td>
+          <td style="font-size:var(--text-xs);color:var(--color-muted);">${formatDateTime(c.started_at)}</td>
+          <td style="font-size:var(--text-xs);color:var(--color-muted);">${formatDateTime(c.completed_at)}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // -------------------------------------------------------------------------
@@ -300,12 +483,12 @@
       if (drEligible) {
         noteEl.innerHTML = `
           <span class="badge badge-success">Eligible for Full Liquidation</span>
-          <span style="color:var(--color-muted);">Balance meets or exceeds the minimum ₹750.00 threshold.</span>
+          <span style="color:var(--color-muted);">Balance meets or exceeds the minimum ₹700 threshold.</span>
         `;
       } else {
         noteEl.innerHTML = `
-          <span class="badge badge-subtle">Threshold: ₹750.00</span>
-          <span style="color:var(--color-muted);">Minimum withdrawal balance is ₹750.</span>
+          <span class="badge badge-subtle">Minimum Withdrawal: ₹700</span>
+          <span style="color:var(--color-muted);">Minimum withdrawal balance is ₹700.</span>
         `;
       }
     }
@@ -401,17 +584,54 @@
 
   async function loadSequentialCommissionWallet() {
     const balEl = document.getElementById('sc-wallet-balance');
+    const activeEarnedEl = document.getElementById('sc-active-cycle-earnings');
+    const cycleBadgeEl = document.getElementById('sc-cycle-badge');
+    const cyclePendingTextEl = document.getElementById('sc-cycle-pending-text');
+    const contribsBody = document.getElementById('sc-contributions-body');
+    const contribsSummaryBadge = document.getElementById('sc-contributions-summary-badge');
     const withdrawBtn = document.getElementById('sc-withdraw-btn');
     const noteEl = document.getElementById('sc-eligibility-note');
     const tableBody = document.getElementById('sc-transactions-body');
     const withdrawalsBody = document.getElementById('sc-withdrawals-body');
 
-    const scBalance = parseFloat(earningsData?.sequential_commission_balance || '0.00');
-    const scEligible = Boolean(earningsData?.withdrawal_eligibility?.sequential_commission_eligible);
-    const completedComm = earningsData?.sequential_progress?.completed_commissions || 0;
+    const scBalance = parseFloat(earningsData?.sequential_commission_balance ?? cashbackProgress?.current_wallet_balance ?? '0.00');
+    const scEligible = Boolean(earningsData?.withdrawal_eligibility?.sequential_commission_eligible || cashbackProgress?.is_withdrawable);
+    const completedContributions = typeof cashbackProgress?.completed_contributions === 'number'
+      ? cashbackProgress.completed_contributions
+      : (earningsData?.sequential_progress?.completed_commissions || 0);
+    const completedBulbs = typeof cashbackProgress?.bulbs_on === 'number'
+      ? cashbackProgress.bulbs_on
+      : Math.min(48, completedContributions * 3);
+    const activeCycleEarned = parseFloat(cashbackProgress?.active_cycle_earnings ?? cashbackProgress?.cashback_amount_earned ?? earningsData?.sequential_progress?.total_earned ?? '0.00');
+    const remainingContribs = Math.max(0, 16 - completedContributions);
+    const remainingAmount = Math.max(0, 4000 - activeCycleEarned);
+    const isCompleted = Boolean(cashbackProgress?.is_completed || completedContributions >= 16 || scBalance >= 4000);
 
+    // 1. Available Balance (Withdrawable)
     if (balEl) balEl.textContent = formatCurrency(scBalance);
 
+    // 2. Active Cycle Earnings (Pending Completion)
+    if (activeEarnedEl) {
+      activeEarnedEl.textContent = formatCurrency(activeCycleEarned);
+    }
+    const cycleNum = (progress && progress.current_cycle_number) ? progress.current_cycle_number : 1;
+    if (cycleBadgeEl && cyclePendingTextEl) {
+      if (isCompleted) {
+        cycleBadgeEl.className = 'badge badge-success';
+        cycleBadgeEl.textContent = `Cycle #${cycleNum}: 16/16 Completed (${completedBulbs}/48 bulbs)`;
+        cyclePendingTextEl.textContent = `Full ${formatCurrency(4000)} cycle target earned`;
+      } else if (completedContributions > 0) {
+        cycleBadgeEl.className = 'badge badge-info';
+        cycleBadgeEl.textContent = `Active Cycle #${cycleNum}: ${completedContributions}/16 Contributions (${completedBulbs}/48 bulbs)`;
+        cyclePendingTextEl.textContent = `${formatCurrency(remainingAmount)} pending completion (${remainingContribs} contribution${remainingContribs === 1 ? '' : 's'} remaining)`;
+      } else {
+        cycleBadgeEl.className = 'badge badge-subtle';
+        cycleBadgeEl.textContent = '0 / 16 Contributions (0/48 bulbs)';
+        cyclePendingTextEl.textContent = 'No contributions accumulated yet';
+      }
+    }
+
+    // 3. Withdrawal button
     if (withdrawBtn) {
       withdrawBtn.disabled = !scEligible;
       withdrawBtn.textContent = scEligible
@@ -420,21 +640,84 @@
       withdrawBtn.onclick = () => openWithdrawModal('sequential_commission', scBalance);
     }
 
+    // 4. Eligibility note
     if (noteEl) {
       if (scEligible) {
         noteEl.innerHTML = `
           <span class="badge badge-success">Eligible for Full Liquidation</span>
-          <span style="color:var(--color-muted);">Cycle 16/16 completed with ₹4,000.00 accumulated.</span>
+          <span style="color:var(--color-muted);">Cycle 16/16 (${completedBulbs}/48 bulbs) completed with ${formatCurrency(scBalance)} accumulated.</span>
         `;
       } else {
         noteEl.innerHTML = `
-          <span class="badge badge-subtle">Requirement: 16/16 Cycle Completion</span>
-          <span style="color:var(--color-muted);">${completedComm} of 16 commissions completed. Sequential wallet allows full withdrawal only upon complete cycle (₹4,000.00).</span>
+          <span class="badge badge-subtle">Requirement: 48/48 Cycle Completion</span>
+          <span style="color:var(--color-muted);">${completedContributions} of 16 contributions (${completedBulbs}/48 bulbs) completed. Sequential wallet allows full withdrawal only upon complete cycle (${formatCurrency(4000)}).</span>
         `;
       }
     }
 
-    // Load SC Transactions Ledger
+    // 5. Load Active Cycle / Plan A Contributions
+    if (contribsBody) {
+      try {
+        let contributions = [];
+        if (window.ShopEasyCashback && window.ShopEasyCashback.getContributions) {
+          contributions = await window.ShopEasyCashback.getContributions();
+        }
+        if ((!contributions || contributions.length === 0) && cashbackProgress && cashbackProgress.active_contributions) {
+          contributions = cashbackProgress.active_contributions;
+        }
+
+        const count = contributions ? contributions.length : 0;
+        const totalContribAmt = count * 250;
+        if (contribsSummaryBadge) {
+          contribsSummaryBadge.textContent = `${count} / 16 Contributions (${formatCurrency(totalContribAmt)})`;
+          if (count >= 16) {
+            contribsSummaryBadge.className = 'badge badge-success';
+          } else if (count > 0) {
+            contribsSummaryBadge.className = 'badge badge-info';
+          } else {
+            contribsSummaryBadge.className = 'badge badge-subtle';
+          }
+        }
+
+        if (!contributions || contributions.length === 0) {
+          contribsBody.innerHTML = `
+            <tr>
+              <td colspan="6" class="empty-state-box">
+                No contributions allocated to your active cashback cycle yet. Each eligible Power Bank purchase contributes ₹250.00.
+              </td>
+            </tr>
+          `;
+        } else {
+          contribsBody.innerHTML = contributions.map((c, idx) => {
+            const bNum = c.contributing_billing_number || `BID-${c.contributing_billing_id}`;
+            const recipRef = c.recipient_reference || (c.recipient_billing_number ? `Cycle #${c.cycle_number || 1} (${c.recipient_billing_number})` : `Cycle #${c.cycle_number || 1}`);
+            const dateStr = formatDateTime(c.created_at);
+            const amt = parseFloat(c.amount || 250);
+            return `
+              <tr>
+                <td style="font-weight:600;color:var(--color-muted);">${idx + 1}</td>
+                <td>${dateStr}</td>
+                <td><span class="billing-badge">${escapeHtml(bNum)}</span></td>
+                <td style="font-size:12px;color:var(--color-text-secondary);">${escapeHtml(recipRef)}</td>
+                <td class="tx-amount credit" style="font-weight:700;color:var(--color-success);">+${formatCurrency(amt)}</td>
+                <td><span class="badge badge-success">${escapeHtml(c.status || 'ALLOCATED')}</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (cErr) {
+        console.warn('Failed to load cashback contributions:', cErr);
+        contribsBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state-box" style="color:var(--color-danger);">
+              Failed to load contributions history.
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // 6. Load SC Transactions Ledger
     try {
       const txRes = await window.ShopEasyWallets.getTransactions({
         wallet_type: 'sequential_commission',
@@ -447,7 +730,7 @@
           tableBody.innerHTML = `
             <tr>
               <td colspan="6" class="empty-state-box">
-                No ledger transactions found for Sequential Commission Wallet.
+                No wallet ledger transactions yet. The full cycle credit of ${formatCurrency(4000)} will be credited here once all 16/16 contributions (48/48 bulbs) are completed. See individual ₹250 contributions in the Active Cycle Contribution Ledger above.
               </td>
             </tr>
           `;
@@ -707,6 +990,185 @@
   }
 
   // -------------------------------------------------------------------------
+  // Section 5: Customer Purchase History & Unit Billing IDs (OR-12)
+  // -------------------------------------------------------------------------
+  async function loadPurchaseHistory() {
+    const container = document.getElementById('purchase-history-container');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="empty-state-box" style="padding:var(--space-8);text-align:center;color:var(--color-muted);">
+        <div class="spinner" style="width:24px;height:24px;border:2px solid var(--color-border);border-top-color:var(--color-primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto var(--space-2);"></div>
+        Loading your purchase history...
+      </div>
+    `;
+
+    try {
+      if (!window.ShopEasyOrders || typeof window.ShopEasyOrders.list !== 'function') {
+        throw new Error('Orders service is unavailable.');
+      }
+      const response = await window.ShopEasyOrders.list();
+      const orders = (response && response.items) ? response.items : (Array.isArray(response) ? response : []);
+      renderPurchaseHistoryTable(orders, container);
+    } catch (err) {
+      console.error('Failed to load purchase history:', err);
+      container.innerHTML = `
+        <div class="empty-state-box" style="padding:var(--space-6);text-align:center;">
+          <p style="color:var(--color-danger);font-size:var(--text-sm);margin-bottom:var(--space-3);">
+            ${escapeHtml(err.detail || err.message || 'Unable to load purchase history. Please verify your connection.')}
+          </p>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.retryLoadPurchaseHistory()">
+            Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+
+  function renderPurchaseHistoryTable(orders, container) {
+    if (!orders || orders.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state-box" style="padding:var(--space-8);text-align:center;">
+          <p style="color:var(--color-muted);margin-bottom:var(--space-3);">
+            No purchases found. Placed orders and allocated unit Billing IDs will appear here.
+          </p>
+          <a href="products.html" class="btn btn-primary btn-sm">Explore Products</a>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+        ${orders.map(order => {
+          const orderNum = order.order_number || (`#ORD-${order.id}`);
+          const dateStr = formatDateTime(order.created_at);
+          const totalStr = formatCurrency(order.total_amount);
+          const payStatus = String(order.payment_status || '').toUpperCase();
+
+          let payBadgeBg = '#EFF6FF';
+          let payBadgeFg = '#2563EB';
+          let payLabel = payStatus || 'PENDING';
+
+          if (payStatus === 'COMPLETED') {
+            payBadgeBg = '#ECFDF5';
+            payBadgeFg = '#059669';
+            payLabel = 'Payment Completed';
+          } else if (payStatus === 'FAILED') {
+            payBadgeBg = '#FEF2F2';
+            payBadgeFg = '#DC2626';
+            payLabel = 'Payment Failed';
+          } else {
+            payBadgeBg = '#FFFBEB';
+            payBadgeFg = '#D97706';
+            payLabel = 'Payment Pending';
+          }
+
+          const itemsHtml = (order.order_items || []).map(item => {
+            const qty = item.quantity || 1;
+            const unitPriceStr = formatCurrency(item.unit_price);
+            const lineTotalStr = formatCurrency(item.line_total);
+
+            // Extract authoritative backend billing IDs if provided
+            let itemBillingIds = [];
+            if (Array.isArray(item.billing_ids)) {
+              itemBillingIds = item.billing_ids
+                .map(b => (typeof b === 'object' && b !== null) ? (b.billing_number || b.id || '') : String(b))
+                .filter(Boolean);
+            } else if (item.billing_id) {
+              itemBillingIds = [(typeof item.billing_id === 'object') ? (item.billing_id.billing_number || item.billing_id.id || '') : String(item.billing_id)].filter(Boolean);
+            } else if (Array.isArray(order.billing_ids)) {
+              const matching = order.billing_ids.filter(b => (typeof b === 'object' && b !== null && b.order_item_id) ? b.order_item_id === item.id : true);
+              itemBillingIds = matching.map(b => (typeof b === 'object' && b !== null) ? (b.billing_number || b.id || '') : String(b)).filter(Boolean);
+            }
+
+            let billingContentHtml = '';
+            if (payStatus !== 'COMPLETED') {
+              billingContentHtml = `
+                <div style="font-size:var(--text-xs);color:var(--color-muted);font-style:italic;">
+                  No Billing ID issued (Payment ${escapeHtml(payLabel)})
+                </div>
+              `;
+            } else if (itemBillingIds.length === 0) {
+              billingContentHtml = `
+                <div style="font-size:var(--text-xs);color:var(--color-muted);font-style:italic;">
+                  Awaiting Billing ID allocation / Not provided by server
+                </div>
+              `;
+            } else {
+              billingContentHtml = `
+                <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;">
+                  ${itemBillingIds.map((bid, idx) => `
+                    <div class="billing-id-pill" style="display:inline-flex;align-items:center;gap:6px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:var(--radius-md);padding:3px 8px;">
+                      <span style="font-size:10px;font-weight:600;color:var(--color-muted);text-transform:uppercase;">Unit ${idx + 1}:</span>
+                      <code style="font-size:var(--text-xs);font-weight:700;color:var(--color-primary);letter-spacing:0.04em;word-break:break-all;">${escapeHtml(bid)}</code>
+                      <button type="button" class="btn btn-outline btn-xs" style="padding:1px 6px;font-size:10px;line-height:1.2;" onclick="copyBillingIdText('${escapeHtml(bid)}', this)">Copy</button>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+            }
+
+            return `
+              <div style="padding:var(--space-3) 0;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--space-2);">
+                <div style="flex:1;min-width:200px;">
+                  <div style="font-weight:600;font-size:var(--text-sm);color:var(--color-text);">${escapeHtml(item.product_name)}</div>
+                  <div style="font-size:var(--text-xs);color:var(--color-muted);margin-top:2px;">
+                    Quantity: ${qty} &times; ${unitPriceStr} = <strong>${lineTotalStr}</strong>
+                  </div>
+                  <div style="margin-top:6px;">
+                    ${billingContentHtml}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          return `
+            <div class="card" style="background:#FFFFFF;border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);box-shadow:var(--shadow-sm);">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-3);">
+                <div>
+                  <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-muted);text-transform:uppercase;letter-spacing:0.05em;">
+                    Order Reference
+                  </div>
+                  <code style="font-size:var(--text-base);font-weight:700;color:var(--color-text);word-break:break-all;">
+                    ${escapeHtml(orderNum)}
+                  </code>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                  <span style="font-size:var(--text-xs);color:var(--color-muted);">${dateStr}</span>
+                  <span style="background:${payBadgeBg};color:${payBadgeFg};padding:3px 8px;border-radius:9999px;font-size:11px;font-weight:600;">
+                    ${payLabel}
+                  </span>
+                  <span style="font-size:var(--text-sm);font-weight:700;color:var(--color-text);">
+                    ${totalStr}
+                  </span>
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--color-border);padding-top:var(--space-1);">
+                ${itemsHtml || '<p style="color:var(--color-muted);font-size:var(--text-xs);">No items in this order.</p>'}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function copyBillingIdText(text, btnEl) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        if (btnEl) {
+          const orig = btnEl.textContent;
+          btnEl.textContent = 'Copied!';
+          setTimeout(() => { btnEl.textContent = orig; }, 1500);
+        }
+      }).catch(() => {});
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Utilities & Formatters
   // -------------------------------------------------------------------------
   function formatCurrency(val) {
@@ -749,11 +1211,16 @@
       .replace(/'/g, '&#39;');
   }
 
-  // Global window exports for inline attributes / triggers
+  // Global window exports for inline attributes / triggers / testing
   window.copyReferralCode = copyReferralCode;
   window.copyShareLink = copyShareLink;
   window.switchWalletTab = switchWalletTab;
   window.openWithdrawModal = openWithdrawModal;
   window.closeWithdrawModal = closeWithdrawModal;
+  window.renderPlanACashbackProgress = renderPlanACashbackProgress;
+  window.loadPurchaseHistory = loadPurchaseHistory;
+  window.retryLoadPurchaseHistory = loadPurchaseHistory;
+  window.renderPurchaseHistoryTable = renderPurchaseHistoryTable;
+  window.copyBillingIdText = copyBillingIdText;
 
 })();

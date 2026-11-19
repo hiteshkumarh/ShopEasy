@@ -117,9 +117,10 @@ def upgrade() -> None:
         sa.column('current_value', sa.BigInteger),
     )
     conn = op.get_bind()
-    existing = conn.execute(
+    res = conn.execute(
         sa.text("SELECT id FROM billing_counters WHERE sequence_name = 'GLOBAL_BILLING_ID'")
-    ).scalar()
+    )
+    existing = res.scalar() if res is not None else None
     if not existing:
         op.bulk_insert(
             billing_counters,

@@ -326,11 +326,16 @@ const MOCK_PROFILE = null;
 // Initial mock orders (reset to empty)
 const MOCK_ORDERS = [];
 
-// Utility: Format currency in Indian Rupees (INR)
+// Utility: Format currency in Indian Rupees (INR) with two decimal places
 function formatINR(amount) {
-  if (typeof amount !== 'number') return '₹0';
-  return '₹' + amount.toLocaleString('en-IN');
+  const num = typeof amount === 'number' ? amount : parseFloat(amount);
+  if (isNaN(num)) return '₹0.00';
+  return '₹' + num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
+window.formatINR = formatINR;
 
 // Data access helpers
 function getProducts() {

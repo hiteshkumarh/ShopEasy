@@ -58,28 +58,32 @@
   }
 
   // -------------------------------------------------------------------------
-  // Tab Switching Helpers (Supports: customer, admin, register)
+  // Tab Switching Helpers (Supports: customer, distributor, register, admin)
   // -------------------------------------------------------------------------
   function switchTab(tabName) {
     clearAuthMessage();
-    const validTabs = ['customer', 'admin', 'register'];
+    const validTabs = ['customer', 'distributor', 'register', 'admin'];
     const activeTab = validTabs.includes(tabName) ? tabName : 'customer';
 
     const tabs = document.querySelectorAll('.auth-tab');
     const panels = document.querySelectorAll('.auth-panel');
 
     tabs.forEach(t => {
-      const isTarget = t.dataset.tab === activeTab || (activeTab === 'customer' && t.dataset.tab === 'password');
+      const isTarget = t.dataset.tab === activeTab;
       t.classList.toggle('active', isTarget);
       t.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+      if (isTarget && typeof t.scrollIntoView === 'function') {
+        try {
+          t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } catch (_) {}
+      }
     });
 
     panels.forEach(p => {
       p.classList.remove('active');
     });
 
-    const targetPanel = document.getElementById(`panel-${activeTab}`) ||
-                        (activeTab === 'customer' ? document.getElementById('panel-password') : null);
+    const targetPanel = document.getElementById(`panel-${activeTab}`);
     if (targetPanel) {
       targetPanel.classList.add('active');
     }
@@ -92,6 +96,42 @@
   window.handleResendOtp = function () {};
 
   // -------------------------------------------------------------------------
+  // Password Visibility Toggle Helpers
+  // -------------------------------------------------------------------------
+  function initPasswordToggles() {
+    const toggleBtns = document.querySelectorAll('.password-toggle-btn');
+    toggleBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = btn.dataset.target;
+        if (!targetId) return;
+        const input = document.getElementById(targetId);
+        if (!input) return;
+
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+
+        const eyeOpen = btn.querySelector('.eye-open');
+        const eyeOff = btn.querySelector('.eye-off');
+
+        if (isPassword) {
+          if (eyeOpen) eyeOpen.style.display = 'none';
+          if (eyeOff) eyeOff.style.display = 'block';
+          btn.setAttribute('aria-label', 'Hide password');
+          btn.setAttribute('title', 'Hide password');
+          btn.setAttribute('aria-pressed', 'true');
+        } else {
+          if (eyeOpen) eyeOpen.style.display = 'block';
+          if (eyeOff) eyeOff.style.display = 'none';
+          btn.setAttribute('aria-label', 'Show password');
+          btn.setAttribute('title', 'Show password');
+          btn.setAttribute('aria-pressed', 'false');
+        }
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------------
   // Main Login Page Initializer
   // -------------------------------------------------------------------------
   window.initLoginPage = function () {
@@ -101,19 +141,53 @@
     // 1. Check if user is already authenticated
     const customerToken = window.ShopEasyAPI ? window.ShopEasyAPI.getCustomerToken() : null;
     const adminToken = window.ShopEasyAPI ? window.ShopEasyAPI.getAdminToken() : null;
+    const redirectParam = urlParams.get('redirect');
+
+    // If an authenticated admin arrives via redirect or explicit admin tab navigation
+    if (adminToken) {
+      if (redirectParam && redirectParam.includes('admin/')) {
+        if (window.redirectIfAdminAuthenticated) {
+          window.redirectIfAdminAuthenticated(redirectParam);
+          return;
+        }
+      }
+      if (initialTab === 'admin') {
+        if (window.redirectIfAdminAuthenticated) {
+          window.redirectIfAdminAuthenticated('admin/dashboard.html');
+          return;
+        }
+      }
+    }
 
     if (initialTab === 'admin') {
       if (adminToken && window.redirectIfAdminAuthenticated) {
         window.redirectIfAdminAuthenticated('admin/dashboard.html');
+        return;
       }
     } else {
       if (customerToken && window.redirectIfCustomerAuthenticated) {
         window.redirectIfCustomerAuthenticated('profile.html');
+        return;
       }
     }
 
     // 2. Set Initial Active Tab
     switchTab(initialTab);
+
+    // 3. Initialize Password Visibility Toggles
+    initPasswordToggles();
+
+    // 4. Ensure all phone fields load completely empty
+    const phoneInputIds = [
+      'customer-phone-input',
+      'distributor-phone-input',
+      'register-phone-input',
+      'admin-phone-input'
+    ];
+    phoneInputIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
 
     // 3. Wire Tab Navigation
     const tabButtons = document.querySelectorAll('.auth-tab');
@@ -140,11 +214,79 @@
       });
     }
 
-    // 5. Option 1: Customer Password Login Form
-    const custForm = document.getElementById('customer-login-form') || document.getElementById('password-login-form');
-    const custPhoneInput = document.getElementById('customer-phone-input') || document.getElementById('pwd-phone-input');
+    const linkGoToDistributor = document.getElementById('link-go-to-distributor');
+    if (linkGoToDistributor) {
+      linkGoToDistributor.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('distributor');
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Programme Selection Step Logic (RG-01)
+    // -----------------------------------------------------------------------
+    let selectedProgramme = null;
+    const programmeCards = document.querySelectorAll('.programme-card');
+    const proceedRegBtn = document.getElementById('btn-proceed-registration');
+    const progSelectionStep = document.getElementById('programme-selection-step');
+    const regFormStep = document.getElementById('registration-form-step');
+    const selectedProgDisplay = document.getElementById('selected-programme-display');
+    const changeProgBtn = document.getElementById('btn-change-programme');
+    const hiddenProgInput = document.getElementById('register-programme-input');
+
+    programmeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        programmeCards.forEach(c => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-checked', 'false');
+        });
+        card.classList.add('selected');
+        card.setAttribute('aria-checked', 'true');
+        selectedProgramme = card.dataset.programme;
+        if (proceedRegBtn) {
+          proceedRegBtn.disabled = false;
+        }
+      });
+    });
+
+    if (proceedRegBtn) {
+      proceedRegBtn.addEventListener('click', () => {
+        if (!selectedProgramme) {
+          showAuthMessage('Please select either Plan A or Plan B before proceeding.', 'error');
+          return;
+        }
+        clearAuthMessage();
+        if (progSelectionStep) progSelectionStep.style.display = 'none';
+        if (regFormStep) regFormStep.style.display = 'block';
+
+        if (hiddenProgInput) {
+          hiddenProgInput.value = selectedProgramme;
+        }
+
+        if (selectedProgDisplay) {
+          const label = selectedProgramme === 'PLAN_B'
+            ? 'Plan B (Arya Generation Growth Programme)'
+            : 'Plan A (Arya Business Partner Programme)';
+          selectedProgDisplay.textContent = `Selected: ${label}`;
+        }
+      });
+    }
+
+    if (changeProgBtn) {
+      changeProgBtn.addEventListener('click', () => {
+        if (regFormStep) regFormStep.style.display = 'none';
+        if (progSelectionStep) progSelectionStep.style.display = 'block';
+        clearAuthMessage();
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Panel 1: Plan A Customer Password Login Form
+    // -----------------------------------------------------------------------
+    const custForm = document.getElementById('customer-login-form');
+    const custPhoneInput = document.getElementById('customer-phone-input');
     const custPwdInput = document.getElementById('customer-password-input');
-    const custBtn = document.getElementById('customer-login-btn') || document.getElementById('pwd-login-btn');
+    const custBtn = document.getElementById('customer-login-btn');
 
     if (custForm) {
       custForm.addEventListener('submit', async (e) => {
@@ -172,20 +314,186 @@
         }
 
         try {
-          const authRes = await window.ShopEasyAuth.customerLogin(phoneVal, pwdVal);
-          showAuthMessage('Signed in successfully! Redirecting...', 'success');
+          const authRes = await window.ShopEasyAuth.customerLogin(phoneVal, pwdVal, 'PLAN_A');
+          showAuthMessage('Signed in to Plan A successfully! Redirecting...', 'success');
 
           const rawRedirect = urlParams.get('redirect');
-          const redirectParam = window.ShopEasyAPI ? window.ShopEasyAPI.getSafeRedirectUrl(rawRedirect, 'profile.html') : 'profile.html';
+          const redirectParam = window.ShopEasyAPI ? window.ShopEasyAPI.getSafeRedirectUrl(rawRedirect, 'dashboard.html') : 'dashboard.html';
           setTimeout(() => {
             window.location.href = redirectParam;
-          }, 300);
+          }, 350);
         } catch (err) {
-          showAuthMessage(err.detail || 'Invalid mobile number or password.', 'error');
+          showAuthMessage(err.detail || 'Invalid mobile number or password for Plan A.', 'error');
         } finally {
           if (custBtn) {
             custBtn.disabled = false;
-            custBtn.textContent = 'Sign In';
+            custBtn.textContent = 'Sign In to Plan A';
+          }
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Panel 2: Plan B Distributor Password Login Form (RG-12)
+    // -----------------------------------------------------------------------
+    const distForm = document.getElementById('distributor-login-form');
+    const distPhoneInput = document.getElementById('distributor-phone-input');
+    const distPwdInput = document.getElementById('distributor-password-input');
+    const distBtn = document.getElementById('distributor-login-btn');
+
+    if (distForm) {
+      distForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAuthMessage();
+
+        const phoneVal = distPhoneInput ? distPhoneInput.value.trim().replace(/\D/g, '') : '';
+        const pwdVal = distPwdInput ? distPwdInput.value : '';
+
+        if (phoneVal.length !== 10) {
+          showAuthMessage('Please enter a valid 10-digit distributor mobile number.', 'error');
+          if (distPhoneInput) distPhoneInput.focus();
+          return;
+        }
+
+        if (!pwdVal) {
+          showAuthMessage('Please enter your distributor password.', 'error');
+          if (distPwdInput) distPwdInput.focus();
+          return;
+        }
+
+        if (distBtn) {
+          distBtn.disabled = true;
+          distBtn.textContent = 'Signing In...';
+        }
+
+        try {
+          const authRes = await window.ShopEasyAuth.distributorLogin(phoneVal, pwdVal);
+          showAuthMessage('Signed in to Plan B distributor portal! Redirecting...', 'success');
+
+          const rawRedirect = urlParams.get('redirect');
+          const redirectParam = window.ShopEasyAPI ? window.ShopEasyAPI.getSafeRedirectUrl(rawRedirect, 'distributor-dashboard.html') : 'distributor-dashboard.html';
+          setTimeout(() => {
+            window.location.href = redirectParam;
+          }, 350);
+        } catch (err) {
+          showAuthMessage(err.detail || 'Invalid mobile number or password for Plan B.', 'error');
+        } finally {
+          if (distBtn) {
+            distBtn.disabled = false;
+            distBtn.textContent = 'Sign In to Plan B';
+          }
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Panel 3: Registration Form Submission (RG-01)
+    // -----------------------------------------------------------------------
+    const regForm = document.getElementById('register-form');
+    const regNameInput = document.getElementById('register-name-input');
+    const regPhoneInput = document.getElementById('register-phone-input');
+    const regPwdInput = document.getElementById('register-password-input');
+    const regConfirmPwdInput = document.getElementById('register-confirm-password-input');
+    const regBtn = document.getElementById('register-btn');
+
+    if (regForm) {
+      regForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAuthMessage();
+
+        const progVal = hiddenProgInput ? hiddenProgInput.value : selectedProgramme;
+        const nameVal = regNameInput ? regNameInput.value.trim() : '';
+        const phoneVal = regPhoneInput ? regPhoneInput.value.trim().replace(/\D/g, '') : '';
+        const pwdVal = regPwdInput ? regPwdInput.value : '';
+        const confirmVal = regConfirmPwdInput ? regConfirmPwdInput.value : '';
+
+        if (!progVal) {
+          showAuthMessage('Please select either Plan A or Plan B before creating an account.', 'error');
+          if (regFormStep) regFormStep.style.display = 'none';
+          if (progSelectionStep) progSelectionStep.style.display = 'block';
+          return;
+        }
+
+        if (!nameVal) {
+          showAuthMessage('Please enter your full legal name.', 'error');
+          if (regNameInput) regNameInput.focus();
+          return;
+        }
+
+        if (phoneVal.length !== 10) {
+          showAuthMessage('Please enter a valid 10-digit mobile number.', 'error');
+          if (regPhoneInput) regPhoneInput.focus();
+          return;
+        }
+
+        if (!pwdVal || pwdVal.length < 6) {
+          showAuthMessage('Password must be at least 6 characters long.', 'error');
+          if (regPwdInput) regPwdInput.focus();
+          return;
+        }
+
+        if (pwdVal !== confirmVal) {
+          showAuthMessage('Passwords do not match. Please re-enter your password confirmation.', 'error');
+          if (regConfirmPwdInput) regConfirmPwdInput.focus();
+          return;
+        }
+
+        if (regBtn) {
+          regBtn.disabled = true;
+          regBtn.textContent = 'Creating Account...';
+        }
+
+        try {
+          const res = await window.ShopEasyAuth.register({
+            fullName: nameVal,
+            phone: phoneVal,
+            password: pwdVal,
+            confirmPassword: confirmVal,
+            programme: progVal,
+          });
+
+          // Auto-Login: Hydrate authentication session immediately upon registration
+          let authToken = res.access_token;
+          if (!authToken && window.ShopEasyAuth) {
+            try {
+              const loginRes = res.programme === 'PLAN_B'
+                ? await window.ShopEasyAuth.distributorLogin(phoneVal, pwdVal)
+                : await window.ShopEasyAuth.customerLogin(phoneVal, pwdVal, res.programme);
+              authToken = (loginRes && loginRes.token && loginRes.token.access_token) || (loginRes && loginRes.access_token) || null;
+            } catch (autoLoginErr) {
+              console.warn('Fallback auto-login attempt failed:', autoLoginErr);
+            }
+          }
+
+          if (authToken && window.ShopEasyAPI) {
+            window.ShopEasyAPI.setCustomerToken(authToken);
+            window.ShopEasyAPI.setCustomerUser({
+              id: res.id,
+              full_name: res.full_name,
+              phone: res.phone,
+              role: res.role,
+              programme: res.programme,
+              referral_code: res.referral_code,
+            });
+          }
+
+          showAuthMessage(`Welcome, ${res.full_name}! Registration successful. Redirecting to dashboard...`, 'success');
+
+          // Seamless redirect directly to customer / distributor dashboard (or return URL)
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect');
+          const defaultTarget = res.programme === 'PLAN_B' ? 'distributor-dashboard.html' : 'dashboard.html';
+          const destination = redirectUrl || defaultTarget;
+
+          setTimeout(() => {
+            window.location.href = destination;
+          }, 600);
+        } catch (err) {
+          showAuthMessage(err.detail || 'Registration failed. Please verify your details.', 'error');
+        } finally {
+          if (regBtn) {
+            regBtn.disabled = false;
+            regBtn.textContent = 'Create Account';
           }
         }
       });
@@ -233,95 +541,13 @@
 
           setTimeout(() => {
             window.location.href = destination;
-          }, 300);
+          }, 350);
         } catch (err) {
           showAuthMessage(err.detail || 'Invalid administrator credentials.', 'error');
         } finally {
           if (adminBtn) {
             adminBtn.disabled = false;
             adminBtn.textContent = 'Admin Login';
-          }
-        }
-      });
-    }
-
-    // 7. Option 3: Customer Registration Form
-    const regForm = document.getElementById('register-form');
-    const regNameInput = document.getElementById('register-name-input');
-    const regPhoneInput = document.getElementById('register-phone-input');
-    const regPwdInput = document.getElementById('register-password-input');
-    const regConfirmPwdInput = document.getElementById('register-confirm-password-input');
-    const regBtn = document.getElementById('register-btn');
-
-    if (regForm) {
-      regForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        clearAuthMessage();
-
-        const nameVal = regNameInput ? regNameInput.value.trim() : '';
-        const phoneVal = regPhoneInput ? regPhoneInput.value.trim().replace(/\D/g, '') : '';
-        const pwdVal = regPwdInput ? regPwdInput.value : '';
-        const confirmVal = regConfirmPwdInput ? regConfirmPwdInput.value : '';
-
-        if (!nameVal) {
-          showAuthMessage('Please enter your full legal name.', 'error');
-          if (regNameInput) regNameInput.focus();
-          return;
-        }
-
-        if (phoneVal.length !== 10) {
-          showAuthMessage('Please enter a valid 10-digit mobile number.', 'error');
-          if (regPhoneInput) regPhoneInput.focus();
-          return;
-        }
-
-        if (!pwdVal || pwdVal.length < 6) {
-          showAuthMessage('Password must be at least 6 characters long.', 'error');
-          if (regPwdInput) regPwdInput.focus();
-          return;
-        }
-
-        if (pwdVal !== confirmVal) {
-          showAuthMessage('Confirm password does not match password.', 'error');
-          if (regConfirmPwdInput) regConfirmPwdInput.focus();
-          return;
-        }
-
-        if (regBtn) {
-          regBtn.disabled = true;
-          regBtn.textContent = 'Creating Account...';
-        }
-
-        try {
-          await window.ShopEasyAuth.register({
-            fullName: nameVal,
-            phone: phoneVal,
-            password: pwdVal,
-            confirmPassword: confirmVal,
-          });
-
-          showAuthMessage('Account created successfully! Signing in...', 'success');
-
-          // Log in automatically upon registration
-          try {
-            await window.ShopEasyAuth.customerLogin(phoneVal, pwdVal);
-            const rawRedirect = urlParams.get('redirect');
-            const redirectParam = window.ShopEasyAPI ? window.ShopEasyAPI.getSafeRedirectUrl(rawRedirect, 'profile.html') : 'profile.html';
-            setTimeout(() => {
-              window.location.href = redirectParam;
-            }, 300);
-          } catch (loginErr) {
-            // Fallback: switch to customer login tab
-            switchTab('customer');
-            if (custPhoneInput) custPhoneInput.value = phoneVal;
-            showAuthMessage('Account created successfully! Please sign in with your password.', 'success');
-          }
-        } catch (err) {
-          showAuthMessage(err.detail || 'Failed to create account. Please try again.', 'error');
-        } finally {
-          if (regBtn) {
-            regBtn.disabled = false;
-            regBtn.textContent = 'Create Account';
           }
         }
       });

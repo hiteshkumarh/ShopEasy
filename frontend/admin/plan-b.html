@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan B - Arya Generation Growth Programme — Admin Console</title>
+  <meta name="description" content="Plan B - Arya Generation Growth Programme distributor management, direct & generation commission ledgers, wallets, and billing unit tracking.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="auth-protected">
+
+  <div class="admin-shell">
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" aria-label="Admin Navigation">
+      <div class="admin-sidebar-header">
+        <a href="dashboard.html" class="admin-brand">
+          <span class="brand-logo-mark" aria-hidden="true" style="width:28px;height:28px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+              <polygon points="12 2 2 22 22 22"></polygon>
+              <line x1="12" y1="11" x2="12" y2="17"></line>
+            </svg>
+          </span>
+          <span>Arya Global Digital</span>
+        </a>
+        <span class="admin-badge">Admin</span>
+      </div>
+
+      <nav class="admin-sidebar-nav">
+        <a href="dashboard.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="plan-a.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+          <span>Plan A - Arya Business Partner Programme</span>
+        </a>
+        <a href="plan-b.html" class="admin-nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+          <span>Plan B - Arya Generation Growth Programme</span>
+        </a>
+        <a href="withdrawals.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+          <span>Withdrawals</span>
+        </a>
+        <a href="reports.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          <span>Reports &amp; Downloads</span>
+        </a>
+        <a href="settings.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Financial Settings</span>
+        </a>
+        <a href="orders.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          <span>Orders</span>
+        </a>
+        <a href="products.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Customers</span>
+        </a>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <a href="../index.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Return to Store</span>
+        </a>
+        <button type="button" class="admin-nav-item" onclick="adminLogout()" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="admin-main-wrap">
+      <!-- Topbar -->
+      <header class="admin-topbar">
+        <div class="admin-topbar-left">
+          <button type="button" class="admin-mobile-toggle" aria-label="Toggle navigation drawer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <span class="admin-topbar-title">Plan B - Arya Generation Growth Programme</span>
+        </div>
+
+        <div class="admin-topbar-right">
+          <div class="admin-user-chip">
+            <span class="admin-user-avatar">A</span>
+            <span>Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Body -->
+      <main class="admin-body">
+        <div class="prototype-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>Live data from /api/v1/admin/plan-b/ endpoints</span>
+        </div>
+
+        <!-- Dedicated Plan B Programme Search (Section 5.B) -->
+        <section class="admin-search-bar-section" style="margin-bottom:var(--space-6);" aria-label="Plan B Record Search">
+          <div class="admin-card" style="padding:var(--space-4);background:#FFFFFF;border:1px solid #CBD5E1;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
+              <div style="flex:1;min-width:280px;position:relative;display:flex;align-items:center;">
+                <span style="position:absolute;left:12px;color:var(--color-muted);pointer-events:none;display:flex;align-items:center;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </span>
+                <input type="text" id="plan-b-search-input" class="form-control" placeholder="Search Plan B: Distributor Name, Mobile (+91), Distributor ID, Sponsor ID, or Ledger ID..." style="padding-left:36px;padding-right:32px;width:100%;height:38px;" onkeydown="if(event.key==='Enter') executePlanBSearch()">
+                <button type="button" id="plan-b-search-clear-btn" onclick="clearPlanBSearch()" style="position:absolute;right:8px;background:none;border:none;color:var(--color-muted);cursor:pointer;font-size:18px;display:none;line-height:1;" aria-label="Clear Search">&times;</button>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="executePlanBSearch()" style="display:inline-flex;align-items:center;gap:6px;height:38px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span>Search Plan B</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="clearPlanBSearch()" style="height:38px;">
+                Reset
+              </button>
+            </div>
+            <!-- Plan B Search Feedback & Results -->
+            <div id="plan-b-search-loading" style="display:none;padding:var(--space-4);text-align:center;color:var(--color-muted);">
+              Searching Plan B records...
+            </div>
+            <div id="plan-b-search-feedback" style="display:none;margin-top:var(--space-3);"></div>
+            <div id="plan-b-search-results" style="display:none;margin-top:var(--space-3);"></div>
+          </div>
+        </section>
+
+        <!-- Metric Stat Cards Grid -->
+        <section class="stats-grid" aria-label="Plan B Overview Metrics">
+          <!-- Distributors Count -->
+          <article class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Plan B Distributors</span>
+              <div class="stat-icon" style="background:#FEF3C7;color:#92400E;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-plan-b-distributors">0</div>
+            <span class="stat-hint">Registered distributor network</span>
+          </article>
+
+          <!-- Direct Commissions Count -->
+          <article class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Direct Referral Commissions</span>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-plan-b-direct">0</div>
+            <span class="stat-hint">Direct referee purchase events</span>
+          </article>
+
+          <!-- Generation Commissions Count -->
+          <article class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Generation Commissions</span>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-plan-b-generation">0</div>
+            <span class="stat-hint">₹50 / item to direct referring distributor</span>
+          </article>
+
+          <!-- Billing IDs Count -->
+          <article class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Plan B Billing IDs</span>
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="stat-plan-b-billing-ids">0</div>
+            <span class="stat-hint">Allocated purchased product units</span>
+          </article>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <nav class="admin-tabs" aria-label="Plan B Sections">
+          <button type="button" class="admin-tab active" onclick="switchPlanBTab('distributors')">Distributors Directory</button>
+          <button type="button" class="admin-tab" onclick="switchPlanBTab('direct-commissions')">Direct Referral Commissions</button>
+          <button type="button" class="admin-tab" onclick="switchPlanBTab('generation-commissions')">Generation Commissions</button>
+          <button type="button" class="admin-tab" onclick="switchPlanBTab('billing-ids')">Billing IDs</button>
+          <button type="button" class="admin-tab" onclick="switchPlanBTab('reports')">Plan B Reports (Excel)</button>
+        </nav>
+
+        <!-- Tab 1: Distributors Directory -->
+        <section id="tab-distributors" class="admin-tab-content">
+          <div class="admin-card">
+            <div class="admin-card-header" style="flex-wrap:wrap;gap:var(--space-3);">
+              <h2 class="admin-card-title">Plan B - Arya Generation Growth Programme Distributors</h2>
+              <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                <input type="text" id="distributor-search-input" class="form-control" placeholder="Search by name, phone, code..." style="width:220px;" onkeydown="if(event.key==='Enter') loadPlanBDistributors()">
+                <select id="distributor-status-select" class="form-control" style="width:140px;" onchange="loadPlanBDistributors()">
+                  <option value="">All Statuses</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="BLOCKED">BLOCKED</option>
+                  <option value="DEACTIVATED">DEACTIVATED</option>
+                </select>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="loadPlanBDistributors()">Filter</button>
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" aria-label="Distributors Table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Full Name</th>
+                    <th>Phone</th>
+                    <th>Referral Code</th>
+                    <th>Account Status</th>
+                    <th>Direct Referees</th>
+                    <th>Joined At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-b-distributors-tbody">
+                  <tr><td colspan="8" style="text-align:center;padding:var(--space-6);">Loading distributors...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Direct Referral Commissions -->
+        <section id="tab-direct-commissions" class="admin-tab-content" style="display:none;">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Direct Referral Commission Ledger</h2>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="loadPlanBDirectCommissions()">Refresh</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" aria-label="Direct Commissions Table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Distributor ID</th>
+                    <th>Purchaser/Referee ID</th>
+                    <th>Order ID</th>
+                    <th>Billing ID</th>
+                    <th>Gross Amount</th>
+                    <th>TDS (5%)</th>
+                    <th>Net Amount</th>
+                    <th>Status</th>
+                    <th>Processed At</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-b-direct-tbody">
+                  <tr><td colspan="10" style="text-align:center;padding:var(--space-6);">Loading direct commissions...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 3: Generation Commissions -->
+        <section id="tab-generation-commissions" class="admin-tab-content" style="display:none;">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div>
+                <h2 class="admin-card-title">Generation Commissions Ledger</h2>
+                <p style="font-size:var(--text-xs);color:var(--color-muted);margin-top:2px;">
+                  Business Rule: Generation commission is ₹50 gross per eligible Plan B Billing ID, awarded strictly to the direct referring distributor on referee purchases.
+                </p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="loadPlanBGenerationCommissions()">Refresh</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" aria-label="Generation Commissions Table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Distributor ID</th>
+                    <th>Purchaser/Referee ID</th>
+                    <th>Order ID</th>
+                    <th>Billing ID</th>
+                    <th>Generation Level</th>
+                    <th>Gross Amount</th>
+                    <th>TDS (5%)</th>
+                    <th>Net Amount</th>
+                    <th>Status</th>
+                    <th>Processed At</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-b-gen-tbody">
+                  <tr><td colspan="11" style="text-align:center;padding:var(--space-6);">Loading generation commissions...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 4: Billing IDs -->
+        <section id="tab-billing-ids" class="admin-tab-content" style="display:none;">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Plan B Billing Unit Identifiers</h2>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="loadPlanBBillingIds()">Refresh</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" aria-label="Plan B Billing IDs Table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Billing Number</th>
+                    <th>Sequence #</th>
+                    <th>Order ID</th>
+                    <th>User ID</th>
+                    <th>Unit Index</th>
+                    <th>Status</th>
+                    <th>Allocated At</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-b-bids-tbody">
+                  <tr><td colspan="8" style="text-align:center;padding:var(--space-6);">Loading Billing IDs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 5: Plan B Reports (Excel Only) -->
+        <section id="tab-reports" class="admin-tab-content" style="display:none;">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div>
+                <h2 class="admin-card-title">Plan B Administrative Reports</h2>
+                <span class="badge" style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;">EXCEL (.XLSX) ONLY PER RULE R-09</span>
+              </div>
+            </div>
+            <div style="padding:var(--space-6);">
+              <div class="reports-grid">
+                <!-- Report 1: Purchase Report -->
+                <div class="report-card">
+                  <div>
+                    <h3 style="font-size:var(--text-md);color:#1E3A8A;margin-bottom:var(--space-2);">Plan B Complete Purchase Report</h3>
+                    <p style="font-size:var(--text-xs);color:var(--color-muted);line-height:1.5;">
+                      Traceable purchase ledger with customer name, phone, order number, Billing ID, and referring distributor.
+                    </p>
+                  </div>
+                  <div style="margin-top:var(--space-4);">
+                    <button type="button" class="btn btn-primary btn-sm" style="width:100%;" onclick="downloadPlanBPurchases()">Download Excel (.xlsx)</button>
+                  </div>
+                </div>
+
+                <!-- Report 2: Commission Report -->
+                <div class="report-card">
+                  <div>
+                    <h3 style="font-size:var(--text-md);color:#1E3A8A;margin-bottom:var(--space-2);">Plan B Commission Report</h3>
+                    <p style="font-size:var(--text-xs);color:var(--color-muted);line-height:1.5;">
+                      Consolidated Direct and Generation commission audit records with TDS and net distribution amounts.
+                    </p>
+                  </div>
+                  <div style="margin-top:var(--space-4);">
+                    <button type="button" class="btn btn-primary btn-sm" style="width:100%;" onclick="downloadPlanBCommissions()">Download Excel (.xlsx)</button>
+                  </div>
+                </div>
+
+                <!-- Report 3: Individual Distributor Report -->
+                <div class="report-card">
+                  <div>
+                    <h3 style="font-size:var(--text-md);color:#1E3A8A;margin-bottom:var(--space-2);">Individual Distributor Profile Report</h3>
+                    <p style="font-size:var(--text-xs);color:var(--color-muted);line-height:1.5;">
+                      Detailed statement of direct referees, wallet balances, and commission distributions for a single distributor.
+                    </p>
+                    <div style="margin-top:var(--space-3);">
+                      <input type="number" id="report-distributor-id" class="form-control" placeholder="Distributor ID (e.g. 101)" min="1" style="font-size:var(--text-xs);padding:6px 10px;">
+                    </div>
+                  </div>
+                  <div style="margin-top:var(--space-4);">
+                    <button type="button" class="btn btn-primary btn-sm" style="width:100%;" onclick="downloadIndividualDistributorReport()">Download Excel (.xlsx)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Admin Footer -->
+      <footer class="admin-footer">
+        <div class="container">
+          <p>&copy; 2026 Arya Global Digital. Administration Console. Authorized personnel only.</p>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Distributor Wallet Inspection Modal -->
+  <div id="distributor-wallet-modal" class="admin-modal-backdrop">
+    <div class="admin-modal-dialog" style="max-width:760px;">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title" id="distributor-wallet-modal-title">Distributor Wallet Overview</h3>
+        <button type="button" class="admin-modal-close" onclick="closeDistributorWalletModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:var(--space-4);background:#F8FAFC;padding:var(--space-4);border-radius:var(--radius-lg);margin-bottom:var(--space-6);">
+          <div>
+            <span style="font-size:11px;color:var(--color-muted);display:block;">Wallet Balance</span>
+            <strong id="modal-wallet-balance" style="font-size:var(--text-lg);color:#1E3A8A;">₹0</strong>
+          </div>
+          <div>
+            <span style="font-size:11px;color:var(--color-muted);display:block;">Total Earned</span>
+            <strong id="modal-wallet-earned" style="font-size:var(--text-lg);color:#166534;">₹0</strong>
+          </div>
+          <div>
+            <span style="font-size:11px;color:var(--color-muted);display:block;">Total Withdrawn</span>
+            <strong id="modal-wallet-withdrawn" style="font-size:var(--text-lg);">₹0</strong>
+          </div>
+          <div>
+            <span style="font-size:11px;color:var(--color-muted);display:block;">Wallet Freeze Status</span>
+            <span id="modal-wallet-frozen-badge" class="badge">ACTIVE</span>
+          </div>
+        </div>
+
+        <h4 style="font-size:var(--text-sm);font-weight:700;margin-bottom:var(--space-2);">Recent Ledger Transactions</h4>
+        <div class="admin-table-wrap" style="max-height:220px;overflow-y:auto;margin-bottom:var(--space-6);">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance After</th>
+                <th>Reference</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="modal-wallet-tx-tbody"></tbody>
+          </table>
+        </div>
+
+        <h4 style="font-size:var(--text-sm);font-weight:700;margin-bottom:var(--space-2);">Recent Withdrawals</h4>
+        <div class="admin-table-wrap" style="max-height:180px;overflow-y:auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Receipt / Reason</th>
+                <th>Requested At</th>
+              </tr>
+            </thead>
+            <tbody id="modal-wallet-w-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeDistributorWalletModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distributor Referrals Modal -->
+  <div id="distributor-referrals-modal" class="admin-modal-backdrop">
+    <div class="admin-modal-dialog" style="max-width:700px;">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title" id="distributor-referrals-modal-title">Direct Referees</h3>
+        <button type="button" class="admin-modal-close" onclick="closeDistributorReferralsModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Referee ID</th>
+                <th>Full Name</th>
+                <th>Phone</th>
+                <th>Code Used</th>
+                <th>Channel</th>
+                <th>Bound At</th>
+              </tr>
+            </thead>
+            <tbody id="distributor-referrals-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeDistributorReferralsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Search Modal -->
+  <div id="unified-search-modal" class="admin-modal-backdrop">
+    <div class="admin-modal-dialog" style="max-width:700px;">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title">Unified Search Results</h3>
+        <button type="button" class="admin-modal-close" onclick="closeUnifiedSearchModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div id="unified-search-loading" style="text-align:center;padding:var(--space-6);display:none;">Searching...</div>
+        <div id="unified-search-results-container"></div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUnifiedSearchModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/data.js?v=20261105_04"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAdminPlanBPage();
+    });
+  </script>
+</body>
+</html>

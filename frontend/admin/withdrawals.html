@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Withdrawal Moderation — Arya Global Digital Admin</title>
+  <meta name="description" content="Review, approve, and reject customer and distributor withdrawal requests, manage wallet freeze statuses.">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="auth-protected">
+
+  <div class="admin-shell">
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" aria-label="Admin Navigation">
+      <div class="admin-sidebar-header">
+        <a href="dashboard.html" class="admin-brand">
+          <span class="brand-logo-mark" aria-hidden="true" style="width:28px;height:28px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
+              <polygon points="12 2 2 22 22 22"></polygon>
+              <line x1="12" y1="11" x2="12" y2="17"></line>
+            </svg>
+          </span>
+          <span>Arya Global Digital</span>
+        </a>
+        <span class="admin-badge">Admin</span>
+      </div>
+
+      <nav class="admin-sidebar-nav">
+        <a href="dashboard.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="plan-a.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+          <span>Plan A - Arya Business Partner Programme</span>
+        </a>
+        <a href="plan-b.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+          <span>Plan B - Arya Generation Growth Programme</span>
+        </a>
+        <a href="withdrawals.html" class="admin-nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+          <span>Withdrawals</span>
+        </a>
+        <a href="reports.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          <span>Reports &amp; Downloads</span>
+        </a>
+        <a href="settings.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Financial Settings</span>
+        </a>
+        <a href="orders.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          <span>Orders</span>
+        </a>
+        <a href="products.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          <span>Products</span>
+        </a>
+        <a href="customers.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Customers</span>
+        </a>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <a href="../index.html" class="admin-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Return to Store</span>
+        </a>
+        <button type="button" class="admin-nav-item" onclick="adminLogout()" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="admin-main-wrap">
+      <!-- Topbar -->
+      <header class="admin-topbar">
+        <div class="admin-topbar-left">
+          <button type="button" class="admin-mobile-toggle" aria-label="Toggle navigation drawer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <span class="admin-topbar-title">Withdrawal Moderation &amp; Wallet Control</span>
+        </div>
+
+        <div class="admin-topbar-right">
+          <div class="admin-user-chip">
+            <span class="admin-user-avatar">A</span>
+            <span>Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Body -->
+      <main class="admin-body">
+        <div class="prototype-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>Live data from /api/v1/admin/withdrawals/ &amp; /api/v1/admin/wallets/</span>
+        </div>
+
+        <!-- Metric Stat Cards Grid -->
+        <section class="stats-grid" aria-label="Withdrawal Governance" style="grid-template-columns: 1fr;">
+          <!-- Governance Rules Banner Card -->
+          <article class="stat-card" style="grid-column: 1 / -1; width: 100%;">
+            <div class="stat-header">
+              <span class="stat-label" style="font-weight:700;color:#1E3A8A;">Financial Invariants Enforced</span>
+            </div>
+            <div style="font-size:var(--text-xs);color:var(--color-muted);line-height:1.6;margin-top:var(--space-2);">
+              &bull; <strong>First withdrawal minimum:</strong> ₹750 across platform.<br>
+              &bull; <strong>Subsequent withdrawals:</strong> Full wallet balance withdrawal only.<br>
+              &bull; <strong>Plan A Sequential Commission:</strong> ₹4,000 threshold strictly after 16 contributions.<br>
+              &bull; <strong>Blocked Distributors:</strong> Automated requests branch to REQUESTED status for manual admin approval.<br>
+              &bull; <strong>Zero frontend financial calculation:</strong> Payout and ledger balances are authoritative on backend.
+            </div>
+          </article>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <nav class="admin-tabs" aria-label="Withdrawal Sections">
+          <button type="button" class="admin-tab active" onclick="switchWithdrawalsTab('pending')">Pending Requests Review</button>
+          <button type="button" class="admin-tab" onclick="switchWithdrawalsTab('wallet-control')">Wallet Freeze &amp; Unfreeze</button>
+        </nav>
+
+        <!-- Tab 1: Pending Requests -->
+        <section id="tab-pending-withdrawals" class="admin-tab-content">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Withdrawals Requiring Administrative Action</h2>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="loadPendingWithdrawals()">Refresh List</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" aria-label="Pending Withdrawals Table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>User ID</th>
+                    <th>Wallet ID</th>
+                    <th>Wallet Type</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Requested At</th>
+                    <th>Moderation Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-withdrawals-tbody">
+                  <tr><td colspan="8" style="text-align:center;padding:var(--space-6);">Loading pending requests...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Wallet Freeze Control -->
+        <section id="tab-wallet-control" class="admin-tab-content" style="display:none;">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h2 class="admin-card-title">Customer / Distributor Wallet Freeze Control</h2>
+            </div>
+            <div style="padding:var(--space-6);max-width:640px;">
+              <p style="font-size:var(--text-xs);color:var(--color-muted);margin-bottom:var(--space-4);">
+                Freezing a wallet prevents any withdrawal requests from being initiated. All actions are logged immutably in the audit history.
+              </p>
+
+              <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-3);flex-wrap:wrap;">
+                <input type="text" id="freeze-user-number" class="form-control" placeholder="Registered Mobile or User ID (e.g. 9019443501 or 60001)" style="flex:1;min-width:260px;" onchange="resolveUserWalletInfo()" onblur="resolveUserWalletInfo()" onkeydown="if(event.key==='Enter') resolveUserWalletInfo()">
+                <input type="hidden" id="freeze-wallet-id" value="">
+                <input type="text" id="freeze-reason" class="form-control" placeholder="Mandatory Reason for action..." style="flex:2;min-width:260px;">
+              </div>
+
+              <!-- Resolved User & Wallet Info Container -->
+              <div id="wallet-user-info-box" style="display:none;margin-bottom:var(--space-4);padding:var(--space-3) var(--space-4);background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-md);">
+                <div id="wallet-user-info-text" style="font-size:var(--text-xs);color:#334155;font-weight:600;"></div>
+                <div id="wallet-multi-selector" style="display:none;margin-top:var(--space-2);"></div>
+              </div>
+
+              <div style="display:flex;gap:var(--space-3);">
+                <button type="button" class="btn btn-danger btn-sm" onclick="executeWalletFreezeAction(true)">Freeze Wallet</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="executeWalletFreezeAction(false)">Unfreeze Wallet</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="loadWalletFreezeHistory()">View History</button>
+              </div>
+            </div>
+
+            <!-- Freeze History Display -->
+            <div id="wallet-freeze-history-container" style="display:none;padding:0 var(--space-6) var(--space-6);">
+              <h3 style="font-size:var(--text-md);color:#1E3A8A;margin-bottom:var(--space-3);">Wallet Freeze Audit History</h3>
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>History ID</th>
+                      <th>Action</th>
+                      <th>Admin ID</th>
+                      <th>Reason</th>
+                      <th>Recorded At</th>
+                    </tr>
+                  </thead>
+                  <tbody id="wallet-freeze-history-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Admin Footer -->
+      <footer class="admin-footer">
+        <div class="container">
+          <p>&copy; 2026 Arya Global Digital. Administration Console. Authorized personnel only.</p>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Approve Withdrawal Confirmation Modal -->
+  <div id="approve-withdrawal-modal" class="admin-modal-backdrop">
+    <div class="admin-modal-dialog" style="max-width:500px;">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title">Confirm Withdrawal Approval</h3>
+        <button type="button" class="admin-modal-close" onclick="closeApproveModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <p style="font-size:var(--text-sm);line-height:1.5;">
+          Are you sure you want to approve Withdrawal <strong id="approve-modal-wid">#-</strong> for amount <strong id="approve-modal-amount">₹0</strong>?
+        </p>
+        <p style="font-size:var(--text-xs);color:var(--color-muted);margin-top:var(--space-3);">
+          Upon approval, the wallet will be debited and an immutable simulated payout receipt reference will be recorded.
+        </p>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeApproveModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-approve-btn" onclick="submitApproveWithdrawal()">Confirm &amp; Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject Withdrawal Modal (Mandatory Reason) -->
+  <div id="reject-withdrawal-modal" class="admin-modal-backdrop">
+    <div class="admin-modal-dialog" style="max-width:540px;">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title" style="color:#991B1B;">Reject Withdrawal Request</h3>
+        <button type="button" class="admin-modal-close" onclick="closeRejectModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <p style="font-size:var(--text-sm);margin-bottom:var(--space-4);">
+          Rejecting Withdrawal <strong id="reject-modal-wid">#-</strong> for amount <strong id="reject-modal-amount">₹0</strong> will leave the funds in the customer's wallet.
+        </p>
+        <label for="reject-modal-reason" style="display:block;font-weight:600;font-size:var(--text-xs);margin-bottom:var(--space-2);">
+          Mandatory Rejection Reason:
+        </label>
+        <textarea id="reject-modal-reason" class="form-control" rows="3" placeholder="Specify why this withdrawal is being rejected..."></textarea>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-reject-btn" onclick="submitRejectWithdrawal()">Confirm Rejection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Search Modal -->
+  <div id="unified-search-modal" class="admin-modal-backdrop">
+    <div class="admin-modal-dialog" style="max-width:700px;">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title">Unified Search Results</h3>
+        <button type="button" class="admin-modal-close" onclick="closeUnifiedSearchModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div id="unified-search-loading" style="text-align:center;padding:var(--space-6);display:none;">Searching...</div>
+        <div id="unified-search-results-container"></div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUnifiedSearchModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/data.js?v=20261105_04"></script>
+  <script src="../js/api.js?v=20261105_04"></script>
+  <script src="../js/admin.js?v=20261105_04"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAdminWithdrawalsPage();
+    });
+  </script>
+</body>
+</html>
+

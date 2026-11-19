@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import rate_limit
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.enums import AccountStatus, OTPPurpose, Programme, UserRole, WalletType
 from app.models.user import User
@@ -40,6 +41,7 @@ router = APIRouter(prefix="/customer", tags=["Customer Authentication"])
     response_model=CustomerRegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new customer account",
+    dependencies=[Depends(rate_limit("customer_register", max_requests=5, window_seconds=60))],
 )
 def register_customer(
     payload: CustomerRegisterRequest,
@@ -144,7 +146,18 @@ def register_customer(
     logger.info(
         f"Customer registered successfully (ID: {new_customer.id}, Phone: {_mask_phone(clean_phone)}, Referral: {referral_code})."
     )
-    return CustomerRegisterResponse.model_validate(new_customer)
+    access_token = create_access_token(
+        user_id=new_customer.id,
+        role=new_customer.role.value if hasattr(new_customer.role, "value") else str(new_customer.role),
+        phone=new_customer.phone,
+        extra_claims={
+            "programme": new_customer.programme.value if hasattr(new_customer.programme, "value") else str(new_customer.programme),
+            "account_status": new_customer.account_status.value if hasattr(new_customer.account_status, "value") else str(new_customer.account_status),
+        },
+    )
+    res = CustomerRegisterResponse.model_validate(new_customer)
+    res.access_token = access_token
+    return res
 
 
 @router.post(
@@ -311,12 +324,14 @@ def login_customer_via_otp(
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Log in customer using phone and password",
+    dependencies=[Depends(rate_limit("customer_login", max_requests=10, window_seconds=60))],
 )
 @router.post(
     "/login/password",
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Log in customer using phone and password",
+    dependencies=[Depends(rate_limit("customer_login", max_requests=10, window_seconds=60))],
 )
 def login_customer_via_password(
     payload: CustomerPasswordLoginRequest,

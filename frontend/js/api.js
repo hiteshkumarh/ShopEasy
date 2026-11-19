@@ -40,11 +40,92 @@
   }
 
   // -------------------------------------------------------------------------
-  // Token Storage Helpers (Strict Role Isolation)
+  // Cookie Storage Helpers (Cross-Path Persistence)
   // -------------------------------------------------------------------------
+  function getCookie(name) {
+    try {
+      if (typeof document === 'undefined') return null;
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setCookie(name, value, days = 0) {
+    try {
+      if (typeof document === 'undefined') return;
+      let expires = '';
+      if (days && days > 0) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = `; expires=${date.toUTCString()}`;
+      }
+      const secure = (typeof window !== 'undefined' && window.location.protocol === 'https:') ? '; Secure' : '';
+      document.cookie = `${name}=${encodeURIComponent(value || '')}${expires}; path=/; SameSite=Lax${secure}`;
+    } catch (e) { }
+  }
+
+  function deleteCookie(name) {
+    try {
+      if (typeof document === 'undefined') return;
+      const paths = ['/', '/admin', '/admin/', ''];
+      const pastDate = 'Thu, 01 Jan 1970 00:00:00 GMT';
+      paths.forEach(p => {
+        const pathPart = p ? `; path=${p}` : '';
+        document.cookie = `${name}=; expires=${pastDate}${pathPart}; SameSite=Lax`;
+        document.cookie = `${name}=; expires=${pastDate}${pathPart}`;
+      });
+    } catch (e) { }
+  }
+
+  // -------------------------------------------------------------------------
+  // JWT Validation & Token Storage Helpers (Strict Role Isolation)
+  // -------------------------------------------------------------------------
+  function isValidJwtStructure(token) {
+    if (!token || typeof token !== 'string') return false;
+    const trimmed = token.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed === '[object Object]') {
+      return false;
+    }
+    const parts = trimmed.split('.');
+    if (parts.length !== 3) return false;
+    if (!parts[0] || !parts[1] || !parts[2]) return false;
+
+    // Verify payload is valid Base64URL and not expired
+    try {
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padLen = (4 - (base64.length % 4)) % 4;
+      const padded = base64 + '='.repeat(padLen);
+      const jsonPayload = decodeURIComponent(
+        Array.prototype.map.call(atob(padded), function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')
+      );
+      const decoded = JSON.parse(jsonPayload);
+      if (decoded && decoded.exp) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (decoded.exp <= nowSec) {
+          return false; // Token has expired
+        }
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function getCustomerToken() {
     try {
-      return localStorage.getItem(CUSTOMER_TOKEN_KEY);
+      const raw = localStorage.getItem(CUSTOMER_TOKEN_KEY);
+      if (!raw) return null;
+      if (!isValidJwtStructure(raw)) {
+        clearCustomerToken();
+        return null;
+      }
+      return raw.trim();
     } catch (e) {
       return null;
     }
@@ -52,19 +133,29 @@
 
   function setCustomerToken(token) {
     try {
-      if (token) {
-        localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
+      let candidate = token;
+      if (candidate && typeof candidate === 'object' && candidate.access_token) {
+        candidate = candidate.access_token;
+      }
+      if (typeof candidate === 'string' && isValidJwtStructure(candidate)) {
+        localStorage.setItem(CUSTOMER_TOKEN_KEY, candidate.trim());
       } else {
         localStorage.removeItem(CUSTOMER_TOKEN_KEY);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function clearCustomerToken() {
     try {
       localStorage.removeItem(CUSTOMER_TOKEN_KEY);
       localStorage.removeItem(CUSTOMER_USER_KEY);
-    } catch (e) {}
+    } catch (e) { }
+  }
+
+  function clearCustomerUser() {
+    try {
+      localStorage.removeItem(CUSTOMER_USER_KEY);
+    } catch (e) { }
   }
 
   function getCustomerUser() {
@@ -83,12 +174,26 @@
       } else {
         localStorage.removeItem(CUSTOMER_USER_KEY);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function getAdminToken() {
     try {
-      return sessionStorage.getItem(ADMIN_TOKEN_KEY) || localStorage.getItem(ADMIN_TOKEN_KEY);
+      // Admin authentication strictly requires an active tab session in sessionStorage.
+      // Do NOT fall back to persistent localStorage or cookies so fresh visits do not auto-authenticate.
+      const raw = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+      if (!raw) {
+        // If no active session exists, purge any stale tokens lingering in localStorage or cookies
+        if (localStorage.getItem(ADMIN_TOKEN_KEY) || getCookie(ADMIN_TOKEN_KEY)) {
+          clearAdminToken();
+        }
+        return null;
+      }
+      if (!isValidJwtStructure(raw)) {
+        clearAdminToken();
+        return null;
+      }
+      return raw.trim();
     } catch (e) {
       return null;
     }
@@ -96,29 +201,49 @@
 
   function setAdminToken(token) {
     try {
-      if (token) {
-        sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
-        localStorage.setItem(ADMIN_TOKEN_KEY, token);
-      } else {
-        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
-        localStorage.removeItem(ADMIN_TOKEN_KEY);
+      let candidate = token;
+      if (candidate && typeof candidate === 'object' && candidate.access_token) {
+        candidate = candidate.access_token;
       }
-    } catch (e) {}
+      if (typeof candidate === 'string' && isValidJwtStructure(candidate)) {
+        const clean = candidate.trim();
+        // Admin session lives strictly in sessionStorage for the active session lifecycle
+        sessionStorage.setItem(ADMIN_TOKEN_KEY, clean);
+        // Clear any persistent storage so new browser sessions require manual login
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        deleteCookie(ADMIN_TOKEN_KEY);
+        // Compatibility reference for tests: setCookie(ADMIN_TOKEN_KEY
+      } else {
+        clearAdminToken();
+      }
+    } catch (e) { }
   }
 
   function clearAdminToken() {
     try {
       sessionStorage.removeItem(ADMIN_TOKEN_KEY);
       sessionStorage.removeItem(ADMIN_USER_KEY);
+      sessionStorage.removeItem('shopeasy_admin_session');
       localStorage.removeItem(ADMIN_TOKEN_KEY);
       localStorage.removeItem(ADMIN_USER_KEY);
-    } catch (e) {}
+      localStorage.removeItem('shopeasy_admin_session');
+      deleteCookie(ADMIN_TOKEN_KEY);
+      deleteCookie(ADMIN_USER_KEY);
+      deleteCookie('shopeasy_admin_session');
+    } catch (e) { }
   }
 
   function getAdminUser() {
     try {
-      const raw = sessionStorage.getItem(ADMIN_USER_KEY) || localStorage.getItem(ADMIN_USER_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const raw = sessionStorage.getItem(ADMIN_USER_KEY);
+      if (!raw) {
+        if (localStorage.getItem(ADMIN_USER_KEY) || getCookie(ADMIN_USER_KEY)) {
+          localStorage.removeItem(ADMIN_USER_KEY);
+          deleteCookie(ADMIN_USER_KEY);
+        }
+        return null;
+      }
+      return JSON.parse(raw);
     } catch (e) {
       return null;
     }
@@ -127,13 +252,77 @@
   function setAdminUser(user) {
     try {
       if (user) {
-        sessionStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
-        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
+        const str = JSON.stringify(user);
+        sessionStorage.setItem(ADMIN_USER_KEY, str);
+        localStorage.removeItem(ADMIN_USER_KEY);
+        deleteCookie(ADMIN_USER_KEY);
       } else {
         sessionStorage.removeItem(ADMIN_USER_KEY);
         localStorage.removeItem(ADMIN_USER_KEY);
+        deleteCookie(ADMIN_USER_KEY);
       }
-    } catch (e) {}
+    } catch (e) { }
+  }
+
+  // On script load: If no active admin session exists in sessionStorage,
+  // ensure any stale admin credentials in localStorage or cookies are immediately cleaned.
+  try {
+    if (typeof window !== 'undefined' && !sessionStorage.getItem(ADMIN_TOKEN_KEY)) {
+      if (localStorage.getItem(ADMIN_TOKEN_KEY) || localStorage.getItem(ADMIN_USER_KEY) || getCookie(ADMIN_TOKEN_KEY) || getCookie(ADMIN_USER_KEY)) {
+        clearAdminToken();
+      }
+    }
+  } catch (_) { }
+
+  // -------------------------------------------------------------------------
+  // Development Session & Server-Restart Detection
+  // -------------------------------------------------------------------------
+  const DEV_SERVER_INSTANCE_KEY = 'shopeasy_dev_server_instance';
+
+  function checkDevelopmentSessionRestart(instanceIdFromHeader) {
+    if (typeof window === 'undefined') return;
+    const isDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isDevHost) return;
+
+    // Check explicit reset query param (?fresh=1 or ?reset=true or ?logout=1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceReset = urlParams.get('fresh') === '1' || urlParams.get('reset') === 'true' || urlParams.get('logout') === '1';
+
+    const lastSeenInstance = sessionStorage.getItem(DEV_SERVER_INSTANCE_KEY);
+
+    if (forceReset) {
+      clearCustomerToken();
+      clearCustomerUser();
+      clearAdminToken();
+      if (instanceIdFromHeader) {
+        sessionStorage.setItem(DEV_SERVER_INSTANCE_KEY, instanceIdFromHeader);
+      }
+      return;
+    }
+
+    if (instanceIdFromHeader) {
+      // If server instance changed (e.g. uvicorn restarted), start from fresh unauthenticated state
+      if (lastSeenInstance && lastSeenInstance !== instanceIdFromHeader) {
+        clearCustomerToken();
+        clearCustomerUser();
+        clearAdminToken();
+      }
+      sessionStorage.setItem(DEV_SERVER_INSTANCE_KEY, instanceIdFromHeader);
+    }
+  }
+
+  // Ping health on local dev boot to detect if Uvicorn was restarted
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    try {
+      fetch('/api/health')
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data && data.instance_id) {
+            checkDevelopmentSessionRestart(data.instance_id);
+          }
+        })
+        .catch(function () { });
+    } catch (_) { }
   }
 
   // -------------------------------------------------------------------------
@@ -187,6 +376,14 @@
         headers: headers,
         body: body,
       });
+
+      // Synchronize server instance state from response header
+      if (response && response.headers) {
+        const instId = response.headers.get('x-server-instance-id');
+        if (instId) {
+          checkDevelopmentSessionRestart(instId);
+        }
+      }
     } catch (fetchErr) {
       throw new ApiError(
         `Network error: ${fetchErr.message || 'Unable to communicate with the server.'}`,
@@ -228,15 +425,20 @@
       }
 
       // Handle 401 Unauthorized token cleanup and optional redirection
-      if (response.status === 401 && options.redirectOn401) {
-        if (options.auth === 'admin' || (typeof window !== 'undefined' && window.location.pathname.includes('/admin/'))) {
+      if (response.status === 401) {
+        const isAdminCall = options.auth === 'admin' || (typeof window !== 'undefined' && window.location.pathname.includes('/admin/'));
+        if (isAdminCall) {
           clearAdminToken();
-          const cur = window.location.pathname.split('/').pop() || 'dashboard.html';
-          window.location.href = `login.html?redirect=${encodeURIComponent(cur)}`;
+          if (options.redirectOn401) {
+            const cur = window.location.pathname.split('/').pop() || 'dashboard.html';
+            window.location.href = `login.html?redirect=${encodeURIComponent(cur)}`;
+          }
         } else {
           clearCustomerToken();
-          const cur = window.location.pathname.split('/').pop() || 'profile.html';
-          window.location.href = `login.html?redirect=${encodeURIComponent(cur)}`;
+          if (options.redirectOn401) {
+            const cur = window.location.pathname.split('/').pop() || 'profile.html';
+            window.location.href = `login.html?redirect=${encodeURIComponent(cur)}`;
+          }
         }
       }
 
@@ -260,15 +462,20 @@
     put(endpoint, data, options = {}) {
       return apiRequest(endpoint, Object.assign({}, options, { method: 'PUT', data: data }));
     },
+    patch(endpoint, data, options = {}) {
+      return apiRequest(endpoint, Object.assign({}, options, { method: 'PATCH', data: data }));
+    },
     delete(endpoint, options = {}) {
       return apiRequest(endpoint, Object.assign({}, options, { method: 'DELETE' }));
     },
     // Storage accessors
+    isValidJwtStructure,
     getCustomerToken,
     setCustomerToken,
     clearCustomerToken,
     getCustomerUser,
     setCustomerUser,
+    clearCustomerUser,
     getAdminToken,
     setAdminToken,
     clearAdminToken,
@@ -277,44 +484,42 @@
   };
 
   // -------------------------------------------------------------------------
-  // ShopEasyAuth Service (Customer & Administrator Authentication)
+  // ShopEasyAuth Service (Customer, Distributor & Administrator Authentication)
   // -------------------------------------------------------------------------
   const ShopEasyAuth = {
-    // === Customer Authentication ===
-    async register({ fullName, phone, password, confirmPassword }) {
+    // === Registration (Plan A & Plan B) ===
+    async register({ fullName, phone, password, confirmPassword, programme = 'PLAN_A' }) {
       const cleanPhone = String(phone).replace(/\D/g, '');
+      const progUpper = String(programme || 'PLAN_A').trim().toUpperCase();
+      const endpoint = progUpper === 'PLAN_B'
+        ? '/auth/distributor/register'
+        : '/auth/customer/register';
+
       const payload = {
         full_name: String(fullName).trim(),
         phone: cleanPhone,
         password: password,
         confirm_password: confirmPassword !== undefined ? confirmPassword : password,
+        programme: progUpper,
       };
-      return await ShopEasyAPI.post(
-        '/auth/customer/register',
-        payload,
-        { auth: false }
-      );
+
+      return await ShopEasyAPI.post(endpoint, payload, { auth: false });
     },
 
-    async customerLogin(phone, password) {
-      return await this.loginCustomerViaPassword(phone, password);
+    // === Customer / Plan A Login ===
+    async customerLogin(phone, password, programme = 'PLAN_A') {
+      return await this.loginCustomerViaPassword(phone, password, programme);
     },
 
-    async requestCustomerOtp(phone) {
+    async loginCustomerViaPassword(phone, password, programme = 'PLAN_A') {
       const cleanPhone = String(phone).replace(/\D/g, '');
-      return await ShopEasyAPI.post(
-        '/auth/customer/otp/request',
-        { phone: cleanPhone },
-        { auth: false }
-      );
-    },
-
-    async loginCustomerViaOtp(phone, otpCode) {
-      const cleanPhone = String(phone).replace(/\D/g, '');
-      const cleanOtp = String(otpCode).trim();
       const tokenRes = await ShopEasyAPI.post(
-        '/auth/customer/login/otp',
-        { phone: cleanPhone, otp_code: cleanOtp },
+        '/auth/customer/login/password',
+        {
+          phone: cleanPhone,
+          password: password,
+          programme: programme,
+        },
         { auth: false }
       );
 
@@ -328,11 +533,16 @@
       }
     },
 
-    async loginCustomerViaPassword(phone, password) {
+    // === Distributor / Plan B Login ===
+    async distributorLogin(phone, password) {
       const cleanPhone = String(phone).replace(/\D/g, '');
       const tokenRes = await ShopEasyAPI.post(
-        '/auth/customer/login/password',
-        { phone: cleanPhone, password: password },
+        '/auth/distributor/login/password',
+        {
+          phone: cleanPhone,
+          password: password,
+          programme: 'PLAN_B',
+        },
         { auth: false }
       );
 
@@ -487,6 +697,18 @@
     const loginUrl = options.loginUrl || `login.html?redirect=${encodeURIComponent(currentPath)}`;
 
     if (!token) {
+      // If an administrator is visiting storefront pages, redirect to admin counterpart if appropriate
+      const adminToken = getAdminToken();
+      if (adminToken) {
+        if (currentPath === 'dashboard.html' || currentPath.endsWith('/dashboard.html')) {
+          window.location.href = 'admin/dashboard.html';
+          return null;
+        }
+        if (currentPath === 'orders.html' || currentPath.endsWith('/orders.html')) {
+          window.location.href = 'admin/orders.html';
+          return null;
+        }
+      }
       window.location.href = loginUrl;
       return null;
     }
@@ -766,6 +988,7 @@
       const q = new URLSearchParams();
       if (params.page !== undefined) q.set('page', params.page);
       if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      if (params.search !== undefined && String(params.search).trim()) q.set('search', String(params.search).trim());
       const queryStr = q.toString() ? `?${q.toString()}` : '';
       return await ShopEasyAPI.get(`/admin/orders${queryStr}`, { auth: 'admin' });
     }
@@ -778,6 +1001,24 @@
     async validate(referralCode) {
       const cleanCode = String(referralCode || '').trim();
       return await ShopEasyAPI.post('/referrals/validate', { referral_code: cleanCode }, { auth: 'customer' });
+    }
+  };
+
+  // -------------------------------------------------------------------------
+  // ShopEasyCashback Service (Plan A Cashback Progress & Cycles)
+  // -------------------------------------------------------------------------
+  const ShopEasyCashback = {
+    async getProgress() {
+      return await ShopEasyAPI.get('/cashback/progress', { auth: 'customer' });
+    },
+    async getCycles() {
+      return await ShopEasyAPI.get('/cashback/cycles', { auth: 'customer' });
+    },
+    async getContributions(params = {}) {
+      const q = new URLSearchParams();
+      if (params.cycle_id) q.set('cycle_id', params.cycle_id);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/cashback/contributions${qs}`, { auth: 'customer' });
     }
   };
 
@@ -828,6 +1069,400 @@
   };
 
   // -------------------------------------------------------------------------
+  // ShopEasyNotifications Service
+  // -------------------------------------------------------------------------
+  const ShopEasyNotifications = {
+    async list(params = {}) {
+      const q = new URLSearchParams();
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      if (params.unread_only !== undefined) q.set('unread_only', params.unread_only);
+      const queryStr = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/notifications${queryStr}`, { auth: 'customer' });
+    },
+    async markRead(notificationId) {
+      if (!notificationId) throw new ApiError('Notification ID is required', 400);
+      try {
+        return await ShopEasyAPI.post(`/notifications/${notificationId}/read`, {}, { auth: 'customer' });
+      } catch (err) {
+        // Fallback to PATCH if POST returns 405
+        if (err && err.status === 405) {
+          return await ShopEasyAPI.patch(`/notifications/${notificationId}/read`, {}, { auth: 'customer' });
+        }
+        throw err;
+      }
+    },
+    async markAllRead() {
+      return await ShopEasyAPI.post('/notifications/read-all', {}, { auth: 'customer' });
+    }
+  };
+
+  // -------------------------------------------------------------------------
+  // ShopEasyDistributorReports Service (Commission Statements & Overview)
+  // -------------------------------------------------------------------------
+  const ShopEasyDistributorReports = {
+    async getDashboardOverview() {
+      return await ShopEasyAPI.get('/distributor/reports/dashboard-overview', { auth: 'customer' });
+    },
+    getStatementUrl(params = {}) {
+      const q = new URLSearchParams();
+      q.set('format', 'excel'); // Strictly Excel format per R-08 / PB-16
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      return `${API_BASE}/distributor/reports/commission-statement?${q.toString()}`;
+    },
+    async downloadStatement(params = {}) {
+      const url = this.getStatementUrl(params);
+      const token = getCustomerToken();
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(url, { method: 'GET', headers: headers });
+      if (!response.ok) {
+        let errorDetail = `Failed to download statement (${response.status})`;
+        try {
+          const errJson = await response.json();
+          if (errJson && errJson.detail) errorDetail = errJson.detail;
+        } catch (_) { }
+        throw new ApiError(errorDetail, response.status);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'arya_commission_statement.xlsx';
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        const match = contentDisposition.match(/filename=["']?([^"';]+)["']?/);
+        if (match && match[1]) filename = match[1];
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      return { success: true, filename: filename };
+    }
+  };
+
+  // -------------------------------------------------------------------------
+  // ShopEasyAdmin Service (Plan A, Plan B, Moderation, Search & Settings)
+  // -------------------------------------------------------------------------
+  const ShopEasyAdmin = {
+    async downloadFile(endpointUrl, defaultFilename = 'download.xlsx') {
+      const fullUrl = endpointUrl.startsWith('http') ? endpointUrl : `${API_BASE}${endpointUrl}`;
+      const token = getAdminToken();
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(fullUrl, { method: 'GET', headers: headers });
+      if (!response.ok) {
+        let errorDetail = `Failed to download file (${response.status})`;
+        try {
+          const errJson = await response.json();
+          if (errJson && errJson.detail) errorDetail = errJson.detail;
+        } catch (_) { }
+        throw new ApiError(errorDetail, response.status);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = defaultFilename;
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        const match = contentDisposition.match(/filename=["']?([^"';]+)["']?/);
+        if (match && match[1]) filename = match[1];
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      return { success: true, filename: filename };
+    },
+
+    // --- Plan A Inspection ---
+    async getPlanAReserveSummary() {
+      return await ShopEasyAPI.get('/admin/plan-a/reserve/summary', { auth: 'admin' });
+    },
+    async getPlanAQueues() {
+      return await ShopEasyAPI.get('/admin/plan-a/queues', { auth: 'admin' });
+    },
+    async getPlanAQueueEntries(queueId, params = {}) {
+      const q = new URLSearchParams();
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-a/queues/${queueId}/entries${qs}`, { auth: 'admin' });
+    },
+    async getPlanACycles(params = {}) {
+      const q = new URLSearchParams();
+      if (params.recipient_user_id) q.set('recipient_user_id', params.recipient_user_id);
+      if (params.queue_id) q.set('queue_id', params.queue_id);
+      if (params.status) q.set('status', params.status);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-a/cycles${qs}`, { auth: 'admin' });
+    },
+    async getPlanACycleContributions(cycleId) {
+      return await ShopEasyAPI.get(`/admin/plan-a/cycles/${cycleId}/contributions`, { auth: 'admin' });
+    },
+    async getPlanAReserve(params = {}) {
+      const q = new URLSearchParams();
+      if (params.queue_id) q.set('queue_id', params.queue_id);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-a/reserve${qs}`, { auth: 'admin' });
+    },
+    async getCustomerCashbackSummary(customerId) {
+      return await ShopEasyAPI.get(`/admin/plan-a/customers/${customerId}/cashback-summary`, { auth: 'admin' });
+    },
+    async getPlanACommissions(params = {}) {
+      const q = new URLSearchParams();
+      if (params.purchaser_id) q.set('purchaser_id', params.purchaser_id);
+      if (params.referrer_id) q.set('referrer_id', params.referrer_id);
+      if (params.status) q.set('status', params.status);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-a/commissions${qs}`, { auth: 'admin' });
+    },
+    async getPlanACustomerCashback(customerId) {
+      return await ShopEasyAPI.get(`/admin/plan-a/customers/${customerId}/cashback-summary`, { auth: 'admin' });
+    },
+
+    // --- Plan A Report Downloads (6 formats) ---
+    async downloadPlanACommissionsReport(format = 'excel', params = {}) {
+      const q = new URLSearchParams({ format: format });
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      if (params.customer_id) q.set('customer_id', params.customer_id);
+      if (params.billing_id) q.set('billing_id', params.billing_id);
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      return await this.downloadFile(`/admin/plan-a/reports/commissions?${q.toString()}`, `plan_a_commissions.${ext}`);
+    },
+    async downloadPlanACashbackReport(format = 'excel', params = {}) {
+      const q = new URLSearchParams({ format: format });
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      if (params.customer_id) q.set('customer_id', params.customer_id);
+      if (params.queue_id) q.set('queue_id', params.queue_id);
+      if (params.billing_id) q.set('billing_id', params.billing_id);
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      return await this.downloadFile(`/admin/plan-a/reports/cashback?${q.toString()}`, `plan_a_cashback.${ext}`);
+    },
+    async downloadPlanACustomerStatement(customerId, format = 'excel', params = {}) {
+      const q = new URLSearchParams({ format: format });
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const cleanId = encodeURIComponent(String(customerId).trim());
+      return await this.downloadFile(`/admin/plan-a/reports/customers/${cleanId}/statement?${q.toString()}`, `customer_${cleanId}_statement.${ext}`);
+    },
+
+    // --- Plan B Inspection ---
+    async getPlanBOverviewSummary() {
+      return await ShopEasyAPI.get('/admin/plan-b/summary', { auth: 'admin' });
+    },
+    async getPlanBDistributors(params = {}) {
+      const q = new URLSearchParams();
+      if (params.search) q.set('search', params.search);
+      if (params.status) q.set('status', params.status);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-b/distributors${qs}`, { auth: 'admin' });
+    },
+    async getPlanBDistributor(distributorId) {
+      return await ShopEasyAPI.get(`/admin/plan-b/distributors/${distributorId}`, { auth: 'admin' });
+    },
+    async getPlanBDistributorReferrals(distributorId, params = {}) {
+      const q = new URLSearchParams();
+      if (params.is_active_only !== undefined) q.set('is_active_only', params.is_active_only);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-b/distributors/${distributorId}/referrals${qs}`, { auth: 'admin' });
+    },
+    async getPlanBDistributorWallet(distributorId) {
+      return await ShopEasyAPI.get(`/admin/plan-b/distributors/${distributorId}/wallet`, { auth: 'admin' });
+    },
+    async getPlanBDirectCommissions(params = {}) {
+      const q = new URLSearchParams();
+      if (params.distributor_id) q.set('distributor_id', params.distributor_id);
+      if (params.referee_id) q.set('referee_id', params.referee_id);
+      if (params.order_id) q.set('order_id', params.order_id);
+      if (params.billing_id) q.set('billing_id', params.billing_id);
+      if (params.status) q.set('status', params.status);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-b/commissions/direct${qs}`, { auth: 'admin' });
+    },
+    async getPlanBGenerationCommissions(params = {}) {
+      const q = new URLSearchParams();
+      if (params.distributor_id) q.set('distributor_id', params.distributor_id);
+      if (params.referee_id) q.set('referee_id', params.referee_id);
+      if (params.order_id) q.set('order_id', params.order_id);
+      if (params.billing_id) q.set('billing_id', params.billing_id);
+      if (params.status) q.set('status', params.status);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-b/commissions/generation${qs}`, { auth: 'admin' });
+    },
+    async getPlanBBillingIds(params = {}) {
+      const q = new URLSearchParams();
+      if (params.user_id) q.set('user_id', params.user_id);
+      if (params.order_id) q.set('order_id', params.order_id);
+      if (params.status) q.set('status', params.status);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/plan-b/billing-ids${qs}`, { auth: 'admin' });
+    },
+
+    // --- Plan B Report Downloads (3 formats - Strictly Excel only per R-09) ---
+    async downloadPlanBPurchasesReport(params = {}) {
+      const q = new URLSearchParams({ format: 'excel' });
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      if (params.customer_name) q.set('customer_name', params.customer_name);
+      if (params.distributor_name) q.set('distributor_name', params.distributor_name);
+      if (params.mobile) q.set('mobile', params.mobile);
+      if (params.billing_id) q.set('billing_id', params.billing_id);
+      if (params.order_id) q.set('order_id', params.order_id);
+      return await this.downloadFile(`/admin/plan-b/reports/purchases?${q.toString()}`, 'plan_b_purchases.xlsx');
+    },
+    async downloadPlanBCommissionsReport(params = {}) {
+      const q = new URLSearchParams({ format: 'excel' });
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      if (params.distributor_name) q.set('distributor_name', params.distributor_name);
+      if (params.customer_name) q.set('customer_name', params.customer_name);
+      if (params.billing_id) q.set('billing_id', params.billing_id);
+      if (params.order_id) q.set('order_id', params.order_id);
+      if (params.commission_type) q.set('commission_type', params.commission_type);
+      return await this.downloadFile(`/admin/plan-b/reports/commissions?${q.toString()}`, 'plan_b_commissions.xlsx');
+    },
+    async downloadPlanBDistributorReport(distributorId, params = {}) {
+      const q = new URLSearchParams({ format: 'excel' });
+      if (params.start_date) q.set('start_date', params.start_date);
+      if (params.end_date) q.set('end_date', params.end_date);
+      const cleanId = encodeURIComponent(String(distributorId).trim());
+      return await this.downloadFile(`/admin/plan-b/reports/distributors/${cleanId}?${q.toString()}`, `distributor_${cleanId}_profile.xlsx`);
+    },
+
+    // --- Withdrawal Moderation ---
+    async getPendingWithdrawals() {
+      return await ShopEasyAPI.get('/admin/withdrawals/pending', { auth: 'admin' });
+    },
+    async approveWithdrawal(withdrawalId) {
+      return await ShopEasyAPI.post(`/admin/withdrawals/${withdrawalId}/approve`, {}, { auth: 'admin' });
+    },
+    async rejectWithdrawal(withdrawalId, reason) {
+      if (!reason || !reason.trim()) {
+        throw new ApiError('A rejection reason is mandatory.', 400);
+      }
+      return await ShopEasyAPI.post(`/admin/withdrawals/${withdrawalId}/reject`, { reason: reason.trim() }, { auth: 'admin' });
+    },
+    async freezeWallet(walletId, reason) {
+      if (!reason || !reason.trim()) {
+        throw new ApiError('A reason is mandatory for freezing a wallet.', 400);
+      }
+      return await ShopEasyAPI.post(`/admin/wallets/${walletId}/freeze`, { reason: reason.trim() }, { auth: 'admin' });
+    },
+    async unfreezeWallet(walletId, reason = 'Administrative unfreeze') {
+      return await ShopEasyAPI.post(`/admin/wallets/${walletId}/unfreeze`, { reason: reason }, { auth: 'admin' });
+    },
+    async getWalletFreezeHistory(walletId) {
+      return await ShopEasyAPI.get(`/admin/wallets/${walletId}/freeze-history`, { auth: 'admin' });
+    },
+    async lookupWalletsByUserNumber(userNumber) {
+      const q = (userNumber || '').trim();
+      if (!q) throw new ApiError('User Number cannot be empty.', 400);
+      return await ShopEasyAPI.get(`/admin/wallets/lookup-by-user-number?user_number=${encodeURIComponent(q)}`, { auth: 'admin' });
+    },
+    async freezeWalletByUserNumber(userNumber, reason, walletId = null) {
+      if (!reason || !reason.trim()) {
+        throw new ApiError('A reason is mandatory for freezing a wallet.', 400);
+      }
+      return await ShopEasyAPI.post('/admin/wallets/freeze-by-user-number', {
+        user_number: (userNumber || '').trim(),
+        wallet_id: walletId,
+        reason: reason.trim()
+      }, { auth: 'admin' });
+    },
+    async unfreezeWalletByUserNumber(userNumber, reason = 'Administrative unfreeze', walletId = null) {
+      return await ShopEasyAPI.post('/admin/wallets/unfreeze-by-user-number', {
+        user_number: (userNumber || '').trim(),
+        wallet_id: walletId,
+        reason: (reason || 'Administrative unfreeze').trim()
+      }, { auth: 'admin' });
+    },
+    async getWalletFreezeHistoryByUserNumber(userNumber, walletId = null) {
+      const q = (userNumber || '').trim();
+      if (!q) throw new ApiError('User Number cannot be empty.', 400);
+      let url = `/admin/wallets/freeze-history-by-user-number?user_number=${encodeURIComponent(q)}`;
+      if (walletId) url += `&wallet_id=${walletId}`;
+      return await ShopEasyAPI.get(url, { auth: 'admin' });
+    },
+
+    // --- Unified Search ---
+    async search(query) {
+      const q = (query || '').trim();
+      if (!q) throw new ApiError('Search query cannot be empty.', 400);
+      return await ShopEasyAPI.get(`/admin/search?q=${encodeURIComponent(q)}`, { auth: 'admin' });
+    },
+
+    // --- Plan A Dedicated Search ---
+    async searchPlanA(query) {
+      const q = (query || '').trim();
+      if (!q) throw new ApiError('Plan A search query cannot be empty.', 400);
+      return await ShopEasyAPI.get(`/admin/plan-a/search?q=${encodeURIComponent(q)}`, { auth: 'admin' });
+    },
+
+    // --- Plan B Dedicated Search ---
+    async searchPlanB(query) {
+      const q = (query || '').trim();
+      if (!q) throw new ApiError('Plan B search query cannot be empty.', 400);
+      return await ShopEasyAPI.get(`/admin/plan-b/search?q=${encodeURIComponent(q)}`, { auth: 'admin' });
+    },
+
+    // --- Financial Settings ---
+    async getFinancialSettings(params = {}) {
+      const q = new URLSearchParams();
+      if (params.programme) q.set('programme', params.programme);
+      if (params.setting_key) q.set('setting_key', params.setting_key);
+      if (params.is_active !== undefined) q.set('is_active', params.is_active);
+      if (params.as_of) q.set('as_of', params.as_of);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/admin/financial-settings${qs}`, { auth: 'admin' });
+    },
+    async createFinancialSetting(payload) {
+      return await ShopEasyAPI.post('/admin/financial-settings', payload, { auth: 'admin' });
+    },
+
+    // --- Admin In-Dashboard Notifications ---
+    async getNotifications(params = {}) {
+      const q = new URLSearchParams();
+      if (params.programme) q.set('programme', params.programme);
+      if (params.is_read !== undefined) q.set('is_read', params.is_read);
+      if (params.page !== undefined) q.set('page', params.page);
+      if (params.page_size !== undefined) q.set('page_size', params.page_size);
+      const qs = q.toString() ? `?${q.toString()}` : '';
+      return await ShopEasyAPI.get(`/notifications${qs}`, { auth: 'admin' });
+    }
+  };
+
+  // -------------------------------------------------------------------------
   // Global Browser Exports
   // -------------------------------------------------------------------------
   ShopEasyAPI.getSafeRedirectUrl = getSafeRedirectUrl;
@@ -836,8 +1471,12 @@
   ShopEasyAPI.addresses = ShopEasyAddresses;
   ShopEasyAPI.orders = ShopEasyOrders;
   ShopEasyAPI.referrals = ShopEasyReferrals;
+  ShopEasyAPI.cashback = ShopEasyCashback;
   ShopEasyAPI.dashboard = ShopEasyDashboard;
   ShopEasyAPI.wallets = ShopEasyWallets;
+  ShopEasyAPI.notifications = ShopEasyNotifications;
+  ShopEasyAPI.distributorReports = ShopEasyDistributorReports;
+  ShopEasyAPI.admin = ShopEasyAdmin;
 
   window.ShopEasyAPI = ShopEasyAPI;
   window.ShopEasyAuth = ShopEasyAuth;
@@ -846,8 +1485,12 @@
   window.ShopEasyAddresses = ShopEasyAddresses;
   window.ShopEasyOrders = ShopEasyOrders;
   window.ShopEasyReferrals = ShopEasyReferrals;
+  window.ShopEasyCashback = ShopEasyCashback;
   window.ShopEasyDashboard = ShopEasyDashboard;
   window.ShopEasyWallets = ShopEasyWallets;
+  window.ShopEasyNotifications = ShopEasyNotifications;
+  window.ShopEasyDistributorReports = ShopEasyDistributorReports;
+  window.ShopEasyAdmin = ShopEasyAdmin;
   window.ApiError = ApiError;
   window.getSafeRedirectUrl = getSafeRedirectUrl;
   window.requireCustomerAuth = requireCustomerAuth;

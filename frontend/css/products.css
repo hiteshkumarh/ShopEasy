@@ -290,7 +290,7 @@
   color: var(--color-text);
 }
 
-/* Quantity Selector */
+/* Quantity Selector - Apple Style Pill */
 .quantity-control {
   display: inline-flex;
   align-items: center;
@@ -323,6 +323,83 @@
   font-size: var(--text-sm);
   background: transparent;
   outline: none;
+}
+
+/* Apple-Style Pill Quantity Selector */
+.apple-pill-qty-selector {
+  display: inline-flex;
+  align-items: center;
+  background: #F1F3F5;
+  border: 1px solid #E2E8F0;
+  border-radius: 9999px;
+  padding: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all var(--transition-fast);
+}
+
+.apple-pill-qty-selector:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+}
+
+.apple-pill-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #FFFFFF;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-pill-btn:hover:not(:disabled) {
+  background: #FFFFFF;
+  transform: scale(1.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  color: var(--color-primary);
+}
+
+.apple-pill-btn:active:not(:disabled) {
+  transform: scale(0.95);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.apple-pill-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+  background: #E5E7EB;
+}
+
+.apple-pill-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+}
+
+.apple-pill-input {
+  width: 38px;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
+  outline: none;
+  cursor: default;
+}
+
+.quantity-subtotal-badge {
+  background: rgba(0, 113, 227, 0.08);
+  border: 1px solid rgba(0, 113, 227, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
 }
 
 .product-actions {

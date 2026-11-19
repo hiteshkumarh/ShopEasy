@@ -49,3 +49,14 @@ function formatNumber(num) {
   return new Intl.NumberFormat('en-IN').format(num);
 }
 
+// Universal Indian Rupee Currency Formatter
+function formatINR(amount) {
+  const num = typeof amount === 'number' ? amount : parseFloat(amount);
+  if (isNaN(num)) return '₹0.00';
+  return '₹' + num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+window.formatINR = formatINR;
+

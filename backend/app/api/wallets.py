@@ -42,6 +42,7 @@ def get_customer_wallets(
                 wallet_type=wallet.wallet_type,
                 balance=wallet.balance,
                 total_withdrawn=wallet.total_withdrawn,
+                is_frozen=wallet.is_frozen,
             )
         )
     return result

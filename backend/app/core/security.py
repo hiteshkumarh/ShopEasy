@@ -89,9 +89,18 @@ def decode_access_token(
     if not token or not isinstance(token, str):
         raise jwt.InvalidTokenError("Token must be a non-empty string.")
 
+    cleaned_token = token.strip()
+    if (cleaned_token.startswith('"') and cleaned_token.endswith('"')) or (
+        cleaned_token.startswith("'") and cleaned_token.endswith("'")
+    ):
+        cleaned_token = cleaned_token[1:-1].strip()
+
+    if not cleaned_token:
+        raise jwt.InvalidTokenError("Token must be a non-empty string.")
+
     try:
         payload = jwt.decode(
-            token,
+            cleaned_token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM],
         )
@@ -99,10 +108,10 @@ def decode_access_token(
         logger.warning("Token verification failed: token has expired.")
         raise
     except jwt.InvalidTokenError as exc:
-        logger.warning(f"Token verification failed: {type(exc).__name__}.")
+        logger.warning(f"Token verification failed: {type(exc).__name__} ({exc}).")
         raise
     except Exception as exc:
-        logger.warning(f"Unexpected error decoding token: {type(exc).__name__}.")
+        logger.warning(f"Unexpected error decoding token: {type(exc).__name__} ({exc}).")
         raise jwt.InvalidTokenError("Malformed or unparseable token.") from exc
 
     if expected_type is not None and payload.get("type") != expected_type:

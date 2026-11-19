@@ -27,6 +27,27 @@ class CheckoutRequest(BaseModel):
         max_length=20,
         description="Optional referral code (valid only on customer's first successful order)",
     )
+    simulate_payment: Optional[bool] = Field(
+        False,
+        description="Whether to immediately simulate and confirm payment execution in development/test",
+    )
+
+
+class OrderItemBillingIdResponse(BaseModel):
+    """Authoritative product unit Billing ID."""
+
+    id: int
+    billing_number: str
+    unit_index: int
+    status: str
+    order_item_id: Optional[int] = None
+    sequence_number: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+BillingIdResponse = OrderItemBillingIdResponse
 
 
 class OrderItemResponse(BaseModel):
@@ -38,6 +59,8 @@ class OrderItemResponse(BaseModel):
     unit_price: Decimal
     quantity: int
     line_total: Decimal
+    product_image: Optional[str] = None
+    billing_ids: List[OrderItemBillingIdResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -83,6 +106,8 @@ class OrderResponse(BaseModel):
     order_items: List[OrderItemResponse] = []
     order_allocation: Optional[OrderAllocationResponse] = None
     address: Optional[AddressResponse] = None
+    billing_ids: List[OrderItemBillingIdResponse] = []
+    latest_attempt_reference: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

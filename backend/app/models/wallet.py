@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum,
@@ -49,6 +50,9 @@ class Wallet(Base):
     )
     total_withdrawn: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), default=Decimal("0.00"), nullable=False
+    )
+    is_frozen: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0", nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
@@ -159,8 +163,17 @@ class Withdrawal(Base):
     requested_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
-    completed_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    rejection_reason: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
+    admin_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", onupdate="CASCADE", ondelete="SET NULL"), nullable=True
+    )
+    receipt_reference: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
     )
 
     __table_args__ = (
@@ -200,3 +213,31 @@ class Withdrawal(Base):
     @property
     def wallet_type(self) -> Optional[WalletType]:
         return self.wallet.wallet_type if self.wallet else None
+
+
+class WalletFreezeHistory(Base):
+    """Audit log tracking wallet administrative freeze and unfreeze events."""
+
+    __tablename__ = "wallet_freeze_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    wallet_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("wallets.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+    )
+    admin_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_wallet_freeze_wallet_id", "wallet_id"),
+        Index("idx_wallet_freeze_admin_id", "admin_id"),
+    )

@@ -127,6 +127,9 @@ class FulfilmentRecoveryWorker:
                 if orch_result.status == "COMPLETED":
                     result.orders_fulfilled += 1
                     logger.info(f"Recovery worker fulfilled order #{order_id}.")
+                    from app.services.fulfilment_handoff import dispatch_order_commissions, dispatch_order_cashback
+                    dispatch_order_commissions(order_id=order_id, session_factory=get_session)
+                    dispatch_order_cashback(order_id=order_id, session_factory=get_session)
                 elif orch_result.status == "ALREADY_FULFILLED":
                     result.orders_already_fulfilled += 1
                     logger.info(f"Recovery worker skipped order #{order_id}: already fulfilled.")
